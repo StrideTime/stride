@@ -1,0 +1,50 @@
+---
+description: Jira ticket naming conventions for the SD project. Apply when creating or renaming Jira tickets.
+alwaysApply: true
+---
+
+# Jira Ticket Naming Conventions
+
+This file is the single source of truth for Jira naming conventions.
+
+## Epics
+
+Format: `TEAM::[MVP::]Feature Name`
+
+| Prefix | Team | Scope |
+|--------|------|-------|
+| `BE::` | Backend | Services, schema, repos, DB |
+| `FE::` | Frontend | UI, React components, pages |
+| `DE::` | Desktop | Tauri, Rust, native shell |
+| `DES::` | Design | Design mockups, UX review |
+| `INF::` | Infrastructure | CI/CD, DevOps, tooling |
+
+Add `::MVP::` only if the epic is part of the initial MVP release scope.
+
+Examples: `INF::MVP::Monorepo & Build`, `BE::MVP::Supabase Security`, `FE::Habit Tracking`, `DES::Settings Pages`
+
+## Stories
+
+Format: `Stream::Type::Name`
+
+**Stream** identifies the feature domain (15 options):
+Security, Backend, UI, Tasks, Planning, Tray, Stats, Settings, Focus, Habits, Teams, Billing, Admin, DevOps, Testing, Design
+
+**Type** identifies the work kind (10 options):
+Schema, Repo, Service, Context, Component, View, Integration, Config, Test, Design
+
+**Exception:** Design stories skip the Type segment and use `Design::Name` directly.
+
+Examples:
+- `Security::Schema::RLS Policies`
+- `Backend::Service::BreakService`
+- `UI::Config::Install Tailwind CSS`
+- `Tasks::View::Today View`
+- `DevOps::Config::Add Turborepo`
+- `Design::Tray Focus Tab — 5-state layout review`
+
+## Rules
+
+- The story Stream prefix and the parent epic's Team prefix are independent — a `Backend::` story can sit under an `FE::` epic.
+- The parent field in Jira links a story to its epic; the prefix is for filtering and scanning the board.
+- When creating new tickets, always follow these conventions. If unsure which Stream or Type to use, ask.

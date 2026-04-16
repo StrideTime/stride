@@ -1,0 +1,96 @@
+---
+description: Service class pattern, method execution order, and validation conventions for @stridetime/core. Apply when editing *.service.ts files.
+globs: ["**/*.service.ts"]
+---
+
+# Service Patterns (`@stridetime/core`)
+
+## Service Class Structure
+
+```typescript
+import {
+  taskRepo as defaultTaskRepo,
+  type TaskRepository,
+  type StrideDatabase,
+} from '@stridetime/db';
+import type { Task, CreateTaskInput } from '@stridetime/types';
+import { ValidationError, NotFoundError } from '@stridetime/types';
+import { sanitizeFields } from '../utils/sanitize';
+
+export class TaskService {
+  constructor(
+    private taskRepo: TaskRepository = defaultTaskRepo,
+  ) {}
+
+  async create(db: StrideDatabase, params: CreateTaskInput): Promise<Task> {
+    // 1. Sanitize inputs
+    const sanitized = sanitizeFields(params);
+    // 2. Validate synchronously
+    this.validateCreate(sanitized);
+    // 3. Async existence checks
+    const project = await this.taskRepo.findById(db, sanitized.projectId);
+    if (!project) throw new NotFoundError('Project not found');
+    // 4. Business logic
+    // 5. Repo call
+    return this.taskRepo.create(db, { ...sanitized, userId: params.userId });
+  }
+
+  async update(db: StrideDatabase, id: string, params: UpdateTaskInput): Promise<Task> {
+    const sanitized = sanitizeFields(params);
+    this.validateUpdate(sanitized);
+    const existing = await this.taskRepo.findById(db, id);
+    if (!existing) throw new NotFoundError('Task not found');
+    await this.taskRepo.update(db, id, sanitized);
+    return { ...existing, ...sanitized };
+  }
+
+  async delete(db: StrideDatabase, id: string): Promise<void> {
+    const existing = await this.taskRepo.findById(db, id);
+    if (!existing) throw new NotFoundError('Task not found');
+    await this.taskRepo.delete(db, id);
+  }
+
+  private validateCreate(params: CreateTaskInput): void {
+    if (!params.title?.trim()) {
+      throw new ValidationError('title', 'Task title is required');
+    }
+  }
+
+  private validateUpdate(params: UpdateTaskInput): void {
+    if (params.title !== undefined && !params.title?.trim()) {
+      throw new ValidationError('title', 'Task title cannot be empty');
+    }
+  }
+}
+
+// Always export both class and singleton
+export const taskService = new TaskService();
+```
+
+## Method Execution Order
+
+Every `create` / `update` method must follow this order — no exceptions:
+
+1. `sanitizeFields(params)` — trim strings, normalize values
+2. `this.validateXxx(sanitized)` — synchronous validation, throws `ValidationError`
+3. Async DB existence checks — throws `NotFoundError` if missing
+4. Business logic (calculations, transformations)
+5. Repo call(s)
+6. Return result
+
+## Validation Rules
+
+- Validation methods are `private` and named `validateCreate`, `validateUpdate`, etc.
+- They throw `ValidationError(field, message)` — never return booleans
+- Synchronous validation runs before any async work
+- Required fields, format checks, and business rule violations all live here
+
+## DI Pattern
+
+- Constructor takes typed repo interfaces with default singleton values
+- This enables test injection without a DI container
+- Never call `new TaskRepository()` inside a service method — use the injected instance
+
+## sanitizeFields
+
+Every `create` and `update` method must call `sanitizeFields` before anything else. This trims string inputs and normalizes falsy values. Do not skip it even if inputs seem clean.

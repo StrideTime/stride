@@ -1,0 +1,168 @@
+---
+description: React component conventions, PowerSync data patterns, state management rules, and file organization for stride-desktop. Apply to .tsx files and hooks/contexts in stride-desktop.
+globs: ["stride-desktop/src/**/*.tsx", "stride-desktop/src/**/*.ts", "stride-mobile/src/**/*.tsx", "stride-mobile/src/**/*.ts"]
+---
+
+# React Patterns (stride-desktop / stride-mobile)
+
+## Styling
+
+**BaseUI + CSS Modules — no Tailwind, no shadcn/ui.**
+
+- Use [Base UI](https://base-ui.com) for unstyled/accessible primitives (dialogs, dropdowns, popovers, etc.)
+- Style with CSS Modules: one `ComponentName.module.css` file per component
+- Import styles as `styles` and apply via `className={styles.foo}`
+- Never use inline style objects except for dynamic values (e.g. calculated widths)
+
+```typescript
+import styles from './TaskCard.module.css';
+
+export function TaskCard({ task }: TaskCardProps) {
+  return (
+    <div className={styles.card}>
+      <span className={styles.title}>{task.title}</span>
+    </div>
+  );
+}
+```
+
+CSS Module files are named `PascalCase.module.css` to match their component.
+
+## Component Conventions
+
+**Named function exports — no default exports:**
+
+```typescript
+// CORRECT
+export function TodayView() {
+  return <div>...</div>;
+}
+
+// WRONG
+export default function TodayView() { ... }
+const TodayView = () => { ... }; export default TodayView;
+```
+
+**Props type with `Props` suffix:**
+
+```typescript
+type TaskCardProps = {
+  task: Task;
+  onStart?: () => void;
+  className?: string;
+};
+
+export function TaskCard({ task, onStart, className }: TaskCardProps) {
+  // ...
+}
+```
+
+## File Organization
+
+```
+stride-desktop/src/
+  pages/           # Top-level route views (TodayView, ProjectView, etc.)
+  components/
+    shared/        # Reusable across features
+    {feature}/     # Feature-specific (auth/, navigation/, etc.)
+  hooks/           # Custom hooks (useAuth.ts, useSyncStatus.ts)
+  contexts/        # React contexts (AuthContext, WorkspaceContext)
+  layouts/         # Layout wrappers
+  lib/             # Non-React utilities, DB init (db.ts)
+```
+
+## Data Fetching — PowerSync
+
+**All reactive DB reads use `useQuery` from `@powersync/react`:**
+
+```typescript
+import { useQuery } from '@powersync/react';
+
+export function TaskList({ userId }: { userId: string }) {
+  const { data: tasks, isLoading, error } = useQuery(
+    'SELECT * FROM tasks WHERE user_id = ? AND deleted = 0 ORDER BY created_at DESC',
+    [userId]
+  );
+
+  if (isLoading) return <Spinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return <ul>{tasks.map(task => <TaskCard key={task.id} task={task} />)}</ul>;
+}
+```
+
+**Rules:**
+- `useQuery` for reactive reads (auto-updates when tables change)
+- `useSuspenseQuery` for Suspense-compatible reads
+- `useStatus` for sync connection status
+- `usePowerSync` for direct DB access in hooks
+- `PowerSyncContext.Provider` MUST wrap all components that use these hooks
+- Do NOT build custom watch/refresh hooks — use the official `@powersync/react` hooks
+- Do NOT use refresh counters, polling, or callback-based refresh patterns
+
+## Mutations
+
+All writes go through services from `@stridetime/core` — never call repo methods directly from UI:
+
+```typescript
+import { taskService } from '@stridetime/core';
+import { usePowerSync } from '@powersync/react';
+
+export function CreateTaskForm() {
+  const db = usePowerSync();
+
+  async function handleSubmit(data: CreateTaskInput) {
+    try {
+      await taskService.create(db, data);
+    } catch (err) {
+      handleServiceError(err);
+    }
+  }
+}
+```
+
+## Error Handling in Components
+
+```typescript
+import { ValidationError, NotFoundError, PermissionError } from '@stridetime/types';
+
+try {
+  await taskService.create(db, params);
+} catch (err) {
+  if (err instanceof ValidationError) {
+    setFieldError(err.field, err.message);
+  } else if (err instanceof NotFoundError) {
+    setError('Item not found');
+  } else if (err instanceof PermissionError) {
+    setError("You don't have access");
+  } else {
+    throw err; // Let ErrorBoundary handle unknown errors
+  }
+}
+```
+
+## State Management Rules
+
+| State type | Where it lives |
+|---|---|
+| Server/DB data | `useQuery` from `@powersync/react` |
+| Ephemeral UI state | `useState` (modal open, form inputs, loading flags) |
+| Cross-component state | React Context (`src/contexts/`) |
+| Timer state | `TimerContext` stores `startedAt` timestamp — display components run their own `setInterval` |
+
+## Custom Hooks
+
+```typescript
+// src/hooks/useAuth.ts
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+- All custom hooks live in `src/hooks/`
+- Hooks that wrap a context always throw if used outside the provider
+- Hooks are named `useSomething` — always camelCase with `use` prefix

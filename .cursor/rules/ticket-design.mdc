@@ -1,0 +1,60 @@
+---
+description: How to design well-scoped Jira tickets with clear acceptance criteria. Apply when creating or breaking down tickets.
+alwaysApply: true
+---
+
+# Ticket Design Criteria
+
+## Sizing
+
+- A ticket should represent **one unit of deliverable work** — not a theme, not a phase.
+- If a ticket covers multiple pages, screens, or distinct components, split it.
+- A designer or developer should be able to complete the ticket in **one focused session** (roughly 1–3 hours of work).
+
+## Acceptance Criteria
+
+Every ticket must have checkboxable acceptance criteria:
+
+- [ ] Specific, observable outputs (not vague goals)
+- [ ] One checkbox per requirement — not bundled
+- [ ] States and edge cases called out explicitly (empty state, error state, loading, disabled)
+
+**Bad:** "Design the settings pages"
+**Good:** "Design the Account page showing: profile section with avatar upload, password change with validation error state, and delete confirmation modal"
+
+## Required Sections
+
+Each ticket description must include:
+
+1. **Context** — what this is and why it matters (1–2 sentences)
+2. **Acceptance criteria** — checkboxable list of specific deliverables
+3. **States to deliver** — numbered list of distinct states/variations
+4. **Deliverable** — what artifact is produced (Figma frames, code, tests, etc.)
+5. **Dependencies** — what must be done first (link to blocking tickets)
+6. **Engineering reference** — link to related implementation ticket if applicable
+
+## No Placeholder Tickets
+
+Do not create a ticket until the design and requirements are known. A ticket for "Notifications page (placeholder)" wastes backlog space. If a feature isn't designed yet, the ticket doesn't exist yet.
+
+## Design Tickets (DES:: epic)
+
+Design tickets follow `Design::Name` naming (skip the Type segment).
+
+Additional rules for design tickets:
+- **Feedback needed = 3–6 specific, actionable questions** — not open-ended design briefs
+- Always reference the **Storybook component** and **engineering ticket**
+- Call out **design decisions needed** — questions the designer must answer
+- Identify **reusable components** — if this ticket creates a pattern used elsewhere, say so
+- Reference the **Figma prototype** if one exists (`Figma Make Files/` directory)
+- Specify **which states** to mock up (not just "design the page")
+
+## Anti-patterns
+
+- Placeholder tickets ("Notifications page (placeholder)") — don't create until requirements are known
+- Multi-page tickets ("Design Account & Appearance") — split into one per page
+- Vague criteria ("Make it look good") — specify what "done" means
+- Missing states ("Design the billing page") — specify Free vs Pro, empty vs populated
+- No context ("Design the schedule card") — explain where it lives and how it's used
+- Bundling components with pages — reusable components get their own ticket first
+- Open-ended design briefs — use 3–6 specific questions instead

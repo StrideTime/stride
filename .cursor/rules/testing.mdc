@@ -1,0 +1,134 @@
+---
+description: Testing conventions, file naming, mock patterns, and coverage requirements using Vitest. Apply to *.test.ts and *.test.tsx files.
+globs: ["**/*.test.ts", "**/*.test.tsx"]
+---
+
+# Testing Conventions
+
+## Framework
+
+- **Vitest** across all packages — not Jest
+- `globals: true` in vitest config — no need to import `describe`, `it`, `expect`, `vi`
+
+## Test File Naming & Location
+
+```
+stride-db/src/tests/repositories/task.repo.test.ts
+stride-core/src/tests/services/task.service.test.ts
+stride-desktop/src/tests/hooks/useSyncStatus.test.ts
+```
+
+## Repository Tests (stride-db)
+
+Test against a real in-memory SQLite database, not mocks:
+
+```typescript
+import { taskRepo } from '../../repositories/task.repo';
+import { createTestDb } from '../setup';
+import type { Task } from '@stridetime/types';
+
+describe('TaskRepository', () => {
+  let db: any;
+
+  beforeEach(() => {
+    db = createTestDb(); // In-memory SQLite via better-sqlite3
+  });
+
+  describe('create', () => {
+    it('creates a task and returns it with a generated id', async () => {
+      const input: Omit<Task, 'id'> = {
+        title: 'Test Task',
+        status: TaskStatus.TODO,
+        // ... other required fields
+      };
+      const result = await taskRepo.create(db, input);
+      expect(result.id).toBeTruthy();
+      expect(result.title).toBe('Test Task');
+    });
+  });
+
+  describe('findById', () => {
+    it('returns null for a non-existent id', async () => {
+      const result = await taskRepo.findById(db, 'does-not-exist');
+      expect(result).toBeNull();
+    });
+
+    it('does not return soft-deleted records', async () => {
+      const task = await taskRepo.create(db, validTaskInput);
+      await taskRepo.delete(db, task.id);
+      const result = await taskRepo.findById(db, task.id);
+      expect(result).toBeNull();
+    });
+  });
+});
+```
+
+**Minimum 6 tests per new repository:** CRUD operations + soft delete behavior + edge cases.
+
+## Service Tests (stride-core)
+
+Mock the repository — test service logic in isolation:
+
+```typescript
+// Hoist mocks BEFORE imports
+const { mockTaskRepo } = vi.hoisted(() => ({
+  mockTaskRepo: {
+    create: vi.fn(),
+    findById: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+vi.mock('@stridetime/db', () => ({
+  taskRepo: mockTaskRepo,
+  TaskRepository: vi.fn(),
+}));
+
+describe('TaskService', () => {
+  let service: TaskService;
+  let mockDb: any;
+
+  beforeEach(() => {
+    service = new TaskService(mockTaskRepo);
+    mockDb = {};
+    vi.clearAllMocks();
+  });
+
+  it('throws ValidationError when title is empty', async () => {
+    await expect(
+      service.create(mockDb, { title: '', projectId: 'p1' })
+    ).rejects.toThrow(ValidationError);
+    expect(mockTaskRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('throws NotFoundError when project does not exist', async () => {
+    mockTaskRepo.findById.mockResolvedValue(null);
+    await expect(
+      service.create(mockDb, { title: 'Task', projectId: 'missing' })
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it('creates a task with valid params', async () => {
+    mockTaskRepo.findById.mockResolvedValue(validProject);
+    mockTaskRepo.create.mockResolvedValue({ id: '1', title: 'Task' });
+    const result = await service.create(mockDb, validInput);
+    expect(mockTaskRepo.create).toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({ title: 'Task' })
+    );
+    expect(result.id).toBe('1');
+  });
+});
+```
+
+**Minimum 8 tests per new service:** validation errors + not-found paths + happy path + sanitization.
+
+## Test Quality Rules
+
+- Test observable behavior — not internal implementation details
+- One assertion focus per test (a test can have multiple `expect` calls if they verify one behavior)
+- Test names read as: `it('does X when Y')`
+- `vi.clearAllMocks()` in `beforeEach` — never share mock state between tests
+- Never commit code that breaks existing tests
+- Run `yarn build && yarn test` in all affected packages before committing

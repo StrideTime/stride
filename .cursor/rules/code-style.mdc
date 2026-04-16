@@ -1,0 +1,121 @@
+---
+description: Core code style, formatting, naming conventions, and import rules for all Stride packages. Apply to any TypeScript or TSX file.
+alwaysApply: true
+---
+
+# Code Style
+
+## Formatting
+
+- Indentation: 2 spaces (no tabs)
+- Quotes: single quotes for all strings (`'text'`, not `"text"`)
+- Semicolons: always
+- Line length: 100 characters max
+- Trailing commas: ES5 style (yes in objects/arrays, no after last function param)
+- Arrow parens: omit when possible (`x => x`, not `(x) => x`)
+- Line endings: LF
+
+```typescript
+// CORRECT
+const name = 'Stride';
+const items = ['one', 'two', 'three'];
+const fn = x => x * 2;
+
+// WRONG
+const name = "Stride"
+const fn = (x) => x * 2
+```
+
+## Naming Conventions
+
+| Thing | Convention | Example |
+|---|---|---|
+| Files (types, entities, enums) | PascalCase | `TaskStatus.ts`, `CreateTaskInput.ts` |
+| Files (repos, services, hooks) | kebab-case | `task.repo.ts`, `task.service.ts`, `useSyncStatus.ts` |
+| Files (React components) | PascalCase | `TaskCard.tsx`, `TodayView.tsx` |
+| Files (CSS Modules) | PascalCase matching component | `Auth.module.css`, `Dashboard.module.css` |
+| Classes | PascalCase | `TaskService`, `TaskRepository` |
+| Instances/singletons | camelCase | `taskService`, `taskRepo` |
+| Functions | camelCase | `toDomain`, `sanitizeFields` |
+| React components | PascalCase function | `function TodayView()` |
+| Hooks | camelCase with `use` prefix | `useAuth`, `useSyncStatus` |
+| Types (domain entities) | PascalCase | `type Task = { ... }` |
+| Types (inputs/DTOs) | PascalCase | `type CreateTaskInput = { ... }` |
+| Enums (as const objects) | PascalCase | `const TaskStatus = { ... } as const` |
+| Constants | UPPER_SNAKE_CASE | `const UNDO_TIMEOUT_MS = 10_000` |
+| DB columns | camelCase TS / snake_case SQL | `firstName` maps to `first_name` |
+
+## Import Rules
+
+```typescript
+// 1. Use `import type` for type-only imports
+import type { Task, Project } from '@stridetime/types';
+import type { StrideDatabase } from '@stridetime/db';
+
+// 2. Separate value imports from type imports
+import { TaskStatus, TaskDifficulty } from '@stridetime/types';
+import { taskService } from '@stridetime/core';
+
+// 3. Use alias for default repo imports in services
+import {
+  taskRepo as defaultTaskRepo,
+  type TaskRepository,
+} from '@stridetime/db';
+
+// 4. Relative imports for same-package files
+import { tasksTable } from '../drizzle/schema';
+import { generateId, now } from '../db/utils';
+
+// 5. Never import from @stridetime/db in stride-desktop (use @stridetime/core)
+//    The ONLY exception is stride-desktop/src/lib/db.ts for database init
+```
+
+## Type Definitions in stride-types
+
+**Enums — `as const` objects, NOT TypeScript `enum`:**
+```typescript
+// CORRECT
+export const TaskPriority = {
+  CRITICAL: 'CRITICAL',
+  HIGH: 'HIGH',
+  MEDIUM: 'MEDIUM',
+  LOW: 'LOW',
+  NONE: 'NONE',
+} as const;
+export type TaskPriority = (typeof TaskPriority)[keyof typeof TaskPriority];
+
+// WRONG
+export enum TaskPriority { CRITICAL = 'CRITICAL' }
+```
+
+**Entities — `type`, not `interface`:**
+```typescript
+// CORRECT
+export type Task = { id: string; title: string; status: TaskStatus };
+
+// WRONG
+export interface Task { ... }
+```
+
+**Inputs/DTOs — also `type`:**
+```typescript
+export type CreateTaskInput = {
+  title: string;
+  projectId: string;
+};
+```
+
+**Always use `type`, never `interface`** — for entities, inputs, props, everything.
+
+**Exports — barrel pattern, type-only for non-enums:**
+```typescript
+// subdirectory index.ts
+export type { Task } from './Task';        // type-only for entities
+export { TaskStatus } from './TaskStatus'; // value export for enums
+
+// src/index.ts
+export type { Task, Project } from './entities';
+export { TaskStatus, TaskDifficulty } from './enums';
+```
+
+**One type/enum/input per file.**

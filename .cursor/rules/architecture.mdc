@@ -1,0 +1,63 @@
+---
+description: Package dependency direction, layer boundaries, and architectural constraints for the Stride monorepo. Apply to all files.
+alwaysApply: true
+---
+
+# Architecture
+
+## Monorepo Structure
+
+Stride is a TypeScript monorepo (pnpm) with a strict unidirectional dependency graph:
+
+```
+@stridetime/types  →  @stridetime/db  →  @stridetime/core  →  stride-desktop
+   (types only)        (schema, repos)    (services, logic)    (UI, pages)
+```
+
+**Pending rename (SD-162):** `@stridetime/db` will be renamed to `@stridetime/sync` — same package, same position in the dependency chain, same responsibilities. All current code uses `@stridetime/db`. Once SD-162 is complete, update all import references in these rules and the codebase.
+
+Each layer may only import from layers to its left. Never import upward.
+
+## What Each Layer Contains
+
+| Package | Responsibility |
+|---|---|
+| `@stridetime/types` | Domain types, enums, input interfaces — no logic, no DB |
+| `@stridetime/db` | Drizzle schema, repository classes, DB utilities, PowerSync connector (`src/db/connector.ts`). Will be renamed to `@stridetime/sync` via SD-162; will also house `powersync.yaml` after SD-229. |
+| `@stridetime/core` | Business logic services, validation, orchestration |
+| `stride-desktop` | Tauri + React UI, pages, components, hooks, contexts |
+| `stride-mobile` | Expo + React Native — same layer as stride-desktop |
+| `stride-admin` | Vite + React admin UI — same layer as stride-desktop |
+| `@stridetime/ui` | Shared component library — no business logic |
+
+## Import Rules by Package
+
+### `@stridetime/types`
+- Imports from: nothing (leaf node)
+- Never imports from any other `@stridetime/*` package
+
+### `@stridetime/db` (future: `@stridetime/sync`)
+- Imports from: `@stridetime/types` only
+- Never imports from `@stridetime/core` or `stride-desktop`
+
+### `@stridetime/core`
+- Imports from: `@stridetime/db` and `@stridetime/types`
+- Never imports from `stride-desktop`
+
+### `stride-desktop`
+- Imports from: `@stridetime/core` and `@stridetime/types`
+- **Never imports from `@stridetime/db`** — the only exception is `src/lib/db.ts` for database initialization
+
+## Service Layer Boundary
+
+- All **mutations** go through services in `@stridetime/core`
+- UI components call service methods — never call repository methods directly
+- **Reads** use `useQuery` from `@powersync/react` with raw SQL
+- **Writes** use service methods
+
+## Key Architectural Decisions
+
+- SQLite (Drizzle ORM) with PowerSync for offline-first sync
+- Tauri 2 (Rust) for desktop shell — Rust code lives in `stride-desktop/src-tauri/`
+- Every table has soft deletes (`deleted` boolean column) — deleted records are never hard-deleted
+- PowerSync handles reactive queries — do NOT build custom refresh/watch patterns

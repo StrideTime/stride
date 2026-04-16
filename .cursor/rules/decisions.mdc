@@ -1,0 +1,66 @@
+---
+description: Append-only log of significant architectural decisions. The AI reads this to understand why things are the way they are. NEVER delete or modify existing entries — only append new ones.
+alwaysApply: true
+---
+
+# Architectural Decision Log
+
+**Rule: only append. Never delete or edit past entries. Each entry has a date so recency is always clear.**
+
+Format:
+```
+## YYYY-MM-DD: Short title
+Context and reasoning. Reference the Jira ticket if applicable.
+```
+
+---
+
+## 2026-03-18: Rename `roles` table to `plans`
+The `roles` table was originally named during early development before the product model was clear. The product uses the term "plans" (subscription plans), not "roles." All downstream FK fields (`roleId`) are being renamed to `planId`. All schema definitions, migrations, repositories, and references must use `plans`/`planId` going forward. See SD-187.
+
+## 2026-03-18: Cursor rules as the convention source of truth
+Moved conventions from `.claude/CLAUDE.md` (Claude CLI-specific) to `.cursor/rules/*.mdc` (Cursor-native). The `.mdc` files are automatically injected by Cursor into every AI session — no manual pasting required. `.claude/CLAUDE.md` is kept for Claude CLI compatibility but `.cursor/rules/` is authoritative for Cursor sessions.
+
+## 2026-03-18: Jira (SD project) as the task source of truth
+`.agents/STRIDE_MASTER_PLAN.md` is demoted to a high-level roadmap reference. Individual tasks are tracked in Jira tickets. The Cursor AI agent has Jira MCP access and reads tickets directly before writing code.
+
+## 2026-03-18: workspace_user_status is a current-state table, not a soft-delete table (SD-185)
+The `workspace_user_status` table stores one current row per `user_id + workspace_id` and is updated in place (upsert pattern). It does not use soft deletes — there is no "deleted" state, just presence or absence of a row. Status is workspace-scoped: switching workspaces reads that workspace's current status row. This table is exempt from the standard soft-delete requirement.
+
+## 2026-03-18: powersync.yaml moves to @stridetime/sync (SD-229)
+PowerSync configuration (`powersync.yaml`) is extracted from the desktop app into a standalone `@stridetime/sync` package. This gives PowerSync config a clear shared home before visibility/sync rules are refined. The `@stridetime/sync` package is infrastructure-only and is not part of the app dependency chain (types → db → core → desktop).
+
+## 2026-03-18: PowerSync upload connector location (SD-75)
+The PowerSync upload connector lives at `stride-db/src/db/connector.ts`. The blocked-table guard (skipping writes to protected billing/admin tables) also lives there, near `uploadData()`. The protected table list must be reconciled against post-schema-integrity names after SD-184 and SD-187 complete — in particular, `roles` becomes `plans` after SD-187.
+
+## 2026-03-19: Styling stack — BaseUI + CSS Modules (replaces Tailwind + shadcn/ui)
+Tailwind CSS and shadcn/ui are no longer used. The UI stack is Base UI (unstyled accessible primitives) + CSS Modules for all styling. CSS Module files are named `ComponentName.module.css` and co-located with their component. Inline style objects are only acceptable for dynamic computed values.
+
+## 2026-03-19: CORRECTION — @stridetime/sync is @stridetime/db renamed, not a standalone package (SD-162)
+The 2026-03-18 entry "powersync.yaml moves to @stridetime/sync" was wrong. It described `@stridetime/sync` as a "standalone infrastructure package outside the app dependency chain." That is incorrect.
+
+SD-162 (DevOps::Config::Rename db to sync) confirms: `@stridetime/sync` is `@stridetime/db` renamed in-place. Same package directory (`packages/db/` → `packages/sync/`), same position in the dependency chain, same responsibilities (Drizzle schema, repositories, DB utilities, PowerSync connector). The rename is blocked by SD-158 (Add Turborepo) and has not happened yet — all current code still uses `@stridetime/db`.
+
+After SD-162 completes, all `@stridetime/db` imports become `@stridetime/sync`. After SD-229 completes, `powersync.yaml` moves from the desktop app into this same (renamed) package.
+
+Dependency chain is unchanged: `types → db (→ sync after SD-162) → core → desktop`.
+
+## 2026-03-19: PowerSync-everywhere — no separate API package for web
+A `@stridetime/api` package with Postgres repos, tRPC, and a parallel Drizzle schema was considered and rejected. Instead, the web app uses the same PowerSync/SQLite architecture as the desktop. Both targets share the same React codebase, `@stridetime/db` repos, and `@stridetime/core` services. No repository interface extraction, no `db` param refactor, no schema duplication needed.
+
+Security enforcement is server-side:
+- **RLS policies** (SD-73, SD-224–227): only server-side authorization for user CRUD in PowerSync architecture
+- **Postgres CHECK constraints** (SD-239): data validation safety net for bypassed client-side validation
+- **Supabase Edge Functions** (SD-76): server-side execution for billing, multi-user ops, admin, and scoring
+- **Upload connector rejection handling** (SD-240): graceful handling of server-rejected writes
+
+Admin dashboard (`stride-admin/`) is NOT a PowerSync client — it calls Edge Functions directly.
+
+Superseded: SD-174 (Repository Contracts), SD-175 (Backend Services).
+New tickets: SD-239, SD-240, SD-241, SD-242.
+
+## 2026-03-19: DES:: epic prefix for Design work
+Added `DES::` as a new Jira epic team prefix for Design epics (mockups, UX review, design system work). Distinct from `DE::` which means Desktop/Tauri/Rust. The full epic prefix set is now: BE, FE, DE, DES, INF. Convention documented in `.cursor/rules/ticket-conventions.mdc`.
+
+## 2026-03-19: .cursor/rules/ as the single convention source
+`.cursor/rules/*.mdc` is the single source of truth for all conventions — shared by both Cursor and Claude Code. `.claude/CLAUDE.md` is a pointer file that directs Claude Code to read the `.cursor/rules/` files. No conventions are duplicated across the two locations. The Craft doc "Stride Tasks" is no longer referenced as a source of truth for conventions.

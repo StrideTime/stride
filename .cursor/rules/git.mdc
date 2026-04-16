@@ -1,0 +1,62 @@
+---
+description: Git branch naming, commit message format, and build verification steps. Apply when committing or creating branches.
+alwaysApply: true
+---
+
+# Git Conventions
+
+## Branch Naming
+
+```
+feat/sd-187-rename-roles-to-plans   # Feature from Jira ticket
+fix/timer-not-stopping               # Bug fix
+chore/update-dependencies            # Maintenance
+```
+
+## Commit Messages
+
+Format: `type(scope): description (SD-xxx)`
+
+```
+feat(stride-types): add TaskPriority and BreakType enums (SD-80)
+
+Add 9 new enums required by the Figma UI design.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+```
+
+Types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
+Scopes: `stride-types`, `stride-db`, `stride-core`, `stride-desktop`, `stride-ui`
+
+## What to Commit
+
+- Source code changes
+- Test files
+- Config changes (tsconfig, package.json, vite.config)
+
+## What NOT to Commit
+
+- `node_modules/`, `dist/`, `.env*` (except `.env.example`)
+- Secrets, API keys, credentials
+- Large binary files
+
+## Build Verification
+
+Before considering any task complete, run builds and tests for all affected packages:
+
+```bash
+# stride-types
+cd stride-types && yarn build
+
+# stride-db (depends on stride-types)
+cd stride-db && yarn build && yarn test
+
+# stride-core (depends on stride-db)
+cd stride-core && yarn build && yarn test
+
+# stride-desktop (depends on stride-core)
+cd stride-desktop && yarn build
+```
+
+If you changed `@stridetime/types`, rebuild everything downstream in order:
+`types → db → core → desktop`
