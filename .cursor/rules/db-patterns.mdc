@@ -1,129 +1,115 @@
 ---
-description: Repository class pattern, mapper functions, soft delete rules, and schema conventions. Apply when editing *.repo.ts files or Drizzle schema files.
-globs: ["**/*.repo.ts", "**/drizzle/schema.ts", "**/drizzle/schema/*.ts"]
+description: Repository class pattern, mapper functions, soft delete rules, and schema conventions for packages/db and apps/api. Apply when editing *.repo.ts files or Drizzle schema files.
+globs: ["packages/db/src/**/*.ts", "apps/api/src/**/*.ts"]
 ---
 
-# DB Patterns (`@stridetime/db`)
+# DB Patterns (`packages/db` + `apps/api`)
 
-## Repository Class
+## Package Responsibilities
 
-Every entity gets a repository class with a singleton export.
+- `packages/db` — Drizzle schema definitions + drizzle-zod inferred types. No business logic. Imported by `apps/api` only.
+- `apps/api` — Repository classes, service layer, Hono routes. Imports from `packages/db`.
 
-```typescript
-import { eq, and } from 'drizzle-orm';
-import type { StrideDatabase } from '../db/types';
-import type { Task } from '@stridetime/types';
-import { tasksTable } from '../drizzle/schema';
-import { generateId, now } from '../db/utils';
+## Schema Tables (`packages/db`)
 
-export class TaskRepository {
-  // db is ALWAYS the first parameter on every method
-  async findById(db: StrideDatabase, id: string): Promise<Task | null> {
-    const row = await db.query.tasksTable.findFirst({
-      where: and(eq(tasksTable.id, id), eq(tasksTable.deleted, false)),
-    });
-    return row ? toDomain(row) : null;
-  }
-
-  async findAll(db: StrideDatabase): Promise<Task[]> {
-    const rows = await db.query.tasksTable.findMany({
-      where: eq(tasksTable.deleted, false),
-    });
-    return rows.map(toDomain);
-  }
-
-  async create(db: StrideDatabase, task: Omit<Task, 'id'>): Promise<Task> {
-    const id = generateId();
-    await db.insert(tasksTable).values({ ...toDbInsert(task), id });
-    return { ...task, id };
-  }
-
-  async update(db: StrideDatabase, id: string, updates: Partial<Task>): Promise<void> {
-    await db.update(tasksTable)
-      .set(toDbUpdate(updates))
-      .where(and(eq(tasksTable.id, id), eq(tasksTable.deleted, false)));
-  }
-
-  async delete(db: StrideDatabase, id: string): Promise<void> {
-    await db.update(tasksTable)
-      .set({ deleted: true, updatedAt: now() })
-      .where(eq(tasksTable.id, id));
-  }
-}
-
-// Always export both class and singleton instance
-export const taskRepo = new TaskRepository();
-```
-
-## Mapper Functions (private to repo file)
-
-Three mappers per repository — never export them:
+Every table uses the Postgres dialect via Drizzle and must include soft delete + timestamps:
 
 ```typescript
-// toDomain: DB row → domain type
-// EXCLUDE createdAt, updatedAt, deleted from the domain object
-function toDomain(row: typeof tasksTable.$inferSelect): Task {
-  return {
-    id: row.id,
-    title: row.title,
-    status: row.status as TaskStatus,
-    // ... domain fields only, NO metadata columns
-  };
-}
+import { pgTable, text, boolean, timestamp, index } from 'drizzle-orm/pg-core';
 
-// toDbInsert: domain → DB insert shape
-// ADD createdAt, updatedAt, deleted flag
-function toDbInsert(task: Omit<Task, 'id'>): Omit<typeof tasksTable.$inferInsert, 'id'> {
-  const timestamp = now();
-  return {
-    ...task,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    deleted: false,
-  };
-}
-
-// toDbUpdate: domain partial → DB update shape
-// ALWAYS set updatedAt
-function toDbUpdate(updates: Partial<Task>): Partial<typeof tasksTable.$inferSelect> {
-  return {
-    ...updates,
-    updatedAt: now(),
-  };
-}
-```
-
-## Schema Tables
-
-Every table must include soft delete and timestamps:
-
-```typescript
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
-
-export const tasksTable = sqliteTable('tasks', {
+export const specsTable = pgTable('specs', {
   id: text('id').primaryKey(),
-  // ... domain columns ...
+  // domain columns
   title: text('title').notNull(),
-  status: text('status').notNull().$type<TaskStatus>(),
+  sourceId: text('source_id').notNull(),
+  sourceType: text('source_type').notNull().$type<SourceType>(),
+  workspaceId: text('workspace_id').notNull(),
   // metadata — always present
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-  deleted: integer('deleted', { mode: 'boolean' }).notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  deleted: boolean('deleted').notNull().default(false),
 }, table => [
-  index('idx_tasks_status').on(table.status),
+  index('idx_specs_workspace').on(table.workspaceId),
+  index('idx_specs_source').on(table.sourceId, table.sourceType),
 ]);
 ```
 
 **Schema rules:**
-- `id`: `text`, primary key
-- `createdAt` / `updatedAt`: `text` (ISO string)
-- `deleted`: `integer` with `{ mode: 'boolean' }`, default `false`
+- `id`: `text`, primary key (client-generated UUID)
+- `createdAt` / `updatedAt`: `timestamp` with timezone, not text
+- `deleted`: `boolean`, default `false`
 - Column names: camelCase in TypeScript, snake_case in SQL string argument
-- Use `.$type<EnumType>()` to link text columns to TypeScript enum types
+- Use `.$type<EnumType>()` to link text columns to TypeScript union types
+- All foreign keys reference other tables explicitly
 
-**Soft delete exceptions — two cases where `deleted` may be omitted:**
+**Soft delete exceptions:**
 1. Join tables (e.g. `team_members`) where the relationship is cascade-deleted
-2. Current-state/upsert tables that represent the latest state of a single row per composite key (e.g. `workspace_user_status` has one row per `user_id + workspace_id` and is updated in place — there is no "deleted" state, only presence or absence of the row)
+2. Current-state/upsert tables that represent one row per composite key (updated in place)
+
+## drizzle-zod Types (`packages/db`)
+
+Export inferred types alongside schemas for use in `apps/api` and `packages/api-client`:
+
+```typescript
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { specsTable } from './schema';
+
+export const insertSpecSchema = createInsertSchema(specsTable);
+export const selectSpecSchema = createSelectSchema(specsTable);
+
+export type InsertSpec = typeof insertSpecSchema._type;
+export type Spec = typeof selectSpecSchema._type;
+```
+
+## Repository Class (`apps/api`)
+
+Every entity gets a repository class with a singleton export. `db` is always the first parameter.
+
+```typescript
+import { eq, and } from 'drizzle-orm';
+import type { DrizzleDb } from '../lib/db';
+import type { Spec } from '@stride/db';
+import { specsTable } from '@stride/db/schema';
+import { generateId } from '../lib/utils';
+
+export class SpecRepository {
+  async findById(db: DrizzleDb, id: string): Promise<Spec | null> {
+    const row = await db.query.specsTable.findFirst({
+      where: and(eq(specsTable.id, id), eq(specsTable.deleted, false)),
+    });
+    return row ?? null;
+  }
+
+  async findByWorkspace(db: DrizzleDb, workspaceId: string): Promise<Spec[]> {
+    return db.query.specsTable.findMany({
+      where: and(
+        eq(specsTable.workspaceId, workspaceId),
+        eq(specsTable.deleted, false),
+      ),
+    });
+  }
+
+  async create(db: DrizzleDb, data: Omit<Spec, 'id' | 'createdAt' | 'updatedAt' | 'deleted'>): Promise<Spec> {
+    const id = generateId();
+    const [row] = await db.insert(specsTable).values({ ...data, id }).returning();
+    return row;
+  }
+
+  async update(db: DrizzleDb, id: string, updates: Partial<Spec>): Promise<void> {
+    await db.update(specsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(specsTable.id, id), eq(specsTable.deleted, false)));
+  }
+
+  async delete(db: DrizzleDb, id: string): Promise<void> {
+    await db.update(specsTable)
+      .set({ deleted: true, updatedAt: new Date() })
+      .where(eq(specsTable.id, id));
+  }
+}
+
+export const specRepo = new SpecRepository();
+```
 
 ## Soft Delete Rules
 
@@ -137,4 +123,18 @@ where: and(eq(table.id, id), eq(table.deleted, false))
 where: eq(table.id, id)
 ```
 
-No exceptions. If you need to fetch deleted records for admin purposes, that's a separate, explicitly named method.
+No exceptions. Admin-only methods that need deleted records must be explicitly named (e.g. `findByIdIncludingDeleted`).
+
+## Idempotency Table
+
+The `processed_mutations` table enables safe retries from the offline queue:
+
+```typescript
+export const processedMutationsTable = pgTable('processed_mutations', {
+  id: text('id').primaryKey(),           // client-generated UUID from mutation command
+  result: text('result').notNull(),      // JSON-serialized response
+  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
+});
+```
+
+Before processing any mutation command from the queue, check this table. If the `id` exists, return the cached `result` without re-executing. This table has no soft delete — rows are pruned by age via a CF Cron job.

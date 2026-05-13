@@ -1,9 +1,9 @@
 ---
-description: React component conventions, PowerSync data patterns, state management rules, and file organization for stride-desktop. Apply to .tsx files and hooks/contexts in stride-desktop.
-globs: ["stride-desktop/src/**/*.tsx", "stride-desktop/src/**/*.ts", "stride-mobile/src/**/*.tsx", "stride-mobile/src/**/*.ts"]
+description: React component conventions, TanStack Start route patterns, TanStack Query data fetching, state management, and file organization for apps/web. Apply to .tsx and .ts files in apps/web/src/.
+globs: ["apps/web/src/**/*.tsx", "apps/web/src/**/*.ts"]
 ---
 
-# React Patterns (stride-desktop / stride-mobile)
+# React Patterns (apps/web)
 
 ## Styling
 
@@ -12,21 +12,19 @@ globs: ["stride-desktop/src/**/*.tsx", "stride-desktop/src/**/*.ts", "stride-mob
 - Use [Base UI](https://base-ui.com) for unstyled/accessible primitives (dialogs, dropdowns, popovers, etc.)
 - Style with CSS Modules: one `ComponentName.module.css` file per component
 - Import styles as `styles` and apply via `className={styles.foo}`
-- Never use inline style objects except for dynamic values (e.g. calculated widths)
+- Never use inline style objects except for dynamic computed values (e.g. calculated widths)
 
 ```typescript
-import styles from './TaskCard.module.css';
+import styles from './SpecCard.module.css';
 
-export function TaskCard({ task }: TaskCardProps) {
+export function SpecCard({ spec }: SpecCardProps) {
   return (
     <div className={styles.card}>
-      <span className={styles.title}>{task.title}</span>
+      <span className={styles.title}>{spec.title}</span>
     </div>
   );
 }
 ```
-
-CSS Module files are named `PascalCase.module.css` to match their component.
 
 ## Component Conventions
 
@@ -34,25 +32,25 @@ CSS Module files are named `PascalCase.module.css` to match their component.
 
 ```typescript
 // CORRECT
-export function TodayView() {
+export function BacklogView() {
   return <div>...</div>;
 }
 
 // WRONG
-export default function TodayView() { ... }
-const TodayView = () => { ... }; export default TodayView;
+export default function BacklogView() { ... }
+const BacklogView = () => { ... }; export default BacklogView;
 ```
 
 **Props type with `Props` suffix:**
 
 ```typescript
-type TaskCardProps = {
-  task: Task;
-  onStart?: () => void;
+type SpecCardProps = {
+  spec: Spec;
+  onRefine?: () => void;
   className?: string;
 };
 
-export function TaskCard({ task, onStart, className }: TaskCardProps) {
+export function SpecCard({ spec, onRefine, className }: SpecCardProps) {
   // ...
 }
 ```
@@ -60,95 +58,174 @@ export function TaskCard({ task, onStart, className }: TaskCardProps) {
 ## File Organization
 
 ```
-stride-desktop/src/
-  pages/           # Top-level route views (TodayView, ProjectView, etc.)
+apps/web/src/
+  routes/              # TanStack Start file-based routes
+    __root.tsx         # Root layout (providers)
+    login.tsx          # /login (unauthenticated — placeholder)
+    onboarding.tsx     # /onboarding (first-run — placeholder, shape TBD)
+    _auth.tsx          # App-shell layout — requires auth + a workspace; left rail + Settings gear
+    _auth/
+      index.tsx        # / → Today (dashboard)
+      backlog.tsx      # /backlog route (Specs/Actions/Blockers as in-page views)
+      schedule.tsx     # /schedule route (week/month as in-page views)
+      insights.tsx     # /insights route (v1: Performance only; more tabs post-v1)
+      specs.$specId.tsx  # /specs/$specId — spec detail (overlay over the current page in-app; standalone when cold-loaded)
+      settings/        # /settings/* (sub-pages TBD)
+      tray.tsx         # /tray route (desktop tray window — loaded by Tauri; not a nav item)
   components/
-    shared/        # Reusable across features
-    {feature}/     # Feature-specific (auth/, navigation/, etc.)
-  hooks/           # Custom hooks (useAuth.ts, useSyncStatus.ts)
-  contexts/        # React contexts (AuthContext, WorkspaceContext)
-  layouts/         # Layout wrappers
-  lib/             # Non-React utilities, DB init (db.ts)
+    shared/            # Reusable across features
+    today/             # Today-specific components
+    backlog/           # Backlog-specific components
+    schedule/          # Schedule-specific components
+    insights/          # Insights-specific components
+    specs/             # Spec view + the ad-hoc spec modal
+    tray/              # Tray-specific components
+  hooks/               # Custom hooks (useAuth.ts, useQueue.ts)
+  lib/                 # Non-React utilities
 ```
 
-## Data Fetching — PowerSync
+## Route Files — TanStack Start
 
-**All reactive DB reads use `useQuery` from `@powersync/react`:**
+Each route file exports a `Route` created with `createFileRoute`:
 
 ```typescript
-import { useQuery } from '@powersync/react';
+// routes/_auth/backlog.tsx
+import { createFileRoute } from '@tanstack/react-router';
+import { queryOptions } from '@tanstack/react-query';
+import { client } from '@stride/api-client';
 
-export function TaskList({ userId }: { userId: string }) {
-  const { data: tasks, isLoading, error } = useQuery(
-    'SELECT * FROM tasks WHERE user_id = ? AND deleted = 0 ORDER BY created_at DESC',
-    [userId]
-  );
+const specsQueryOptions = queryOptions({
+  queryKey: ['specs'],
+  queryFn: () => client.specs.$get().then(r => r.json()),
+});
 
-  if (isLoading) return <Spinner />;
-  if (error) return <ErrorMessage error={error} />;
+export const Route = createFileRoute('/_auth/backlog')({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(specsQueryOptions),
+  component: BacklogView,
+});
 
-  return <ul>{tasks.map(task => <TaskCard key={task.id} task={task} />)}</ul>;
+function BacklogView() {
+  const specs = Route.useLoaderData();
+  return <div>...</div>;
 }
 ```
 
 **Rules:**
-- `useQuery` for reactive reads (auto-updates when tables change)
-- `useSuspenseQuery` for Suspense-compatible reads
-- `useStatus` for sync connection status
-- `usePowerSync` for direct DB access in hooks
-- `PowerSyncContext.Provider` MUST wrap all components that use these hooks
-- Do NOT build custom watch/refresh hooks — use the official `@powersync/react` hooks
-- Do NOT use refresh counters, polling, or callback-based refresh patterns
+- Loaders prefetch data server-side (web SSR) or client-side (desktop SPA) — same code, different runtime
+- Use `queryClient.ensureQueryData` in loaders so TanStack Query cache is always primed
+- Components read from cache via `useSuspenseQuery` — never fetch in components directly
+- Route component is a named function defined in the same file, not exported separately
 
-## Mutations
+## Data Fetching — TanStack Query
 
-All writes go through services from `@stridetime/core` — never call repo methods directly from UI:
+**All server state lives in TanStack Query:**
 
 ```typescript
-import { taskService } from '@stridetime/core';
-import { usePowerSync } from '@powersync/react';
+import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { client } from '@stride/api-client';
 
-export function CreateTaskForm() {
-  const db = usePowerSync();
+export function SpecList() {
+  const { data: specs } = useSuspenseQuery({
+    queryKey: ['specs'],
+    queryFn: () => client.specs.$get().then(r => r.json()),
+  });
 
-  async function handleSubmit(data: CreateTaskInput) {
-    try {
-      await taskService.create(db, data);
-    } catch (err) {
-      handleServiceError(err);
-    }
-  }
+  return <ul>{specs.map(spec => <SpecCard key={spec.id} spec={spec} />)}</ul>;
 }
 ```
 
-## Error Handling in Components
+**Mutations go through the queue abstraction:**
 
 ```typescript
-import { ValidationError, NotFoundError, PermissionError } from '@stridetime/types';
+import { useQueueMutation } from '@/hooks/useQueueMutation';
+import { client } from '@stride/api-client';
 
-try {
-  await taskService.create(db, params);
-} catch (err) {
-  if (err instanceof ValidationError) {
-    setFieldError(err.field, err.message);
-  } else if (err instanceof NotFoundError) {
-    setError('Item not found');
-  } else if (err instanceof PermissionError) {
-    setError("You don't have access");
-  } else {
-    throw err; // Let ErrorBoundary handle unknown errors
-  }
+export function RefineSpec({ specId }: { specId: string }) {
+  const mutation = useQueueMutation({
+    mutationFn: (input: AddActionInput) =>
+      client.specs[':id'].actions.$post({ param: { id: specId }, json: input }),
+    optimisticUpdate: (cache, input) => {
+      // update TanStack Query cache optimistically
+    },
+  });
+
+  return <button onClick={() => mutation.mutate({ title: 'New action' })}>Add action</button>;
 }
 ```
 
-## State Management Rules
+**Rules:**
+- `useSuspenseQuery` for reads (wrap route in `<Suspense>`)
+- `useQuery` only when you need the loading/error state inline
+- Never fetch in `useEffect` — use loaders or query hooks
+- Always specify `queryKey` arrays that fully describe the query's dependencies
+- Mutations use `useQueueMutation` (wraps `useMutation` + offline queue) — not raw `useMutation`
+
+## State Management
 
 | State type | Where it lives |
 |---|---|
-| Server/DB data | `useQuery` from `@powersync/react` |
-| Ephemeral UI state | `useState` (modal open, form inputs, loading flags) |
-| Cross-component state | React Context (`src/contexts/`) |
-| Timer state | `TimerContext` stores `startedAt` timestamp — display components run their own `setInterval` |
+| Server/API data | TanStack Query (`useSuspenseQuery`) |
+| Ephemeral UI state | `useState` (modal open, form inputs, hover) |
+| Cross-component UI state | React Context (`src/lib/context/`) |
+| Form state | TanStack Form |
+| Offline queue state | `packages/queue` via `useQueueStatus` hook |
+
+## Forms — TanStack Form
+
+```typescript
+import { useForm } from '@tanstack/react-form';
+import { z } from 'zod';
+
+const schema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  estimate: z.number().positive().optional(),
+});
+
+export function AddActionForm({ onSubmit }: { onSubmit: (v: z.infer<typeof schema>) => void }) {
+  const form = useForm({
+    defaultValues: { title: '', estimate: undefined },
+    validators: { onChange: schema },
+    onSubmit: ({ value }) => onSubmit(value),
+  });
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); form.handleSubmit(); }}>
+      <form.Field name="title">
+        {field => (
+          <input
+            value={field.state.value}
+            onChange={e => field.handleChange(e.target.value)}
+          />
+        )}
+      </form.Field>
+    </form>
+  );
+}
+```
+
+## Error Handling
+
+```typescript
+// Route-level error boundary
+export const Route = createFileRoute('/_auth/backlog')({
+  errorComponent: ({ error }) => <ErrorView error={error} />,
+  component: BacklogView,
+});
+
+// In components
+try {
+  await mutation.mutateAsync(input);
+} catch (err) {
+  if (isApiError(err, 422)) {
+    setFieldError(err.field, err.message);
+  } else if (isApiError(err, 403)) {
+    setError("You don't have access");
+  } else {
+    throw err; // bubble to nearest ErrorBoundary
+  }
+}
+```
 
 ## Custom Hooks
 
@@ -156,13 +233,11 @@ try {
 // src/hooks/useAuth.ts
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
 ```
 
 - All custom hooks live in `src/hooks/`
-- Hooks that wrap a context always throw if used outside the provider
-- Hooks are named `useSomething` — always camelCase with `use` prefix
+- Hooks wrapping a context always throw if used outside the provider
+- Named `useSomething` — always camelCase with `use` prefix

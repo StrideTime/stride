@@ -13,50 +13,46 @@ globs: ["**/*.test.ts", "**/*.test.tsx"]
 ## Test File Naming & Location
 
 ```
-stride-db/src/tests/repositories/task.repo.test.ts
-stride-core/src/tests/services/task.service.test.ts
-stride-desktop/src/tests/hooks/useSyncStatus.test.ts
+packages/db/src/tests/spec.repo.test.ts
+apps/api/src/tests/spec.service.test.ts
+apps/web/src/tests/hooks/useQueueMutation.test.ts
 ```
 
-## Repository Tests (stride-db)
+Co-locate tests next to the file they test, or in a `tests/` folder within the package.
 
-Test against a real in-memory SQLite database, not mocks:
+## Repository Tests (`packages/db`)
+
+Test against a real in-memory Postgres database (via `pg-mem` or a test Neon branch), not mocks:
 
 ```typescript
-import { taskRepo } from '../../repositories/task.repo';
+import { specRepo } from '../../src/repos/spec.repo';
 import { createTestDb } from '../setup';
-import type { Task } from '@stridetime/types';
 
-describe('TaskRepository', () => {
-  let db: any;
+describe('SpecRepository', () => {
+  let db: DrizzleDb;
 
-  beforeEach(() => {
-    db = createTestDb(); // In-memory SQLite via better-sqlite3
+  beforeEach(async () => {
+    db = await createTestDb(); // test Neon branch or pg-mem instance
   });
 
   describe('create', () => {
-    it('creates a task and returns it with a generated id', async () => {
-      const input: Omit<Task, 'id'> = {
-        title: 'Test Task',
-        status: TaskStatus.TODO,
-        // ... other required fields
-      };
-      const result = await taskRepo.create(db, input);
+    it('creates a spec and returns it with a generated id', async () => {
+      const result = await specRepo.create(db, validSpecInput);
       expect(result.id).toBeTruthy();
-      expect(result.title).toBe('Test Task');
+      expect(result.title).toBe(validSpecInput.title);
     });
   });
 
   describe('findById', () => {
     it('returns null for a non-existent id', async () => {
-      const result = await taskRepo.findById(db, 'does-not-exist');
+      const result = await specRepo.findById(db, 'does-not-exist');
       expect(result).toBeNull();
     });
 
     it('does not return soft-deleted records', async () => {
-      const task = await taskRepo.create(db, validTaskInput);
-      await taskRepo.delete(db, task.id);
-      const result = await taskRepo.findById(db, task.id);
+      const spec = await specRepo.create(db, validSpecInput);
+      await specRepo.delete(db, spec.id);
+      const result = await specRepo.findById(db, spec.id);
       expect(result).toBeNull();
     });
   });
@@ -65,57 +61,57 @@ describe('TaskRepository', () => {
 
 **Minimum 6 tests per new repository:** CRUD operations + soft delete behavior + edge cases.
 
-## Service Tests (stride-core)
+## Service Tests (`apps/api`)
 
 Mock the repository — test service logic in isolation:
 
 ```typescript
 // Hoist mocks BEFORE imports
-const { mockTaskRepo } = vi.hoisted(() => ({
-  mockTaskRepo: {
+const { mockSpecRepo } = vi.hoisted(() => ({
+  mockSpecRepo: {
     create: vi.fn(),
     findById: vi.fn(),
+    findByWorkspace: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
   },
 }));
 
-vi.mock('@stridetime/db', () => ({
-  taskRepo: mockTaskRepo,
-  TaskRepository: vi.fn(),
+vi.mock('../repos/spec.repo', () => ({
+  specRepo: mockSpecRepo,
+  SpecRepository: vi.fn(),
 }));
 
-describe('TaskService', () => {
-  let service: TaskService;
-  let mockDb: any;
+describe('SpecService', () => {
+  let service: SpecService;
+  let mockDb: DrizzleDb;
 
   beforeEach(() => {
-    service = new TaskService(mockTaskRepo);
-    mockDb = {};
+    service = new SpecService(mockSpecRepo);
+    mockDb = {} as DrizzleDb;
     vi.clearAllMocks();
   });
 
-  it('throws ValidationError when title is empty', async () => {
+  it('throws 422 when title is missing', async () => {
     await expect(
-      service.create(mockDb, { title: '', projectId: 'p1' })
-    ).rejects.toThrow(ValidationError);
-    expect(mockTaskRepo.create).not.toHaveBeenCalled();
+      service.create(mockDb, { title: '' })
+    ).rejects.toMatchObject({ status: 422 });
+    expect(mockSpecRepo.create).not.toHaveBeenCalled();
   });
 
-  it('throws NotFoundError when project does not exist', async () => {
-    mockTaskRepo.findById.mockResolvedValue(null);
+  it('throws 404 when workspace does not exist', async () => {
+    mockSpecRepo.findById.mockResolvedValue(null);
     await expect(
-      service.create(mockDb, { title: 'Task', projectId: 'missing' })
-    ).rejects.toThrow(NotFoundError);
+      service.create(mockDb, validInput)
+    ).rejects.toMatchObject({ status: 404 });
   });
 
-  it('creates a task with valid params', async () => {
-    mockTaskRepo.findById.mockResolvedValue(validProject);
-    mockTaskRepo.create.mockResolvedValue({ id: '1', title: 'Task' });
+  it('creates a spec with valid params', async () => {
+    mockSpecRepo.create.mockResolvedValue({ id: '1', ...validInput });
     const result = await service.create(mockDb, validInput);
-    expect(mockTaskRepo.create).toHaveBeenCalledWith(
+    expect(mockSpecRepo.create).toHaveBeenCalledWith(
       mockDb,
-      expect.objectContaining({ title: 'Task' })
+      expect.objectContaining({ title: validInput.title })
     );
     expect(result.id).toBe('1');
   });
@@ -131,4 +127,4 @@ describe('TaskService', () => {
 - Test names read as: `it('does X when Y')`
 - `vi.clearAllMocks()` in `beforeEach` — never share mock state between tests
 - Never commit code that breaks existing tests
-- Run `yarn build && yarn test` in all affected packages before committing
+- Run `pnpm build && pnpm test` in all affected packages before committing

@@ -1,6 +1,6 @@
 ---
-description: UI component library conventions — atomic design, CSS Modules, Base UI, theming, i18n, typography, forms, and folder structure. Apply when building or modifying any UI component in stride-ui or stride-desktop.
-globs: ["stride-packages/packages/ui/src/**/*.tsx", "stride-packages/packages/ui/src/**/*.ts", "stride-packages/packages/ui/src/**/*.css", "stride-desktop/src/**/*.tsx", "stride-desktop/src/**/*.css"]
+description: UI component library conventions — atomic design, CSS Modules, Base UI, theming, i18n, typography, forms, and folder structure. Apply when building or modifying any UI component in packages/ui or apps/web.
+globs: ["packages/ui/src/**/*.tsx", "packages/ui/src/**/*.ts", "packages/ui/src/**/*.css", "apps/web/src/components/**/*.tsx", "apps/web/src/components/**/*.css"]
 ---
 
 # UI Component Library Conventions
@@ -9,46 +9,34 @@ globs: ["stride-packages/packages/ui/src/**/*.tsx", "stride-packages/packages/ui
 
 | Concern | Technology |
 |---------|-----------|
-| Component primitives | [Base UI (MUI)](https://mui.com/base-ui/) — unstyled headless components, we style everything |
+| Component primitives | [Base UI](https://base-ui.com) — unstyled headless components, we style everything |
 | Styling | CSS Modules (`.module.css`) — no Tailwind, no shadcn/ui, no CSS-in-JS, no inline styles |
 | Icons | [Phosphor Icons](https://phosphoricons.com/) (`@phosphor-icons/react`) — import directly, no wrapper |
 | Theming | CSS custom properties in `global.css` — components reference variables exclusively |
 | Typography | `<Typography>` atom — all visible text goes through this component, supports `as` prop |
-| Forms | [Tanstack Form](https://tanstack.com/form) + [Zod](https://zod.dev/) — Zod schemas for validation |
+| Forms | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev/) |
 | Drag & Drop | [dnd-kit](https://dndkit.com/) — use where drag interaction is needed |
-| State management | [Zustand](https://zustand-demo.pmnd.rs/) — for shared/global state only |
 | i18n | `react-i18next` — all user-facing text in `en.json`, including `aria-label` attributes |
-| Types | `@stridetime/types` — all domain types, enums, inputs. Never redefine them. |
-| Testing | Vitest — unit/component tests per component |
-| Stories | Storybook 10+ — atoms, molecules, organisms get stories. Pages do not. |
 | Font | Inter (body) + Fira Code (mono) |
+| Testing | Vitest — unit/component tests per component |
+| Stories | Storybook — atoms, molecules, organisms get stories. Pages do not. |
 
 ---
 
-## Atomic Design — Folder Structure
+## Package Structure (`packages/ui`)
 
 ```
-src/
+packages/ui/src/
 ├── components/
-│   ├── atoms/          # Button, Typography, Input, Badge, Skeleton, etc.
-│   │   └── index.ts    # Barrel export
-│   ├── molecules/      # FormField, SearchBar, StatCard, Toast, etc.
+│   ├── atoms/          # Button, Typography, Input, Badge, Skeleton, StatusPill, etc.
 │   │   └── index.ts
-│   ├── organisms/      # TaskCard, HabitCard, Sidebar, FocusTimerPanel, etc.
+│   ├── molecules/      # FormField, SearchBar, SpecRow, ActionRow, etc.
 │   │   └── index.ts
-│   ├── templates/      # AppShell, SettingsLayout, TrayLayout
+│   ├── organisms/      # SpecCard, RefinementPanel, SessionTimer, TrayShell, etc.
 │   │   └── index.ts
-│   ├── pages/          # TodayPage, ProjectsPage, SettingsPage, etc.
+│   ├── templates/      # AppShell, TrayLayout
 │   │   └── index.ts
 │   └── index.ts        # Master barrel export
-├── utils/              # Pure utility functions, extracted logic
-│   ├── formatting.ts
-│   ├── validation.ts
-│   ├── index.ts
-│   └── index.test.ts
-├── stores/             # Zustand stores
-│   ├── useThemeStore.ts
-│   └── index.ts
 ├── styles/
 │   └── global.css      # ALL CSS custom properties
 ├── i18n/
@@ -59,268 +47,160 @@ src/
 ### Per-Component Folder (STRICT)
 
 ```
-ComponentName/
-├── ComponentName.tsx           # Component (DUMB — minimal logic)
-├── ComponentName.module.css    # Styles (references global.css variables only)
-├── ComponentName.test.tsx      # Tests
-└── ComponentName.stories.tsx   # Stories (atoms/molecules/organisms only)
+atoms/Button/
+  Button.tsx
+  Button.module.css
+  Button.stories.tsx
+  Button.test.tsx
+  index.ts             # export { Button } from './Button'
 ```
 
-### Barrel Exports
+---
 
-Use `index.ts` barrel exports at each atomic level:
+## CSS Custom Properties (Theming)
+
+All design tokens live in `packages/ui/src/styles/global.css`. Components reference variables only — never hardcode colors, spacing, or type sizes:
+
+```css
+:root {
+  /* Colors */
+  --color-bg: oklch(99% 0.005 270);
+  --color-surface: oklch(97% 0.005 270);
+  --color-border: oklch(88% 0.01 270);
+  --color-text: oklch(30% 0.02 270);
+  --color-text-muted: oklch(55% 0.015 270);
+  --color-accent: oklch(60% 0.22 290);
+  --color-accent-subtle: oklch(95% 0.04 290);
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Type scale */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+```
+
+Never use hex, rgb, or hardcoded pixel values in component CSS — always reference a variable.
+
+---
+
+## Component Patterns
+
+**Named function exports — no default exports:**
+
 ```typescript
-// src/components/atoms/index.ts
-export { Button } from './Button/Button';
-export { Typography } from './Typography/Typography';
+// CORRECT
+export function Button({ children, variant = 'primary', ...props }: ButtonProps) {
+  return <button className={styles[variant]} {...props}>{children}</button>;
+}
+
+// WRONG
+export default function Button() { ... }
 ```
 
-### TypeScript Path Aliases
+**Props type with `Props` suffix, using `type` not `interface`:**
 
-```json
-{
-  "@atoms/*": ["./src/components/atoms/*"],
-  "@molecules/*": ["./src/components/molecules/*"],
-  "@organisms/*": ["./src/components/organisms/*"],
-  "@utils/*": ["./src/utils/*"],
-  "@stores/*": ["./src/stores/*"],
-  "@styles/*": ["./src/styles/*"]
+```typescript
+type ButtonProps = {
+  variant?: 'primary' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+};
+```
+
+**CSS Module usage:**
+
+```typescript
+import styles from './Button.module.css';
+
+export function Button({ variant = 'primary', size = 'md', children }: ButtonProps) {
+  return (
+    <button className={`${styles.button} ${styles[variant]} ${styles[size]}`}>
+      {children}
+    </button>
+  );
 }
 ```
 
 ---
 
-## Component Philosophy — Dumb Components
+## Typography
 
-Components are for **layout**, not logic. They receive props, lay out elements, and render.
-
-**IN a component file:** props destructuring, `useTranslation()`, CSS class application, local UI state only (`isOpen`, `isHovered`), calling utility functions for display formatting.
-
-**NOT in a component file:** business logic, calculations, data transformations, data fetching, anything that can be unit tested independently.
+All visible text goes through `<Typography>`:
 
 ```typescript
-// GOOD — logic extracted to utils
-import { calcProgress, isOverdue, formatDuration } from '@utils';
+import { Typography } from '@stride/ui';
 
-export function TaskCard({ task }: TaskCardProps) {
-  const { t } = useTranslation('tasks');
+// CORRECT
+<Typography as="h1" size="2xl" weight="semibold">Backlog</Typography>
+<Typography as="p" size="sm" color="muted">3 specs need refinement</Typography>
+
+// WRONG
+<h1 style={{ fontSize: 24 }}>Backlog</h1>
+<p className="text-gray-500">3 specs need refinement</p>
+```
+
+---
+
+## i18n
+
+All user-facing strings live in `en.json`. Never hardcode strings in components:
+
+```typescript
+import { useTranslation } from 'react-i18next';
+
+export function SpecCard({ spec }: SpecCardProps) {
+  const { t } = useTranslation();
   return (
-    <div className={styles.root}>
-      <Typography variant="body-md">{task.title}</Typography>
-      <Progress value={calcProgress(task.actualMinutes, task.estimatedMinutes)} />
-      {isOverdue(task) && <Badge variant="error">{t('taskCard.overdue')}</Badge>}
+    <div aria-label={t('spec.card.ariaLabel', { title: spec.title })}>
+      <Typography>{t('spec.status.needsRefinement')}</Typography>
     </div>
   );
 }
 ```
 
-### Zustand for global state, useState for local UI state
-
-```typescript
-// Global state (theme, sidebar, timer)
-export const useThemeStore = create<ThemeState>(set => ({
-  theme: 'dark',
-  toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
-}));
-
-// Local state stays in component — only for UI concerns
-const [isOpen, setIsOpen] = useState(false);
-```
-
----
-
-## CSS — Variables, Modules, Nesting
-
-### No raw values — ever
-
-Every spacing, color, font size, radius, shadow, and transition references a CSS variable from `global.css`. Use `calc()` for derived values:
-
-```css
-padding: var(--spacing-md);
-margin: calc(var(--spacing-lg) + var(--spacing-xs));
-```
-
-### Spacing — T-Shirt Sizing (default: 12px)
-
-```
---spacing-xxs: 2px    --spacing-xs: 4px     --spacing-sm: 8px
---spacing-md: 12px    --spacing-lg: 16px    --spacing-xl: 24px
---spacing-xxl: 32px   --spacing-3xl: 48px   --spacing-4xl: 64px
-```
-
-### Component-Specific Variables — Semantic Naming
-
-Pattern: `--components-{component}-{variant}-{property}-{state}`
-
-```css
---components-buttons-primary-bg: #3ede6f;
---components-buttons-primary-bg-hover: #6df79a;
---components-buttons-primary-bg-pressed: #9effba;
---components-buttons-primary-bg-disabled: #2e3035;
---components-buttons-primary-text: #0e0f10;
---components-buttons-primary-text-disabled: #686b74;
-```
-
-When building a component and encountering brand-specific or stateful styling, break it out into a variable following this convention.
-
-### CSS Nesting with `&`
-
-```css
-.primary {
-  background-color: var(--components-buttons-primary-bg);
-  color: var(--components-buttons-primary-text);
-
-  &:hover {
-    background-color: var(--components-buttons-primary-bg-hover);
-  }
-
-  &:active {
-    background-color: var(--components-buttons-primary-bg-pressed);
-  }
-
-  &:disabled {
-    background-color: var(--components-buttons-primary-bg-disabled);
-    color: var(--components-buttons-primary-text-disabled);
-    cursor: not-allowed;
-  }
-}
-```
-
-**Nesting rules:**
-- `&` for pseudo-classes, pseudo-elements, compound selectors
-- Nest `@media` inside selectors for co-located responsive styles
-- Max 2 levels deep — restructure if deeper
-
-### Responsive — Mobile First
-
-Default CSS targets small screens. Scale up with `min-width`:
-```css
-.root {
-  padding: var(--spacing-sm);
-
-  @media (min-width: 768px) {
-    padding: var(--spacing-md);
+```json
+{
+  "spec": {
+    "card": {
+      "ariaLabel": "Spec: {{title}}"
+    },
+    "status": {
+      "needsRefinement": "Needs refinement"
+    }
   }
 }
 ```
 
 ---
 
-## Typography — Semantic Variants
+## Atomic Design Rules
 
-ALL visible text goes through `<Typography>`. No raw `<p>`, `<h1>`, `<span>`.
+| Level | Contains | Examples |
+|---|---|---|
+| Atom | Single HTML element or primitive | Button, Input, Badge, StatusPill, Typography |
+| Molecule | 2–4 atoms with a single purpose | FormField, SearchBar, SpecRow, ActionRow |
+| Organism | Complex feature-complete unit | SpecCard, RefinementPanel, BacklogList, SessionTimer |
+| Template | Layout structure, slots only | AppShell, TrayLayout |
 
-```typescript
-<Typography as="h1" variant="heading-xl" weight="bold">{t('title')}</Typography>
-<Typography as="p" variant="body-md">{t('description')}</Typography>
-<Typography as="span" variant="caption-sm" color="muted">{t('timestamp')}</Typography>
-<Typography as="span" variant="eyebrow-md">{t('category')}</Typography>
-<Typography as="span" variant="stat-lg" weight="extra">{formattedTime}</Typography>
-<Typography as="label" variant="label-md">{t('fieldLabel')}</Typography>
-```
-
-### Variant categories
-| Category | Use case | Sizes | Default weight |
-|----------|----------|-------|----------------|
-| `heading` | Page titles, section headers | xs, sm, md, lg, xl | bold |
-| `subtitle` | Secondary section headers | sm, md, lg | semi |
-| `body` | Paragraphs, descriptions | xs, sm, md, lg | reg |
-| `label` | Form labels, nav items, buttons | xs, sm, md, lg | med |
-| `caption` | Helper text, timestamps, metadata | sm, md | reg |
-| `eyebrow` | Category labels, pre-headings (ALL CAPS) | sm, md, lg | semi |
-| `overline` | Small caps above headings, tabs | sm, md | med |
-| `code` | Inline code, monospaced data | sm, md, lg | reg |
-| `stat` | Dashboard metrics, timer readouts | sm, md, lg, xl | bold |
-
-### Weight prop overrides
-`thin` (100), `light` (300), `reg` (400), `med` (500), `semi` (600), `bold` (700), `extra` (800)
-
----
-
-## i18n — Zero Hardcoded Strings
-
-ALL user-facing text in `en.json` via `useTranslation()`. Including `aria-label`.
-
-```typescript
-const { t } = useTranslation('habits');
-
-<div aria-label={t('habitCard.ariaLabel', { name: props.name })}>
-  <Typography variant="body-sm" color="muted">
-    {t('habitCard.streakLabel', { count: props.streak })}
-  </Typography>
-</div>
-```
-
----
-
-## Skeleton Loading — Standardized
-
-```typescript
-// Atom — basic shapes
-<Skeleton variant="text" width="60%" />
-<Skeleton variant="circular" size={40} />
-<Skeleton variant="rectangular" height={120} />
-
-// Organisms export .Skeleton companion
-<TaskCard.Skeleton />
-<HabitCard.Skeleton />
-```
-
----
-
-## Forms — Tanstack Form + Zod
-
-```typescript
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import { createHabitSchema } from '@utils/validation';
-import type { CreateHabitInput } from '@stridetime/types';
-```
-
-- Zod schemas derive from stride-types
-- `FormField` molecule handles Label + Input + Error display
-- Form atoms integrate with Tanstack Form's field API
-
----
-
-## Storybook — Interactive Controls
-
-Every prop gets an `argType` control. The purpose is to:
-- Toggle between all variants interactively
-- Test edge cases (long text, overflow, empty states)
-- Break components with extreme prop values
-- Control disabled/loading/error states
-
-```typescript
-const meta: Meta<typeof Button> = {
-  title: 'Atoms/Button',
-  component: Button,
-  tags: ['autodocs'],
-  argTypes: {
-    variant: { control: 'select', options: ['primary', 'secondary', 'tertiary'] },
-    size: { control: 'select', options: ['sm', 'md', 'lg'] },
-    disabled: { control: 'boolean' },
-    children: { control: 'text' },
-  },
-};
-```
-
----
-
-## Extensibility
-
-If a global component needs modification for a specific use case, **add a backwards-compatible prop**. Never fork the component or use one-off style overrides.
-
----
-
-## What We Do NOT Use
-
-- Tailwind CSS, shadcn/ui, Radix UI (directly)
-- Styled-components, Emotion, CSS-in-JS
-- TypeScript `enum` keyword (use `as const` objects)
-- TypeScript `interface` keyword (use `type` for everything)
-- Default exports (ever)
-- Inline styles
-- Hardcoded user-visible strings
-- Raw HTML text elements without `<Typography>`
-- Raw pixel values in CSS (use variables)
+- Atoms have no business logic and no data fetching
+- Molecules may accept complex props but do not fetch data
+- Organisms may use hooks (not TanStack Query — pass data via props or context)
+- Data fetching lives in route loaders and query hooks in `apps/web`, not in `packages/ui`

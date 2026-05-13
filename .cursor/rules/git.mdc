@@ -8,8 +8,8 @@ alwaysApply: true
 ## Branch Naming
 
 ```
-feat/sd-187-rename-roles-to-plans   # Feature from Jira ticket
-fix/timer-not-stopping               # Bug fix
+feat/sd-42-backlog-refinement-view   # Feature from Jira ticket
+fix/spec-card-overflow               # Bug fix
 chore/update-dependencies            # Maintenance
 ```
 
@@ -18,45 +18,52 @@ chore/update-dependencies            # Maintenance
 Format: `type(scope): description (SD-xxx)`
 
 ```
-feat(stride-types): add TaskPriority and BreakType enums (SD-80)
+feat(web): add backlog refinement panel (SD-42)
 
-Add 9 new enums required by the Figma UI design.
+Implements the spec detail drawer with action breakdown and estimate fields.
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
 Types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
-Scopes: `stride-types`, `stride-db`, `stride-core`, `stride-desktop`, `stride-ui`
+
+Scopes match the apps/packages structure:
+- `web` — apps/web (TanStack Start)
+- `api` — apps/api (Hono)
+- `desktop` — apps/desktop (Tauri/Rust)
+- `mobile` — apps/mobile (Expo)
+- `ui` — packages/ui
+- `api-client` — packages/api-client
+- `queue` — packages/queue
+- `db` — packages/db
 
 ## What to Commit
 
 - Source code changes
 - Test files
-- Config changes (tsconfig, package.json, vite.config)
+- Config changes (tsconfig, package.json, vite.config, wrangler.toml)
 
 ## What NOT to Commit
 
-- `node_modules/`, `dist/`, `.env*` (except `.env.example`)
-- Secrets, API keys, credentials
+- `node_modules/`, `dist/`, `.wrangler/`, `.env*` (except `.env.example`)
+- Secrets, API keys, credentials, `.dev.vars`
 - Large binary files
 
 ## Build Verification
 
-Before considering any task complete, run builds and tests for all affected packages:
+Before considering any task complete, run builds and type checks for affected packages:
 
 ```bash
-# stride-types
-cd stride-types && yarn build
+# From monorepo root — build everything
+pnpm build
 
-# stride-db (depends on stride-types)
-cd stride-db && yarn build && yarn test
+# Type check everything
+pnpm typecheck
 
-# stride-core (depends on stride-db)
-cd stride-core && yarn build && yarn test
-
-# stride-desktop (depends on stride-core)
-cd stride-desktop && yarn build
+# Specific package
+pnpm --filter @stride/db build
+pnpm --filter api build
+pnpm --filter web typecheck
 ```
 
-If you changed `@stridetime/types`, rebuild everything downstream in order:
-`types → db → core → desktop`
+Rebuild order when `packages/db` changes: `db → api → api-client → web`

@@ -5,26 +5,6 @@ alwaysApply: true
 
 # Agent Workflow
 
-## Jira Ingestion Protocol
-
-The backlog has 165+ tickets. Fetching full descriptions for all of them at once is ~100K tokens. Use this tiered approach instead:
-
-**Tier 1 — Index pass** (when you need backlog orientation):
-- Fetch all tickets with minimal fields: `fields: [summary, status]`, `maxResults: 100`
-- Paginate if `isLast: false`
-- Parse keys + summaries in the shell to build a map — ~5K tokens total, ~20x cheaper than full descriptions
-- Use this to identify relevant tickets, superseded tickets, and dependency chains
-
-**Tier 2 — Targeted fetch** (before touching any code):
-- Fetch the full description of only the ticket being worked: `getJiraIssue(issueIdOrKey)`
-- This gives acceptance criteria, scope, out-of-scope notes, and implementation guidance
-
-**Tier 3 — Dependency fetch** (on demand only):
-- If the ticket references blockers (e.g. "blocked by SD-158"), fetch those only if understanding them is required to proceed
-- Do not pre-emptively fetch the entire dependency graph
-
-**Never fetch full descriptions for the whole backlog.** The summary is enough to orient; full descriptions are fetched one ticket at a time as work begins.
-
 ## Before Writing Code
 
 1. **Read the Jira ticket.** If the user references a ticket (e.g. "SD-187"), fetch it via MCP before touching any file. The ticket defines scope, acceptance criteria, and context. Do not guess at requirements.
@@ -32,21 +12,30 @@ The backlog has 165+ tickets. Fetching full descriptions for all of them at once
 3. **Check `decisions.mdc`.** Recent decisions may affect the work. If something in the codebase contradicts a decision, flag it before proceeding.
 4. **Clarify before coding if scope is ambiguous.** Ask one focused question — do not make assumptions that could cause rework.
 
+## Jira Ingestion Protocol
+
+Use this tiered approach — never fetch full descriptions for the whole backlog:
+
+**Tier 1 — Index pass** (when you need backlog orientation):
+- Fetch all tickets with minimal fields: `fields: [summary, status]`, `maxResults: 100`
+- Paginate if `isLast: false`
+- Build a key+summary map — ~5K tokens, not ~100K
+
+**Tier 2 — Targeted fetch** (before touching any code):
+- Fetch the full description of only the ticket being worked: `getJiraIssue(issueIdOrKey)`
+
+**Tier 3 — Dependency fetch** (on demand only):
+- Fetch blockers only if understanding them is required to proceed
+
 ## Jira Write Rule
 
-Never create, edit, or delete Jira tickets without presenting the plan to the user and getting explicit approval first. This includes:
-- Creating new issues or subtasks
-- Editing summaries, descriptions, or fields
-- Transitioning statuses
-- Adding comments
-
-Always show the proposed changes (titles, descriptions, parent links) in a readable format and wait for explicit go-ahead before executing any Jira writes.
+Never create, edit, or delete Jira tickets without presenting the plan to the user and getting explicit approval first. Always show proposed changes in a readable format and wait for go-ahead before executing any Jira writes.
 
 ## Scope Discipline
 
 - Make the **smallest correct change** that satisfies the ticket's acceptance criteria.
-- Do not refactor unrelated code. If you notice a problem outside the ticket scope, flag it as a comment or suggest a follow-up ticket — do not fix it silently.
-- If a change would affect more than 3–4 files unexpectedly, stop and confirm with the user before continuing.
+- Do not refactor unrelated code. Flag problems outside scope as a comment or follow-up ticket.
+- If a change would affect more than 3–4 files unexpectedly, stop and confirm before continuing.
 
 ## Trust Model
 
@@ -71,7 +60,25 @@ Always show the proposed changes (titles, descriptions, parent links) in a reada
 
 ## Build Verification
 
-Before considering any task complete, verify the affected packages build and tests pass
+Before considering any task complete, verify affected packages build and pass type checks:
 
-If you changed `@stridetime/types`, rebuild everything downstream in order:
-types → (db/sync) or api → core → desktop
+```bash
+# If you changed packages/db
+pnpm --filter @stride/db build
+
+# If you changed apps/api (depends on packages/db)
+pnpm --filter api build
+
+# If you changed packages/ui or packages/api-client
+pnpm --filter @stride/ui build
+pnpm --filter @stride/api-client build
+
+# If you changed apps/web (depends on packages/*)
+pnpm --filter web typecheck
+
+# Run all from root
+pnpm build
+pnpm typecheck
+```
+
+Rebuild order when `packages/db` changes: `db → api → api-client → web`

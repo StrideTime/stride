@@ -5,43 +5,43 @@ alwaysApply: true
 
 # Jira Ticket Naming Conventions
 
-This file is the single source of truth for Jira naming conventions.
-
 ## Epics
 
 Format: `TEAM::[MVP::]Feature Name`
 
 | Prefix | Team | Scope |
 |--------|------|-------|
-| `BE::` | Backend | Services, schema, repos, DB |
-| `FE::` | Frontend | UI, React components, pages |
-| `DE::` | Desktop | Tauri, Rust, native shell |
-| `DES::` | Design | Design mockups, UX review |
-| `INF::` | Infrastructure | CI/CD, DevOps, tooling |
+| `BE::` | Backend | API, schema, repos, DB, Hono routes |
+| `FE::` | Frontend | UI, React components, TanStack Start routes |
+| `DE::` | Desktop | Tauri, Rust, native shell, tray window |
+| `DES::` | Design | Design mockups, UX review, design system |
+| `INF::` | Infrastructure | CI/CD, DevOps, tooling, CF Workers config |
 
 Add `::MVP::` only if the epic is part of the initial MVP release scope.
 
-Examples: `INF::MVP::Monorepo & Build`, `BE::MVP::Supabase Security`, `FE::Habit Tracking`, `DES::Settings Pages`
+Examples: `INF::MVP::Monorepo & Build`, `BE::MVP::Hono API Foundation`, `FE::MVP::Backlog View`, `DES::Refinement Flow`
 
 ## Stories
 
 Format: `Stream::Type::Name`
 
-**Stream** identifies the feature domain (15 options):
-Security, Backend, UI, Tasks, Planning, Tray, Stats, Settings, Focus, Habits, Teams, Billing, Admin, DevOps, Testing, Design
+**Stream** identifies the feature domain:
+Auth, Backend, UI, Specs, Actions, Sessions, Backlog, Schedule, Today, Tray, Insights, Settings, Teams, Billing, Admin, DevOps, Testing, Design, Sync
 
-**Type** identifies the work kind (10 options):
-Schema, Repo, Service, Context, Component, View, Integration, Config, Test, Design
+**Type** identifies the work kind:
+Schema, Repo, Service, Route, Component, View, Integration, Config, Test, Design
 
 **Exception:** Design stories skip the Type segment and use `Design::Name` directly.
 
 Examples:
-- `Security::Schema::RLS Policies`
-- `Backend::Service::BreakService`
-- `UI::Config::Install Tailwind CSS`
-- `Tasks::View::Today View`
-- `DevOps::Config::Add Turborepo`
-- `Design::Tray Focus Tab — 5-state layout review`
+- `Auth::Service::Better Auth Setup`
+- `Backend::Schema::Specs + Actions + Sessions Tables`
+- `Sync::Integration::Jira Webhook Ingest`
+- `UI::Component::SpecCard`
+- `Specs::View::Backlog View`
+- `Tray::View::Session Timer State`
+- `DevOps::Config::CF Workers + Wrangler Setup`
+- `Design::Backlog Refinement Panel Layout`
 
 ## Rules
 

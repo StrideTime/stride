@@ -1,96 +1,126 @@
 ---
-description: Service class pattern, method execution order, and validation conventions for @stridetime/core. Apply when editing *.service.ts files.
-globs: ["**/*.service.ts"]
+description: Service class pattern, method execution order, and validation conventions for apps/api. Apply when editing *.service.ts files.
+globs: ["apps/api/src/**/*.service.ts"]
 ---
 
-# Service Patterns (`@stridetime/core`)
+# Service Patterns (`apps/api`)
 
 ## Service Class Structure
 
 ```typescript
-import {
-  taskRepo as defaultTaskRepo,
-  type TaskRepository,
-  type StrideDatabase,
-} from '@stridetime/db';
-import type { Task, CreateTaskInput } from '@stridetime/types';
-import { ValidationError, NotFoundError } from '@stridetime/types';
-import { sanitizeFields } from '../utils/sanitize';
+import { specRepo as defaultSpecRepo, type SpecRepository } from '../repos/spec.repo';
+import type { DrizzleDb } from '../lib/db';
+import type { Spec } from '@stride/db';
+import { insertSpecSchema } from '@stride/db';
+import { HTTPException } from 'hono/http-exception';
 
-export class TaskService {
+export class SpecService {
   constructor(
-    private taskRepo: TaskRepository = defaultTaskRepo,
+    private specRepo: SpecRepository = defaultSpecRepo,
   ) {}
 
-  async create(db: StrideDatabase, params: CreateTaskInput): Promise<Task> {
-    // 1. Sanitize inputs
-    const sanitized = sanitizeFields(params);
-    // 2. Validate synchronously
-    this.validateCreate(sanitized);
-    // 3. Async existence checks
-    const project = await this.taskRepo.findById(db, sanitized.projectId);
-    if (!project) throw new NotFoundError('Project not found');
-    // 4. Business logic
-    // 5. Repo call
-    return this.taskRepo.create(db, { ...sanitized, userId: params.userId });
-  }
-
-  async update(db: StrideDatabase, id: string, params: UpdateTaskInput): Promise<Task> {
-    const sanitized = sanitizeFields(params);
-    this.validateUpdate(sanitized);
-    const existing = await this.taskRepo.findById(db, id);
-    if (!existing) throw new NotFoundError('Task not found');
-    await this.taskRepo.update(db, id, sanitized);
-    return { ...existing, ...sanitized };
-  }
-
-  async delete(db: StrideDatabase, id: string): Promise<void> {
-    const existing = await this.taskRepo.findById(db, id);
-    if (!existing) throw new NotFoundError('Task not found');
-    await this.taskRepo.delete(db, id);
-  }
-
-  private validateCreate(params: CreateTaskInput): void {
-    if (!params.title?.trim()) {
-      throw new ValidationError('title', 'Task title is required');
+  async create(db: DrizzleDb, params: unknown): Promise<Spec> {
+    // 1. Parse + validate input with drizzle-zod schema
+    const parsed = insertSpecSchema.pick({ title: true, workspaceId: true }).safeParse(params);
+    if (!parsed.success) {
+      throw new HTTPException(422, { message: parsed.error.message });
     }
+    // 2. Async existence checks
+    const workspace = await this.workspaceRepo.findById(db, parsed.data.workspaceId);
+    if (!workspace) throw new HTTPException(404, { message: 'Workspace not found' });
+    // 3. Business logic
+    // 4. Repo call
+    return this.specRepo.create(db, parsed.data);
   }
 
-  private validateUpdate(params: UpdateTaskInput): void {
-    if (params.title !== undefined && !params.title?.trim()) {
-      throw new ValidationError('title', 'Task title cannot be empty');
-    }
+  async update(db: DrizzleDb, id: string, params: unknown): Promise<Spec> {
+    const parsed = insertSpecSchema.partial().safeParse(params);
+    if (!parsed.success) throw new HTTPException(422, { message: parsed.error.message });
+    const existing = await this.specRepo.findById(db, id);
+    if (!existing) throw new HTTPException(404, { message: 'Spec not found' });
+    await this.specRepo.update(db, id, parsed.data);
+    return { ...existing, ...parsed.data };
+  }
+
+  async delete(db: DrizzleDb, id: string): Promise<void> {
+    const existing = await this.specRepo.findById(db, id);
+    if (!existing) throw new HTTPException(404, { message: 'Spec not found' });
+    await this.specRepo.delete(db, id);
   }
 }
 
-// Always export both class and singleton
-export const taskService = new TaskService();
+export const specService = new SpecService();
 ```
 
 ## Method Execution Order
 
 Every `create` / `update` method must follow this order — no exceptions:
 
-1. `sanitizeFields(params)` — trim strings, normalize values
-2. `this.validateXxx(sanitized)` — synchronous validation, throws `ValidationError`
-3. Async DB existence checks — throws `NotFoundError` if missing
-4. Business logic (calculations, transformations)
-5. Repo call(s)
-6. Return result
+1. **Parse + validate** with drizzle-zod schema (`.safeParse`) — throw 422 on failure
+2. **Async existence checks** — throw 404 if required related entities are missing
+3. **Business logic** (calculations, transformations, RLS-layer checks)
+4. **Repo call(s)**
+5. **Return result**
 
 ## Validation Rules
 
-- Validation methods are `private` and named `validateCreate`, `validateUpdate`, etc.
-- They throw `ValidationError(field, message)` — never return booleans
-- Synchronous validation runs before any async work
-- Required fields, format checks, and business rule violations all live here
+- Use drizzle-zod inferred schemas from `@stride/db` as the source of truth
+- Use `.safeParse()` — never `.parse()` (avoids uncaught throws)
+- Throw `HTTPException` with appropriate status codes: 422 validation, 404 not found, 403 permission
+- Never return boolean error flags — always throw
 
 ## DI Pattern
 
 - Constructor takes typed repo interfaces with default singleton values
 - This enables test injection without a DI container
-- Never call `new TaskRepository()` inside a service method — use the injected instance
+- Never instantiate repos inside service methods
 
-## sanitizeFields
+## Hono Route Integration
 
-Every `create` and `update` method must call `sanitizeFields` before anything else. This trims string inputs and normalizes falsy values. Do not skip it even if inputs seem clean.
+Services are called from Hono route handlers — never directly from components:
+
+```typescript
+// apps/api/src/routes/specs.ts
+import { Hono } from 'hono';
+import { specService } from '../services/spec.service';
+import { getDb } from '../lib/db';
+
+const specs = new Hono()
+  .get('/', async c => {
+    const db = getDb(c);
+    const workspaceId = c.get('workspaceId'); // set by auth middleware
+    const data = await specService.findByWorkspace(db, workspaceId);
+    return c.json(data);
+  })
+  .post('/', async c => {
+    const db = getDb(c);
+    const body = await c.req.json();
+    const spec = await specService.create(db, body);
+    return c.json(spec, 201);
+  });
+
+export default specs;
+```
+
+## Idempotency for Queued Mutations
+
+Routes that accept mutations from the offline queue must check the idempotency table first:
+
+```typescript
+.post('/actions', async c => {
+  const db = getDb(c);
+  const { commandId, ...body } = await c.req.json();
+
+  // Check idempotency table
+  const existing = await processedMutationRepo.find(db, commandId);
+  if (existing) return c.json(JSON.parse(existing.result));
+
+  // Process mutation
+  const result = await actionService.create(db, body);
+
+  // Store result for replay safety
+  await processedMutationRepo.create(db, { id: commandId, result: JSON.stringify(result) });
+
+  return c.json(result, 201);
+})
+```

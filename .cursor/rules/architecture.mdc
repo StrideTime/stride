@@ -5,59 +5,158 @@ alwaysApply: true
 
 # Architecture
 
+> **Note:** The stack was fully replaced on 2026-05-04. Previous references to PowerSync, Supabase, `stride-desktop` as a React app, or `@stridetime/db`/`@stridetime/sync` as a PowerSync package are obsolete. See `decisions.mdc` 2026-05-04 entry for full context.
+
 ## Monorepo Structure
 
-Stride is a TypeScript monorepo (pnpm) with a strict unidirectional dependency graph:
-
 ```
-@stridetime/types  →  @stridetime/db  →  @stridetime/core  →  stride-desktop
-   (types only)        (schema, repos)    (services, logic)    (UI, pages)
+apps/
+  web/          TanStack Start — SSR build for web (CF Workers), SPA build for Tauri
+  desktop/      Tauri 2.0 shell ONLY — Rust, tauri.conf.json, native plugins. No React code here.
+  mobile/       Expo / React Native (future)
+  api/          Hono on Cloudflare Workers — all business logic
+packages/
+  ui/           Shared React components — no business logic, no API calls
+  api-client/   Typed Hono hc client — used by web, desktop (SPA), and mobile
+  queue/        Mutation queue abstraction — pure TypeScript, storage driver injected per runtime
+  db/           Drizzle schema + drizzle-zod inferred types — imported by api/ only
 ```
 
-**Pending rename (SD-162):** `@stridetime/db` will be renamed to `@stridetime/sync` — same package, same position in the dependency chain, same responsibilities. All current code uses `@stridetime/db`. Once SD-162 is complete, update all import references in these rules and the codebase.
+## Dependency Rules
 
-Each layer may only import from layers to its left. Never import upward.
+Each layer may only import from layers listed. Never import upward or sideways outside these rules.
 
-## What Each Layer Contains
-
-| Package | Responsibility |
+| Package | May import from |
 |---|---|
-| `@stridetime/types` | Domain types, enums, input interfaces — no logic, no DB |
-| `@stridetime/db` | Drizzle schema, repository classes, DB utilities, PowerSync connector (`src/db/connector.ts`). Will be renamed to `@stridetime/sync` via SD-162; will also house `powersync.yaml` after SD-229. |
-| `@stridetime/core` | Business logic services, validation, orchestration |
-| `stride-desktop` | Tauri + React UI, pages, components, hooks, contexts |
-| `stride-mobile` | Expo + React Native — same layer as stride-desktop |
-| `stride-admin` | Vite + React admin UI — same layer as stride-desktop |
-| `@stridetime/ui` | Shared component library — no business logic |
+| `packages/db` | nothing (leaf — Drizzle schema + zod types only) |
+| `packages/ui` | nothing (leaf — React components, no data fetching) |
+| `packages/api-client` | `packages/db` (for shared types) |
+| `packages/queue` | nothing (leaf — pure TS interfaces + platform-agnostic logic) |
+| `apps/api` | `packages/db` |
+| `apps/web` | `packages/ui`, `packages/api-client`, `packages/queue` |
+| `apps/desktop` | nothing (Rust/Tauri config only — frontend is the web SPA build) |
+| `apps/mobile` | `packages/ui`, `packages/api-client`, `packages/queue` |
 
-## Import Rules by Package
+`apps/web` **never** imports from `apps/api` directly — all server communication goes through `packages/api-client` (typed Hono `hc` client) or TanStack Start server functions (which call Hono route handlers in-process on CF Workers).
 
-### `@stridetime/types`
-- Imports from: nothing (leaf node)
-- Never imports from any other `@stridetime/*` package
+## Type Flow
 
-### `@stridetime/db` (future: `@stridetime/sync`)
-- Imports from: `@stridetime/types` only
-- Never imports from `@stridetime/core` or `stride-desktop`
+```
+Drizzle schema (packages/db)
+  → drizzle-zod inferred types (packages/db)
+    → Hono route types (apps/api)
+      → hc typed client (packages/api-client)
+        → component props (apps/web, apps/mobile)
+```
 
-### `@stridetime/core`
-- Imports from: `@stridetime/db` and `@stridetime/types`
-- Never imports from `stride-desktop`
+Single source of truth from DB column to component prop. No manual type duplication.
 
-### `stride-desktop`
-- Imports from: `@stridetime/core` and `@stridetime/types`
-- **Never imports from `@stridetime/db`** — the only exception is `src/lib/db.ts` for database initialization
+## Build Targets — One Web Codebase, Two Outputs
 
-## Service Layer Boundary
+`apps/web` is built two ways, controlled by `BUILD_TARGET` env var:
 
-- All **mutations** go through services in `@stridetime/core`
-- UI components call service methods — never call repository methods directly
-- **Reads** use `useQuery` from `@powersync/react` with raw SQL
-- **Writes** use service methods
+```bash
+BUILD_TARGET=web     pnpm build  # SSR → deploys to CF Workers
+BUILD_TARGET=desktop pnpm build  # SPA mode → dist/ → Tauri packages it
+```
 
-## Key Architectural Decisions
+In `vite.config.ts`:
+```ts
+tanstackStart({
+  spa: {
+    enabled: process.env.BUILD_TARGET === 'desktop',
+  },
+})
+```
 
-- SQLite (Drizzle ORM) with PowerSync for offline-first sync
-- Tauri 2 (Rust) for desktop shell — Rust code lives in `stride-desktop/src-tauri/`
-- Every table has soft deletes (`deleted` boolean column) — deleted records are never hard-deleted
-- PowerSync handles reactive queries — do NOT build custom refresh/watch patterns
+Server functions in SPA mode automatically become HTTP calls to the Hono API — no code changes required between builds.
+
+## Tauri Desktop Architecture
+
+One Tauri binary. Two windows. No separate React codebase.
+
+- `apps/desktop/tauri.conf.json` points `frontendDist` at `../web/dist/`
+- **Main window** — loads TanStack Start SPA at `/`
+- **Tray window** — second Tauri window, loads same SPA at `/tray` (a TanStack Router route), smaller dimensions, positioned at system tray
+- Both windows share one native SQLite database (Tauri SQL plugin)
+- **Main window owns the mutation queue drainer** — tray window reads/writes the queue but never drains
+- Hono API CORS allows `tauri://localhost` as an origin
+
+## CF Workers Layout
+
+```
+CF Workers deployment
+  ├── TanStack Start Worker   SSR + static assets (JS/CSS served directly, no R2 needed)
+  │     └── /api/$            Hono catch-all — same Worker, zero network hop
+  ├── Queue consumer Worker   Processes source sync events from CF Queue
+  └── Cron Triggers           Jira polling fallback (webhooks are best-effort)
+```
+
+Hono is mounted inside TanStack Start as a catch-all API route. They share the same Worker process — no Worker-to-Worker network calls for API requests from the web app.
+
+## Offline Architecture
+
+Server-authoritative with optimistic updates and a durable SQLite mutation queue.
+
+**Mutation flow:**
+1. User action → serializable command with client UUID (idempotency key)
+2. Optimistic update applied to TanStack Query cache immediately
+3. Command written to SQLite queue (persists across app kills/reloads)
+4. Background drainer sends commands to Hono API FIFO, exponential backoff retry
+5. Server applies RLS, business rules, optimistic concurrency — returns canonical state
+6. Server `processed_mutations` table enables safe idempotent retries
+7. On conflict: 409 version conflict / 422 business rule / 403 permission → client rolls back optimistic state, surfaces rejected-mutation UI
+
+**SQLite storage driver per runtime:**
+
+| Runtime | Driver |
+|---|---|
+| Web | wa-sqlite over OPFS (requires COOP/COEP headers on CF Workers responses) |
+| Desktop (Tauri) | Native SQLite via Tauri SQL plugin |
+| Mobile (future) | expo-sqlite or op-sqlite |
+
+`packages/queue` defines the interface. Each app injects its own driver. Queue logic is identical across all runtimes.
+
+## Source Integration
+
+**Sync boundaries:**
+
+| Source | Stride Team maps to | Stride Project (optional) maps to |
+|---|---|---|
+| Jira (free/team-managed) | Space (one board per space) | Epic |
+| Jira (paid/company-managed) | Board within a Space | Epic |
+| Linear | Team | Linear Project |
+| GitHub | Repository | Milestone |
+
+**Rules:**
+- All issues sync regardless of Epic/Project/Milestone membership — issues without groupings appear uncategorized, never hidden
+- Status mapping is defined at connection time — admin maps source custom statuses to Stride internal states. UI always displays source vocabulary.
+- Webhook ingest → CF Queue → consumer Worker → Neon. CF Cron Trigger polls Jira periodically (Jira webhooks are best-effort, no replay mechanism).
+- Stride creates issues in source systems only during spec-splitting in refinement. Stride never creates Jira Spaces, Linear Teams, or GitHub Repos.
+
+## Core Data Model
+
+```
+Spec          (synced from source — Jira/Linear/GitHub)
+  └── Action  (Stride-native, 1+ per Spec)
+        └── Session  (Stride-native, time block on an Action)
+
+Standalone Action  (no parent Spec — lightweight personal task, title + estimate only)
+  └── Session
+```
+
+**Rule: execution always ties to an Action. Sessions never attach directly to a Spec.**
+
+A Spec always has at least one Action before work can begin. A 1:1 Spec→Action is valid for simple work.
+
+Standalone Actions are personal, never appear in the team's shared spec backlog.
+
+## Key Constraints
+
+- **No Supabase.** Not used anywhere. Neon is the database.
+- **No PowerSync.** Replaced by the mutation queue pattern above.
+- **No TanStack DB yet.** TanStack Query only until TanStack DB persistence is stable (post v0.6).
+- **No sessions on Specs.** Sessions always go through Actions.
+- **No Stride-native Specs.** All Specs have a source system. Standalone tasks use Actions.
+- **No separate Tauri React app.** `apps/desktop/` is Rust/config only. Web SPA build is the desktop frontend.
+- **No separate tray binary.** Tray is a second window inside the same Tauri app.

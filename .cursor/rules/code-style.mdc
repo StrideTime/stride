@@ -30,92 +30,90 @@ const fn = (x) => x * 2
 
 | Thing | Convention | Example |
 |---|---|---|
-| Files (types, entities, enums) | PascalCase | `TaskStatus.ts`, `CreateTaskInput.ts` |
-| Files (repos, services, hooks) | kebab-case | `task.repo.ts`, `task.service.ts`, `useSyncStatus.ts` |
-| Files (React components) | PascalCase | `TaskCard.tsx`, `TodayView.tsx` |
-| Files (CSS Modules) | PascalCase matching component | `Auth.module.css`, `Dashboard.module.css` |
-| Classes | PascalCase | `TaskService`, `TaskRepository` |
-| Instances/singletons | camelCase | `taskService`, `taskRepo` |
-| Functions | camelCase | `toDomain`, `sanitizeFields` |
-| React components | PascalCase function | `function TodayView()` |
-| Hooks | camelCase with `use` prefix | `useAuth`, `useSyncStatus` |
-| Types (domain entities) | PascalCase | `type Task = { ... }` |
-| Types (inputs/DTOs) | PascalCase | `type CreateTaskInput = { ... }` |
-| Enums (as const objects) | PascalCase | `const TaskStatus = { ... } as const` |
-| Constants | UPPER_SNAKE_CASE | `const UNDO_TIMEOUT_MS = 10_000` |
-| DB columns | camelCase TS / snake_case SQL | `firstName` maps to `first_name` |
+| Files (types, entities, enums) | PascalCase | `Spec.ts`, `SourceType.ts` |
+| Files (repos, services, hooks) | kebab-case | `spec.repo.ts`, `spec.service.ts`, `useAuth.ts` |
+| Files (React components) | PascalCase | `SpecCard.tsx`, `BacklogView.tsx` |
+| Files (CSS Modules) | PascalCase matching component | `SpecCard.module.css` |
+| Classes | PascalCase | `SpecService`, `SpecRepository` |
+| Instances/singletons | camelCase | `specService`, `specRepo` |
+| Functions | camelCase | `toDomain`, `generateId` |
+| React components | PascalCase function | `function BacklogView()` |
+| Hooks | camelCase with `use` prefix | `useAuth`, `useQueueStatus` |
+| Types (domain entities) | PascalCase | `type Spec = { ... }` |
+| Types (inputs/DTOs) | PascalCase | `type CreateActionInput = { ... }` |
+| Enums (as const objects) | PascalCase | `const SourceType = { ... } as const` |
+| Constants | UPPER_SNAKE_CASE | `const MAX_ACTIONS_PER_SPEC = 50` |
+| DB columns | camelCase TS / snake_case SQL | `sourceId` maps to `source_id` |
 
 ## Import Rules
 
 ```typescript
 // 1. Use `import type` for type-only imports
-import type { Task, Project } from '@stridetime/types';
-import type { StrideDatabase } from '@stridetime/db';
+import type { Spec } from '@stride/db';
+import type { DrizzleDb } from '../lib/db';
 
 // 2. Separate value imports from type imports
-import { TaskStatus, TaskDifficulty } from '@stridetime/types';
-import { taskService } from '@stridetime/core';
+import { specRepo } from '../repos/spec.repo';
+import { generateId } from '../lib/utils';
 
 // 3. Use alias for default repo imports in services
 import {
-  taskRepo as defaultTaskRepo,
-  type TaskRepository,
-} from '@stridetime/db';
+  specRepo as defaultSpecRepo,
+  type SpecRepository,
+} from '../repos/spec.repo';
 
 // 4. Relative imports for same-package files
-import { tasksTable } from '../drizzle/schema';
-import { generateId, now } from '../db/utils';
+import { specsTable } from '../../packages/db/src/schema';
 
-// 5. Never import from @stridetime/db in stride-desktop (use @stridetime/core)
-//    The ONLY exception is stride-desktop/src/lib/db.ts for database init
+// 5. Package boundaries:
+//    apps/web    → may import from packages/ui, packages/api-client, packages/queue
+//    apps/api    → may import from packages/db only
+//    apps/web    → must NOT import from apps/api directly (use packages/api-client)
+//    packages/db → must NOT import from apps/api or apps/web
 ```
 
-## Type Definitions in stride-types
+## Type Definitions
 
 **Enums — `as const` objects, NOT TypeScript `enum`:**
 ```typescript
 // CORRECT
-export const TaskPriority = {
-  CRITICAL: 'CRITICAL',
-  HIGH: 'HIGH',
-  MEDIUM: 'MEDIUM',
-  LOW: 'LOW',
-  NONE: 'NONE',
+export const SourceType = {
+  JIRA: 'jira',
+  LINEAR: 'linear',
+  GITHUB: 'github',
 } as const;
-export type TaskPriority = (typeof TaskPriority)[keyof typeof TaskPriority];
+export type SourceType = (typeof SourceType)[keyof typeof SourceType];
 
 // WRONG
-export enum TaskPriority { CRITICAL = 'CRITICAL' }
+export enum SourceType { JIRA = 'jira' }
 ```
 
 **Entities — `type`, not `interface`:**
 ```typescript
 // CORRECT
-export type Task = { id: string; title: string; status: TaskStatus };
+export type Spec = { id: string; title: string; sourceType: SourceType };
 
 // WRONG
-export interface Task { ... }
+export interface Spec { ... }
 ```
 
 **Inputs/DTOs — also `type`:**
 ```typescript
-export type CreateTaskInput = {
+export type CreateActionInput = {
   title: string;
-  projectId: string;
+  specId?: string;
+  estimate?: number;
 };
 ```
 
 **Always use `type`, never `interface`** — for entities, inputs, props, everything.
 
-**Exports — barrel pattern, type-only for non-enums:**
+**Exports — barrel pattern:**
 ```typescript
-// subdirectory index.ts
-export type { Task } from './Task';        // type-only for entities
-export { TaskStatus } from './TaskStatus'; // value export for enums
-
-// src/index.ts
-export type { Task, Project } from './entities';
-export { TaskStatus, TaskDifficulty } from './enums';
+// packages/db/src/index.ts
+export type { Spec, Action, Session } from './schema';
+export { insertSpecSchema, selectSpecSchema } from './schema';
+export { SourceType } from './enums';
 ```
 
-**One type/enum/input per file.**
+**One type/enum per file.**
