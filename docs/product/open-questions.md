@@ -35,6 +35,12 @@ Things raised during design and not firmly resolved. Each has context so it can 
 11. **Auth & first-run routing.** Invite-only is decided for v1 (no public self-serve signup, no billing). Still open: the `/login` / `/onboarding` route shape — is onboarding a gated route *before* the app shell, or a step *inside* it? Does `/signup` exist at all in v1 (invites may create accounts directly)?
 12. **Tray sub-routes & `/settings/*` sub-pages.** The ⌥Space capture window — a route (`/tray/capture` vs a top-level `/capture`) or rendered another way (a separate Tauri window, not router-driven)? And what are the `/settings/*` sub-pages (workspace, source connections, calendar connection, team/member management; notifications [deferred], privacy [deferred])?
 
+## Architecture — desktop integration
+
+18. **Desktop auth transport.** Leaning: a bearer token in the OS keychain (Better Auth bearer mode for desktop, cookie mode for web) — avoids cross-site-cookie friction with the `tauri://` origin. Confirm when building `apps/desktop` / wiring Better Auth. The planned approach is recorded in [`.cursor/rules/architecture.mdc`](../../.cursor/rules/architecture.mdc).
+19. **Desktop OAuth callbacks.** How the Jira / Linear / Google Calendar connect flows return to the desktop app: `tauri-plugin-deep-link` (custom protocol `stride://oauth/callback`) vs a localhost loopback the app spins up. Decide when building the connect flows.
+20. **Mutation drainer location on desktop.** Leaning: the Rust backend (single owner, survives window close), not a webview task — refines the older "main window owns the drainer" note. Confirm when building the Tauri SQLite driver in `packages/queue`.
+
 ## Doc / repo hygiene (not strictly product, but open)
 
 13. **`apps/server` → `apps/api`?** The directory is `apps/server`; every `.cursor/rules/*.mdc` reference, the git commit scopes, and the build commands say `apps/api`. Rename the dir, or update the conventions. Recommend: rename the dir.
@@ -45,6 +51,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Changelog
 
+- **2026-05-12 — Desktop / TanStack Start integration approach documented** in [`.cursor/rules/architecture.mdc`](../../.cursor/rules/architecture.mdc): the desktop app is `apps/web`'s SPA build (`BUILD_TARGET=desktop`) wrapped by a Tauri 2 shell (two windows; one shared native SQLite; the mutation drainer Rust-side); data access via `packages/api-client` (configurable base URL), not server functions; the Query cache persisted for offline reads; desktop auth via bearer-token-in-keychain. Auth-transport / OAuth-callback / drainer-location specifics → Q18–Q20. Refines the 2026-05-04 decision; an ADR refinement is pending.
 - **2026-05-12 — v1 scope decided** (the scope-lever Q&A). v1 = the full product as designed minus the go-to-market layer: the four deep surfaces + the full desktop tray; Jira + Linear; the full team layer with roles; all at prototype fidelity; with public self-serve signup, billing, and marketing onboarding deferred. Recorded in [`mvp.md`](mvp.md).
 - **2026-05-12 — LLM features out of v1.** No AI-assisted break down, no AI insights, nothing LLM-dependent in v1; break down is manual. The architecture stays LLM-ready for later. Recorded in [`mvp.md`](mvp.md).
 - **2026-05-12 — Comments out of v1.** No Comments tab in the Spec view, no reply-write-back to source, in v1. Recorded in [`mvp.md`](mvp.md) + [`surfaces.md`](surfaces.md).

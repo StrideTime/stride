@@ -69,18 +69,28 @@ tanstackStart({
 })
 ```
 
-Server functions in SPA mode automatically become HTTP calls to the Hono API — no code changes required between builds.
+**Data access goes through `packages/api-client`** (the typed Hono `hc` client), not TanStack Start server functions. The api-client's base URL is configurable (env var): `/api/$` on the same Worker for the web/SSR build; the remote API origin for the desktop SPA build — so the data layer is byte-identical across builds. Reserve TanStack Start server functions for things that genuinely need server-only context (request headers/cookies, secrets); they are not the data-fetching mechanism. *(Refines the 2026-05-04 `decisions.mdc` note about server functions in SPA mode — the api-client is the explicit, single data boundary.)*
 
 ## Tauri Desktop Architecture
 
-One Tauri binary. Two windows. No separate React codebase.
+One Tauri binary. Two windows. No separate React codebase — `apps/web`'s SPA build (`BUILD_TARGET=desktop`) **is** the desktop frontend.
 
-- `apps/desktop/tauri.conf.json` points `frontendDist` at `../web/dist/`
-- **Main window** — loads TanStack Start SPA at `/`
-- **Tray window** — second Tauri window, loads same SPA at `/tray` (a TanStack Router route), smaller dimensions, positioned at system tray
-- Both windows share one native SQLite database (Tauri SQL plugin)
-- **Main window owns the mutation queue drainer** — tray window reads/writes the queue but never drains
-- Hono API CORS allows `tauri://localhost` as an origin
+- `apps/desktop/` is Rust + config only — `tauri.conf.json`, native plugins, the Rust backend. No React.
+- `apps/desktop/tauri.conf.json` points `frontendDist` at `../web/dist/`.
+- **Main window** — loads the SPA at `/`.
+- **Tray window** — a second Tauri window, loads the same SPA at `/tray` (a TanStack Router route), smaller dimensions, anchored to the system tray.
+- Both windows share **one native SQLite database** (Tauri SQL plugin) — the same `packages/queue` mutation-queue schema as the web build, with the native storage driver injected.
+- The mutation-queue **drainer runs in the Rust backend**, not in a webview: single owner, survives window close; both webviews enqueue commands via Tauri commands. *(Refines the earlier "main window owns the drainer" framing — confirm when `apps/desktop` is built.)*
+- The Hono API CORS allowlist includes the Tauri webview origin (`tauri://localhost` / `https://tauri.localhost`, per platform).
+
+### Desktop specifics — planned approach
+
+Refines the 2026-05-04 decision; to be ADR-logged and confirmed when `apps/desktop` is built (tracked in `docs/product/open-questions.md` Q18–Q20):
+
+- **Auth transport: bearer token in the OS keychain**, not session cookies. Better Auth runs in cookie mode for web and bearer mode for desktop (it supports both). Sidesteps cross-site-cookie friction between the `tauri://` webview origin and the remote API.
+- **OAuth callbacks** (connecting Jira / Linear / Google Calendar): `tauri-plugin-deep-link` (a custom protocol, e.g. `stride://oauth/callback`), or a localhost loopback the app spins up for the redirect. Decide when building the connect flows.
+- **Offline reads**: the TanStack Query cache is persisted (`@tanstack/query-persist-client`) — OPFS on web, a file on desktop — so a cold start while offline shows last-fetched data, with the optimistic outbox layered over it.
+- **Auto-update**: `tauri-plugin-updater` when it matters (not needed for the private dogfood v1).
 
 ## CF Workers Layout
 

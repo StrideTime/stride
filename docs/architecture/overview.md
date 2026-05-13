@@ -29,6 +29,10 @@ This is the one-screen picture. The **authoritative spec** is [`.cursor/rules/ar
 | Real-time | Deferred post-v1 (CF Durable Objects + WebSocket) |
 | Type flow | Drizzle schema → drizzle-zod → Hono RPC → `hc` typed client → component props (one source of truth, no manual duplication) |
 
+## Desktop & web from one codebase
+
+`apps/web` builds two ways via a `BUILD_TARGET` env var: `web` → SSR, deploys to a CF Worker (which also mounts the Hono API at `/api/$`); `desktop` → `tanstackStart({ spa: { enabled: true } })` → static `dist/`, which a Tauri 2 shell (`apps/desktop` — Rust + config only) packages: two windows (main `/`, tray `/tray`), one shared native SQLite for the mutation queue, the drainer running Rust-side. **Data access goes through `packages/api-client`** (typed Hono `hc`, configurable base URL — `/api/$` on the Worker for web, the remote origin for desktop), not TanStack Start server functions. Desktop auth is a bearer token in the OS keychain (Better Auth bearer mode); web auth is cookie mode. The TanStack Query cache is persisted (OPFS web / a file on desktop) for offline reads. The desktop-specifics (auth transport, OAuth-callback handling, drainer location) are the *planned* approach, refining the 2026-05-04 decision — confirm when `apps/desktop` is built ([`../product/open-questions.md`](../product/open-questions.md) Q18–Q20; detail in [`.cursor/rules/architecture.mdc`](../../.cursor/rules/architecture.mdc)).
+
 ## Target monorepo layout
 
 ```
@@ -53,7 +57,7 @@ The conventions are written **ahead of** the code — that's intentional. As of 
 - `apps/web/` — a bare `create-vite` React + TS scaffold. **To do:** replace with a TanStack Start app (`routes/`, server functions, the SSR/SPA build-target split).
 - `apps/server/` — a "Hello Hono" + Drizzle starter. **Naming mismatch:** everything in `.cursor/rules/*.mdc`, the git commit scopes, and the build commands say `apps/api`. Either rename the dir to `apps/api` (recommended) or update the conventions. Tracked in [`../product/open-questions.md`](../product/open-questions.md) Q13.
 - `packages/` — only `eslint-config` and `typescript-config` exist. **To do:** add `ui`, `db`, `api-client`, `queue` when they're needed (per the roadmap — not all at once).
-- `apps/desktop/` (Tauri) — not created yet.
+- `apps/desktop/` (Tauri) — not created yet; the integration approach is documented ("Desktop & web from one codebase" above + `architecture.mdc`).
 - No `.claude/` dir; `stride/CLAUDE.md` was added (2026-05-12) as the agent pointer.
 - `landing-page/` (a sibling directory, not in this monorepo) is on a different stack and predates the reset — see [`../reference/archived.md`](../reference/archived.md).
 
