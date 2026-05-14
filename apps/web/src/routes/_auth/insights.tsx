@@ -1,12 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { Typography } from '@stride/ui';
+
+import styles from './PageScaffold.module.css';
 
 export const Route = createFileRoute('/_auth/insights')({
   component: InsightsPage,
 });
 
-// Insights (`/insights`) — v1: the Performance view only (personal stat cards + estimate-vs-actual scatter);
-// Team / Goals / Burnout / Focus Time tabs are post-v1. v1 scope is a working assumption (open-questions Q16).
-// See docs/product/surfaces.md + docs/product/mvp.md.
 function InsightsPage() {
-  return <section>Insights — coming soon</section>;
+  return (
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <Typography as="p" size="sm" weight="semibold" color="accent">Insights</Typography>
+        <Typography as="h1" size="2xl" weight="bold">Performance, without surveillance.</Typography>
+        <Typography as="p" size="base" color="muted">Personal analytics placeholder.</Typography>
+      </div>
+    </section>
+  );
 }

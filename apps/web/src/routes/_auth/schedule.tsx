@@ -1,11 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { Typography } from '@stride/ui';
+
+import styles from './PageScaffold.module.css';
 
 export const Route = createFileRoute('/_auth/schedule')({
   component: SchedulePage,
 });
 
-// Schedule (`/schedule`) — week + month calendar; drag-to-schedule / move / resize; plan-vs-actual inline;
-// typed blocks (action / meeting / focus / break). Meeting blocks come from the calendar sync. See docs/product/surfaces.md.
 function SchedulePage() {
-  return <section>Schedule — coming soon</section>;
+  return (
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <Typography as="p" size="sm" weight="semibold" color="accent">Schedule</Typography>
+        <Typography as="h1" size="2xl" weight="bold">Plan the week.</Typography>
+        <Typography as="p" size="base" color="muted">Week grid placeholder.</Typography>
+      </div>
+    </section>
+  );
 }

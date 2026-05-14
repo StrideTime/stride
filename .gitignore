@@ -18,6 +18,13 @@ coverage
 # Turbo
 .turbo
 
+# TypeScript build info
+*.tsbuildinfo
+
+# Impeccable live runtime state
+.impeccable/live/server.json
+.impeccable/live/sessions/
+
 # Vercel
 .vercel
 

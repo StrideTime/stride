@@ -1,11 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { Typography } from '@stride/ui';
+
+import styles from './PageScaffold.module.css';
 
 export const Route = createFileRoute('/_auth/settings')({
   component: SettingsPage,
 });
 
-// `/settings/*` — workspace settings, source + calendar connections, team + member management.
-// Sub-pages are TBD (open-questions Q12); notifications/privacy are deferred placeholders. See docs/product/surfaces.md.
 function SettingsPage() {
-  return <section>Settings — coming soon</section>;
+  return (
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <Typography as="p" size="sm" weight="semibold" color="accent">Settings</Typography>
+        <Typography as="h1" size="2xl" weight="bold">Workspace setup.</Typography>
+      </div>
+    </section>
+  );
 }

@@ -1,5 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 
+import '@stride/ui/styles/global.css';
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -16,7 +18,7 @@ export const Route = createRootRoute({
 // web build and prerenders it for the desktop SPA build.
 function RootDocument() {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark">
       <head>
         <HeadContent />
       </head>

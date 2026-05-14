@@ -22,7 +22,8 @@ __root.tsx                     providers (QueryClient, i18n, theme)
 │
 └── _auth.tsx       app-shell layout (requires auth + a workspace) — left rail: Today · Backlog · Schedule · Insights, with ⚙ Settings pinned at the bottom
     ├── index.tsx           /              Today — the dashboard
-    ├── backlog.tsx         /backlog       Specs ↔ Actions ↔ Blockers as in-page views (?view=…), not separate routes
+    ├── inbox.tsx           /inbox         newly synced specs, handoffs, and unmapped source items before backlog planning
+    ├── backlog.tsx         /backlog       Ready ↔ Breakdown ↔ Waiting ↔ All work as in-page views (?view=…); Actions can be an in-page lens, not separate routes
     ├── schedule.tsx        /schedule      week ↔ month as in-page views (?view=…)
     ├── insights.tsx        /insights      v1: Performance view only. Post-v1: + Team / Goals / Burnout / Focus Time as tabs (?tab=…), with the solo/lead persona switch as a mode
     ├── settings/…          /settings/*    workspace, source/calendar connections, … — sub-pages TBD (open-questions Q12)
@@ -36,7 +37,7 @@ Assumptions baked in (flag if wrong): routes are flat under `_auth.tsx`; the pro
 
 ## Navigation
 
-Left rail (~200px, dark; from `Shell.jsx`): a workspace+team switcher at the top (behavior still open — [`open-questions.md`](open-questions.md) Q1), then **Today** (check icon) · **Backlog** (inbox icon; badge = your open-spec count) · **Schedule** (calendar icon) · **Insights** (chart icon), then a **⚙ Settings** gear pinned to the bottom, plus a live-session mini-indicator (pulsing dot, timer, action title, End / Open) that appears at the bottom when a session is running.
+Left rail (~200px, dark; from `Shell.jsx`): a workspace+team switcher at the top (behavior still open — [`open-questions.md`](open-questions.md) Q1), then **Today** (check icon) · **Inbox** (newly synced / newly assigned work) · **Backlog** (planned work; badge = your open-spec count, with sub-items **Specs** and **Actions**) · **Schedule** (calendar icon) · **Insights** (chart icon), then a **⚙ Settings** gear pinned to the bottom, plus a live-session mini-indicator (pulsing dot, timer, action title, End / Open) that appears at the bottom when a session is running.
 
 ---
 
@@ -57,8 +58,9 @@ The workspace's spec list. Find, break down, schedule.
 - **Search + filters** — by priority, by assignee (mine / unassigned / per-person), by sprint. **Comfy ↔ compact density toggle.**
 - **Groups** — "Needs breakdown" (no actions yet) and "Ready to schedule" (has actions). The top ~3 most-urgent surfaced as recommended cards.
 - **Inline "needs attention" chips** — *Awaiting approval*, *Closed in source · still open here*, *Blocker reported*, *Unassigned · claim*.
-- **Specs ↔ Actions view toggle** (in-page) — Actions view is a flat, priority-ranked list of every action across all specs, with a time-accounting line: estimated · logged · planned · unaccounted.
-- **Blockers view** (in-page) — "Waiting on others" + a ranked "Chokepoints" list (specs of yours that the most teammates are blocked on).
+- **Work-mode tabs** (in-page) — Ready, Breakdown, Waiting, All work. They answer different user intents without showing every filter at once.
+- **Actions lens** (in-page) — a flat, priority-ranked list of every action across all specs, with a time-accounting line: estimated · logged · planned · unaccounted.
+- **Blockers/Waiting lens** — "Waiting on others" + a ranked "Chokepoints" list (specs of yours that the most teammates are blocked on). Not a peer top-level tab beside Specs and Actions.
 
 ## Schedule — the calendar · `/schedule`
 

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
@@ -17,9 +18,17 @@ import { Route as AuthTrayRouteImport } from './routes/_auth/tray'
 import { Route as AuthSettingsRouteImport } from './routes/_auth/settings'
 import { Route as AuthScheduleRouteImport } from './routes/_auth/schedule'
 import { Route as AuthInsightsRouteImport } from './routes/_auth/insights'
+import { Route as AuthInboxRouteImport } from './routes/_auth/inbox'
 import { Route as AuthBacklogRouteImport } from './routes/_auth/backlog'
 import { Route as AuthSpecsSpecIdRouteImport } from './routes/_auth/specs.$specId'
+import { Route as AuthBacklogSpecsRouteImport } from './routes/_auth/backlog/specs'
+import { Route as AuthBacklogActionsRouteImport } from './routes/_auth/backlog/actions'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -59,6 +68,11 @@ const AuthInsightsRoute = AuthInsightsRouteImport.update({
   path: '/insights',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthInboxRoute = AuthInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthBacklogRoute = AuthBacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
@@ -69,27 +83,45 @@ const AuthSpecsSpecIdRoute = AuthSpecsSpecIdRouteImport.update({
   path: '/specs/$specId',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthBacklogSpecsRoute = AuthBacklogSpecsRouteImport.update({
+  id: '/specs',
+  path: '/specs',
+  getParentRoute: () => AuthBacklogRoute,
+} as any)
+const AuthBacklogActionsRoute = AuthBacklogActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
+  getParentRoute: () => AuthBacklogRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
-  '/backlog': typeof AuthBacklogRoute
+  '/signup': typeof SignupRoute
+  '/backlog': typeof AuthBacklogRouteWithChildren
+  '/inbox': typeof AuthInboxRoute
   '/insights': typeof AuthInsightsRoute
   '/schedule': typeof AuthScheduleRoute
   '/settings': typeof AuthSettingsRoute
   '/tray': typeof AuthTrayRoute
+  '/backlog/actions': typeof AuthBacklogActionsRoute
+  '/backlog/specs': typeof AuthBacklogSpecsRoute
   '/specs/$specId': typeof AuthSpecsSpecIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
-  '/backlog': typeof AuthBacklogRoute
+  '/signup': typeof SignupRoute
+  '/backlog': typeof AuthBacklogRouteWithChildren
+  '/inbox': typeof AuthInboxRoute
   '/insights': typeof AuthInsightsRoute
   '/schedule': typeof AuthScheduleRoute
   '/settings': typeof AuthSettingsRoute
   '/tray': typeof AuthTrayRoute
   '/': typeof AuthIndexRoute
+  '/backlog/actions': typeof AuthBacklogActionsRoute
+  '/backlog/specs': typeof AuthBacklogSpecsRoute
   '/specs/$specId': typeof AuthSpecsSpecIdRoute
 }
 export interface FileRoutesById {
@@ -97,12 +129,16 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
-  '/_auth/backlog': typeof AuthBacklogRoute
+  '/signup': typeof SignupRoute
+  '/_auth/backlog': typeof AuthBacklogRouteWithChildren
+  '/_auth/inbox': typeof AuthInboxRoute
   '/_auth/insights': typeof AuthInsightsRoute
   '/_auth/schedule': typeof AuthScheduleRoute
   '/_auth/settings': typeof AuthSettingsRoute
   '/_auth/tray': typeof AuthTrayRoute
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/backlog/actions': typeof AuthBacklogActionsRoute
+  '/_auth/backlog/specs': typeof AuthBacklogSpecsRoute
   '/_auth/specs/$specId': typeof AuthSpecsSpecIdRoute
 }
 export interface FileRouteTypes {
@@ -111,34 +147,46 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/signup'
     | '/backlog'
+    | '/inbox'
     | '/insights'
     | '/schedule'
     | '/settings'
     | '/tray'
+    | '/backlog/actions'
+    | '/backlog/specs'
     | '/specs/$specId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/onboarding'
+    | '/signup'
     | '/backlog'
+    | '/inbox'
     | '/insights'
     | '/schedule'
     | '/settings'
     | '/tray'
     | '/'
+    | '/backlog/actions'
+    | '/backlog/specs'
     | '/specs/$specId'
   id:
     | '__root__'
     | '/_auth'
     | '/login'
     | '/onboarding'
+    | '/signup'
     | '/_auth/backlog'
+    | '/_auth/inbox'
     | '/_auth/insights'
     | '/_auth/schedule'
     | '/_auth/settings'
     | '/_auth/tray'
     | '/_auth/'
+    | '/_auth/backlog/actions'
+    | '/_auth/backlog/specs'
     | '/_auth/specs/$specId'
   fileRoutesById: FileRoutesById
 }
@@ -146,10 +194,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -206,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthInsightsRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/inbox': {
+      id: '/_auth/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AuthInboxRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/backlog': {
       id: '/_auth/backlog'
       path: '/backlog'
@@ -220,11 +283,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSpecsSpecIdRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/backlog/specs': {
+      id: '/_auth/backlog/specs'
+      path: '/specs'
+      fullPath: '/backlog/specs'
+      preLoaderRoute: typeof AuthBacklogSpecsRouteImport
+      parentRoute: typeof AuthBacklogRoute
+    }
+    '/_auth/backlog/actions': {
+      id: '/_auth/backlog/actions'
+      path: '/actions'
+      fullPath: '/backlog/actions'
+      preLoaderRoute: typeof AuthBacklogActionsRouteImport
+      parentRoute: typeof AuthBacklogRoute
+    }
   }
 }
 
+interface AuthBacklogRouteChildren {
+  AuthBacklogActionsRoute: typeof AuthBacklogActionsRoute
+  AuthBacklogSpecsRoute: typeof AuthBacklogSpecsRoute
+}
+
+const AuthBacklogRouteChildren: AuthBacklogRouteChildren = {
+  AuthBacklogActionsRoute: AuthBacklogActionsRoute,
+  AuthBacklogSpecsRoute: AuthBacklogSpecsRoute,
+}
+
+const AuthBacklogRouteWithChildren = AuthBacklogRoute._addFileChildren(
+  AuthBacklogRouteChildren,
+)
+
 interface AuthRouteChildren {
-  AuthBacklogRoute: typeof AuthBacklogRoute
+  AuthBacklogRoute: typeof AuthBacklogRouteWithChildren
+  AuthInboxRoute: typeof AuthInboxRoute
   AuthInsightsRoute: typeof AuthInsightsRoute
   AuthScheduleRoute: typeof AuthScheduleRoute
   AuthSettingsRoute: typeof AuthSettingsRoute
@@ -234,7 +326,8 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthBacklogRoute: AuthBacklogRoute,
+  AuthBacklogRoute: AuthBacklogRouteWithChildren,
+  AuthInboxRoute: AuthInboxRoute,
   AuthInsightsRoute: AuthInsightsRoute,
   AuthScheduleRoute: AuthScheduleRoute,
   AuthSettingsRoute: AuthSettingsRoute,
@@ -249,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
