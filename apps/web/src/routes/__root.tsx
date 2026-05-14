@@ -1,5 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 
+import '../i18n';
+
 import '@stride/ui/styles/global.css';
 
 export const Route = createRootRoute({

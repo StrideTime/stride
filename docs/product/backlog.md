@@ -47,10 +47,16 @@ Inbox is a separate page (`/inbox`) for newly synced specs, handoffs, and unmapp
 
 Optional in-page state:
 
-- `assignee=mine | unassigned | userId | all`
-- `priority=...`
-- `sprint=...`
-- search query
+- `q=...` — search title, source key/id, label, project/epic, or action title
+- `assignee=mine | unassigned | userId | all` — assignee filter
+- `priority=...` — source vocabulary value or mapped internal priority
+- `status=...` — source vocabulary value or mapped internal status
+- `project=...` / `sprint=...`
+- `label=...`
+- `attention=blocked | awaitingApproval | sourceClosedOpenHere | justLanded | unassigned`
+- `readiness=noActions | draftActions | needsEstimates | ready`
+
+Filters apply to both Specs and Actions lenses. In Actions, spec-level filters narrow by parent spec, while assignee/status can also match the action itself when action-level assignment/state differs.
 
 ## Information architecture
 
@@ -70,11 +76,14 @@ Avoid duplicating the left rail navigation. Avoid a huge dashboard hero. Backlog
 
 Must include:
 
-- Search by title, source key, label
-- Priority filter
+- Search by spec title, action title, source key/id, label, project/epic, or sprint name
 - Assignee filter: Mine, Unassigned, Everyone, named teammates
-- Sprint filter
-Controls should be easy to scan but not dominate the page. Active filters must be obvious and removable. Density preference belongs in app settings, not in the Backlog page controls.
+- Priority filter, using source vocabulary in the menu labels
+- Status filter, using source vocabulary in the menu labels
+- Project/epic and sprint filters when those concepts exist for the connected source
+- Attention filters: Blocked, Awaiting approval, Closed in source · still open here, Just landed
+
+Controls should be easy to scan but not dominate the page. Default visible controls: search, assignee, priority, status, and attention, with a `More filters` popover for project/sprint/labels/readiness. Source is not a Backlog filter because it is determined by the selected team/source connection scope. Active filters must be obvious, countable, and removable one-by-one or all at once. If a filter hides recommended work or attention items, show a quiet empty/filtered-state explanation. Density preference belongs in app settings, not in the Backlog page controls.
 
 ### Recommended work
 
@@ -101,12 +110,13 @@ Two main groups:
 1. **Needs breakdown**
    - Specs with no actions or `needsBreakdown`
    - Primary action: Break down
-   - Shows source, source key, priority, assignee, sprint, attention chips
+   - Shows source, source key, source-mapped status, priority, assignee, sprint/project, labels when useful, attention chips
    - If unassigned, make `Claim` available without making it noisy
 
 2. **Ready to schedule**
    - Specs with actions
    - Shows progress: done actions / total actions
+   - Shows source-mapped status, priority, assignee, sprint/project, and labels when useful
    - Shows time accounting: estimated, logged, planned, unaccounted
    - Shows next open action
    - Primary action: Start or Schedule next action
@@ -124,6 +134,7 @@ Each action row should show:
 - Action title
 - Parent spec title and source key
 - Priority inherited from parent spec
+- Parent spec source-mapped status
 - Assignee
 - Estimate
 - Logged time

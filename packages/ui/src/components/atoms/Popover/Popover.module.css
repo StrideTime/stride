@@ -1,0 +1,14 @@
+.positioner {
+  z-index: 20;
+}
+
+.popup {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 220px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}

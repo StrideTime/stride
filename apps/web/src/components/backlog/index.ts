@@ -1,1 +1,2 @@
-export { BacklogPage } from './BacklogPage';
+export { ActionsPage } from './ActionsPage';
+export { SpecsPage } from './SpecsPage';

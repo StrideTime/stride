@@ -1,6 +1,6 @@
 ---
 title: What Stride is
-updated: 2026-05-12
+updated: 2026-05-14
 status: draft
 owner: jaren
 ---
@@ -34,7 +34,7 @@ Standalone Action — a personal task with no parent spec (title + estimate only
 Five screens plus a modal — see [`surfaces.md`](surfaces.md) for each in detail:
 
 - **Today** — the dashboard: a "now / next" hero, today's schedule, and a configurable right-rail Info Hub of widgets.
-- **Backlog** — every spec from the sources, with search/filter/density, grouped by "needs breakdown" vs "ready to schedule"; toggles to an Actions view and a Blockers view.
+- **Backlog** — every spec in the selected team/source scope, with search and filters for assignee, priority, status, project/sprint, labels, attention, and readiness; grouped by "needs breakdown" vs "ready to schedule"; toggles to an Actions view and a Blockers view.
 - **Schedule** — week (and month) calendar; drag actions onto it; plan-vs-actual shown inline.
 - **Insights** — analytics with a solo / team-lead switcher: performance, team status, goals (and burnout / focus time as later expansions).
 - **Tray** — the desktop menubar window; a compact "cockpit" mirroring the web app (idle / live-session / break / meeting prompt).

@@ -1,0 +1,1 @@
+export { AssigneeAvatar } from './AssigneeAvatar';

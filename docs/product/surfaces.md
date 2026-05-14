@@ -1,6 +1,6 @@
 ---
 title: Surfaces (screens & routes)
-updated: 2026-05-12
+updated: 2026-05-14
 status: current
 owner: jaren
 ---
@@ -55,7 +55,7 @@ The at-a-glance "what now / what's next" screen. Three zones in the main column,
 
 The workspace's spec list. Find, break down, schedule.
 
-- **Search + filters** — by priority, by assignee (mine / unassigned / per-person), by sprint. **Comfy ↔ compact density toggle.**
+- **Search + filters** — search across spec/action title, source key/id, labels, project/epic, and sprint; filter by assignee (mine / unassigned / per-person / everyone), priority, status, project/epic, sprint, label, attention state, and readiness. Source is determined by the selected team/source connection, not a Backlog filter. Default controls show search, assignee, priority, status, and attention, with the rest in `More filters`.
 - **Groups** — "Needs breakdown" (no actions yet) and "Ready to schedule" (has actions). The top ~3 most-urgent surfaced as recommended cards.
 - **Inline "needs attention" chips** — *Awaiting approval*, *Closed in source · still open here*, *Blocker reported*, *Unassigned · claim*.
 - **Work-mode tabs** (in-page) — Ready, Breakdown, Waiting, All work. They answer different user intents without showing every filter at once.

@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { BacklogPage } from '../../../components/backlog';
+import { ActionsPage } from '../../../components/backlog/ActionsPage';
 
 export const Route = createFileRoute('/_auth/backlog/actions')({
-  component: BacklogActionsPage,
+  component: BacklogActionsRoute,
 });
 
-function BacklogActionsPage() {
-  return <BacklogPage surface="actions" />;
+function BacklogActionsRoute() {
+  return <ActionsPage />;
 }

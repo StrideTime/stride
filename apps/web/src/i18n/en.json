@@ -1,0 +1,112 @@
+{
+  "backlog": {
+    "common": {
+      "create": "Create",
+      "specs": "Specs",
+      "actions": "Actions"
+    },
+    "views": {
+      "all": {
+        "title": "All specs",
+        "subtitle": "Team scope",
+        "description": "Every synced spec in the current team scope.",
+        "empty": "No work in this scope."
+      },
+      "refine": {
+        "title": "Breakdown",
+        "subtitle": "Needs shape",
+        "description": "Specs that still need action shape, estimates, or assignment.",
+        "empty": "No specs need refinement."
+      },
+      "progress": {
+        "title": "In flight",
+        "subtitle": "Active work",
+        "specsSubtitle": "Active specs",
+        "description": "Work already moving across the team.",
+        "empty": "No work in flight."
+      },
+      "blocked": {
+        "title": "Blocked",
+        "subtitle": "Needs help",
+        "description": "Work waiting on someone else, source status, or approval.",
+        "empty": "No blocked work in this scope."
+      },
+      "next": {
+        "title": "Next up",
+        "subtitle": "Ready now",
+        "description": "Assigned to you and ready to schedule or start.",
+        "empty": "No assigned actions are ready."
+      },
+      "mine": {
+        "title": "Assigned to me",
+        "description": "Actions currently assigned to you.",
+        "empty": "No assigned actions."
+      },
+      "completed": {
+        "title": "Completed",
+        "subtitle": "Done work",
+        "description": "Finished actions and specs.",
+        "empty": "No completed work."
+      }
+    },
+    "filters": {
+      "searchAria": "Search specs",
+      "searchPlaceholder": "Search title, source key, label",
+      "assignee": "Assignee",
+      "everyone": "Everyone",
+      "mine": "Mine",
+      "unassigned": "Unassigned",
+      "priority": "Priority",
+      "anyPriority": "Any priority",
+      "status": "Status",
+      "anyStatus": "Any status",
+      "attention": "Attention",
+      "anyAttention": "Any attention",
+      "blocked": "Blocked",
+      "awaitingApproval": "Awaiting approval",
+      "closedInSource": "Closed in source",
+      "justLanded": "Just landed",
+      "clear": "Clear {{count}}"
+    },
+    "actionsList": {
+      "scopeAria": "Action assignee filter",
+      "yourActions": "Your actions",
+      "showTeam": "Show team",
+      "headers": {
+        "action": "Action",
+        "spec": "Spec",
+        "assignee": "Assignee",
+        "time": "Time",
+        "status": "Status"
+      }
+    },
+    "actionRow": {
+      "nudge": "Nudge",
+      "start": "Start",
+      "schedule": "Schedule"
+    },
+    "statusPill": {
+      "done": "Done",
+      "blocked": "Blocked",
+      "planned": "Planned",
+      "ready": "Ready"
+    },
+    "timeAccounting": {
+      "aria": "Time accounting",
+      "estimate": "est",
+      "planned": "planned",
+      "logged": "logged"
+    },
+    "specRow": {
+      "actionsCount": "{{count}} actions",
+      "noActions": "No actions",
+      "done": "Done",
+      "open": "Open",
+      "schedule": "Schedule",
+      "start": "Start",
+      "assign": "Assign",
+      "claim": "Claim",
+      "addFirstAction": "Add first action"
+    }
+  }
+}

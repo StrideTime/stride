@@ -1,6 +1,6 @@
 ---
 title: MVP — v1 scope
-updated: 2026-05-12
+updated: 2026-05-14
 status: current
 owner: jaren
 ---
@@ -16,7 +16,7 @@ The BE entities + endpoints follow from this list. Build trailing the FE by one 
 ### Surfaces — prototype fidelity ([`surfaces.md`](surfaces.md))
 
 - **Today** (`/`) — now/next hero, today's schedule, the configurable Info Hub with all its widgets (`justLanded`, `mentions`, `blockers`, `blocking`, `dayStats`, `varianceNudge`, `weekStreak`, `teammatePulse`, `upcomingMeetings`, `focusMode`). The widgets that need the team layer / source-activity / calendar are all in v1, so the full hub ships.
-- **Backlog** (`/backlog`) — Specs ↔ Actions ↔ Blockers views; search + priority/assignee/sprint filters; comfy/compact density; recommended cards; the needs-attention chips (awaiting approval / closed-in-source / blocker reported / unassigned-claim).
+- **Backlog** (`/backlog`) — Specs ↔ Actions ↔ Blockers views; search across titles/source keys/labels/project/sprint; filters for assignee, priority, status, project/epic, sprint, label, attention state, and readiness; source comes from the selected team/source connection; recommended cards; the needs-attention chips (awaiting approval / closed-in-source / blocker reported / unassigned-claim).
 - **Schedule** (`/schedule`) — week + month; drag-to-schedule / move / resize; plan-vs-actual inline; typed blocks (action / meeting / focus / break); capacity readout; week navigation + recap states. Meeting blocks come from the calendar sync (below).
 - **Insights** (`/insights`) — **v1: the Performance view** (personal stat cards — specs closed / PRs merged / hours / estimate accuracy — with `(i)` explainers; the estimate-vs-actual scatter; in team scope, a velocity trend + roster contribution table). *Whether the Team / Goals / Burnout / Focus Time tabs come into v1 is still being iterated — see [`open-questions.md`](open-questions.md). Performance-only is the working assumption.*
 - **Tray** (`/tray`, desktop) — **full**: idle / live-session (arc dial) / break / review states; the ⌥Space capture window; the meeting-join flow (real — off the calendar sync); the time-sensitive top banner. One Tauri binary, two windows; native SQLite for the offline queue.

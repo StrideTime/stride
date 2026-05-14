@@ -1,6 +1,10 @@
 export type BacklogSource = 'Jira' | 'Linear';
 export type BacklogPriority = 'P1' | 'P2' | 'P3' | 'P4';
-export type BacklogReadiness = 'no-actions' | 'draft-actions' | 'needs-estimates' | 'ready';
+export type BacklogReadiness =
+  | 'no-actions'
+  | 'draft-actions'
+  | 'needs-estimates'
+  | 'ready';
 export type AttentionKind =
   | 'awaiting-approval'
   | 'closed-in-source'
@@ -47,7 +51,8 @@ export const backlogSpecs: BacklogSpec[] = [
     source: 'Jira',
     sourceKey: 'PLAT-501',
     title: 'Move billing webhooks onto the new queue worker',
-    description: 'Webhook retry behavior is unclear and needs execution breakdown before the team starts.',
+    description:
+      'Webhook retry behavior is unclear and needs execution breakdown before the team starts.',
     priority: 'P1',
     sourcePriority: 'Urgent',
     sourceStatus: 'To Do',
@@ -66,7 +71,8 @@ export const backlogSpecs: BacklogSpec[] = [
     source: 'Linear',
     sourceKey: 'ENG-188',
     title: 'Clarify cross-team handoff for imported Linear teams',
-    description: 'Ambiguous scope, likely needs team refinement with admins and affected devs.',
+    description:
+      'Ambiguous scope, likely needs team refinement with admins and affected devs.',
     priority: 'P2',
     sourcePriority: 'High',
     sourceStatus: 'Backlog',
@@ -79,8 +85,18 @@ export const backlogSpecs: BacklogSpec[] = [
     waitingOn: 'Team mapping approval',
     lastEditedBy: 'Mina',
     actions: [
-      { id: 'a-1', title: 'List unmapped Linear entities in setup triage', loggedMin: 0, plannedMin: 0 },
-      { id: 'a-2', title: 'Design admin map or ignore decision', loggedMin: 0, plannedMin: 0 },
+      {
+        id: 'a-1',
+        title: 'List unmapped Linear entities in setup triage',
+        loggedMin: 0,
+        plannedMin: 0,
+      },
+      {
+        id: 'a-2',
+        title: 'Design admin map or ignore decision',
+        loggedMin: 0,
+        plannedMin: 0,
+      },
     ],
   },
   {
@@ -100,9 +116,37 @@ export const backlogSpecs: BacklogSpec[] = [
     attention: [],
     recommendationReason: 'Ready action with estimate gap closed',
     actions: [
-      { id: 'a-3', title: 'Wire Jira and Linear status vocabularies', estimateMin: 75, loggedMin: 35, plannedMin: 60, scheduled: true },
-      { id: 'a-4', title: 'Add status picker interaction states', estimateMin: 50, loggedMin: 0, plannedMin: 0 },
-      { id: 'a-5', title: 'Regression test closed statuses', estimateMin: 30, loggedMin: 0, plannedMin: 0 },
+      {
+        id: 'a-3',
+        title: 'Wire Jira and Linear status vocabularies',
+        estimateMin: 75,
+        loggedMin: 35,
+        plannedMin: 60,
+        scheduled: true,
+      },
+      {
+        id: 'a-4',
+        title: 'Add status picker interaction states',
+        estimateMin: 50,
+        loggedMin: 0,
+        plannedMin: 0,
+      },
+      {
+        id: 'a-5',
+        title: 'Regression test closed statuses',
+        estimateMin: 30,
+        loggedMin: 0,
+        plannedMin: 0,
+      },
+      {
+        id: 'a-14',
+        title: 'Confirm status picker copy with source vocabulary',
+        assignee: 'You',
+        estimateMin: 25,
+        loggedMin: 22,
+        plannedMin: 30,
+        done: true,
+      },
     ],
   },
   {
@@ -110,7 +154,8 @@ export const backlogSpecs: BacklogSpec[] = [
     source: 'Linear',
     sourceKey: 'FE-209',
     title: 'Backlog compact density for large team queues',
-    description: 'High-volume teams need scan mode without losing action readiness.',
+    description:
+      'High-volume teams need scan mode without losing action readiness.',
     priority: 'P3',
     sourcePriority: 'Normal',
     sourceStatus: 'Todo',
@@ -122,8 +167,18 @@ export const backlogSpecs: BacklogSpec[] = [
     attention: [],
     lastEditedBy: 'You',
     actions: [
-      { id: 'a-6', title: 'Reduce row vertical rhythm in compact mode', loggedMin: 0, plannedMin: 0 },
-      { id: 'a-7', title: 'Keep source key and primary action visible', loggedMin: 0, plannedMin: 0 },
+      {
+        id: 'a-6',
+        title: 'Reduce row vertical rhythm in compact mode',
+        loggedMin: 0,
+        plannedMin: 0,
+      },
+      {
+        id: 'a-7',
+        title: 'Keep source key and primary action visible',
+        loggedMin: 0,
+        plannedMin: 0,
+      },
     ],
   },
   {
@@ -142,8 +197,20 @@ export const backlogSpecs: BacklogSpec[] = [
     readiness: 'ready',
     attention: ['closed-in-source'],
     actions: [
-      { id: 'a-8', title: 'Validate replay idempotency on staging', estimateMin: 45, loggedMin: 20, plannedMin: 45 },
-      { id: 'a-9', title: 'Clean up old webhook secret', estimateMin: 20, loggedMin: 0, plannedMin: 0 },
+      {
+        id: 'a-8',
+        title: 'Validate replay idempotency on staging',
+        estimateMin: 45,
+        loggedMin: 20,
+        plannedMin: 45,
+      },
+      {
+        id: 'a-9',
+        title: 'Clean up old webhook secret',
+        estimateMin: 20,
+        loggedMin: 0,
+        plannedMin: 0,
+      },
     ],
   },
   {
@@ -151,7 +218,8 @@ export const backlogSpecs: BacklogSpec[] = [
     source: 'Linear',
     sourceKey: 'API-331',
     title: 'Expose blocker nudges in backlog rows',
-    description: 'Users need to see when teammates are waiting without feeling called out.',
+    description:
+      'Users need to see when teammates are waiting without feeling called out.',
     priority: 'P1',
     sourcePriority: 'Urgent',
     sourceStatus: 'In Review',
@@ -164,8 +232,30 @@ export const backlogSpecs: BacklogSpec[] = [
     blocking: ['Mina', 'Leo'],
     recommendationReason: 'Blocking 2 teammates',
     actions: [
-      { id: 'a-10', title: 'Add nudge state to blocker rows', estimateMin: 60, loggedMin: 70, plannedMin: 60, scheduled: true },
-      { id: 'a-11', title: 'Write neutral chokepoint copy', estimateMin: 25, loggedMin: 0, plannedMin: 0 },
+      {
+        id: 'a-10',
+        title: 'Add nudge state to blocker rows',
+        estimateMin: 60,
+        loggedMin: 70,
+        plannedMin: 60,
+        scheduled: true,
+      },
+      {
+        id: 'a-11',
+        title: 'Write neutral chokepoint copy',
+        estimateMin: 25,
+        loggedMin: 0,
+        plannedMin: 0,
+      },
+      {
+        id: 'a-15',
+        title: 'Draft blocker nudge states',
+        assignee: 'You',
+        estimateMin: 35,
+        loggedMin: 40,
+        plannedMin: 30,
+        done: true,
+      },
     ],
   },
   {
@@ -184,8 +274,20 @@ export const backlogSpecs: BacklogSpec[] = [
     readiness: 'ready',
     attention: [],
     actions: [
-      { id: 'a-12', title: 'Model ownership audit display rows', estimateMin: 90, loggedMin: 0, plannedMin: 60 },
-      { id: 'a-13', title: 'Add source activity grouping', estimateMin: 45, loggedMin: 0, plannedMin: 0 },
+      {
+        id: 'a-12',
+        title: 'Model ownership audit display rows',
+        estimateMin: 90,
+        loggedMin: 0,
+        plannedMin: 60,
+      },
+      {
+        id: 'a-13',
+        title: 'Add source activity grouping',
+        estimateMin: 45,
+        loggedMin: 0,
+        plannedMin: 0,
+      },
     ],
   },
   {
