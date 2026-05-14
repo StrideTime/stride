@@ -5,7 +5,7 @@ import { Button } from '@stride/ui';
 import { ModeButton } from '../ModeButton/ModeButton';
 import type { ControlsProps } from './Controls.type';
 import { getModes } from './utils/getModes';
-import styles from '../../../backlog.module.css';
+import styles from './Controls.module.css';
 
 export function Controls({
   surface,

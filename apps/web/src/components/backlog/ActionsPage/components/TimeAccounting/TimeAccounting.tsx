@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import type { TimeAccountingProps } from './TimeAccounting.type';
-import styles from '../../../../backlog.module.css';
+import styles from './TimeAccounting.module.css';
 
 export function TimeAccounting({ action }: TimeAccountingProps) {
   const { t } = useTranslation();

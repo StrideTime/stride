@@ -8,7 +8,7 @@ import { defaultBacklogFilters, getVisibleActions } from '../lib/backlogFilters'
 import { getViewCopy } from '../lib/viewCopy';
 import type { ActionScope, BacklogView } from '../types';
 import type { ActionsPageProps } from './ActionsPage.type';
-import styles from '../backlog.module.css';
+import styles from './ActionsPage.module.css';
 
 export function ActionsPage(_props: ActionsPageProps) {
   const { t } = useTranslation();

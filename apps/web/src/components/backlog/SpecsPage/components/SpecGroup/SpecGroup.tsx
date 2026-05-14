@@ -3,7 +3,7 @@ import { Typography } from '@stride/ui';
 import { FilterBar } from '../FilterBar/FilterBar';
 import { SpecRow } from '../SpecRow/SpecRow';
 import type { SpecGroupProps } from './SpecGroup.type';
-import styles from '../../../../backlog.module.css';
+import styles from './SpecGroup.module.css';
 
 export function SpecGroup({
   title,

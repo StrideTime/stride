@@ -8,7 +8,7 @@ import { defaultBacklogFilters, getVisibleSpecs } from '../lib/backlogFilters';
 import { getViewCopy } from '../lib/viewCopy';
 import type { BacklogView } from '../types';
 import type { SpecsPageProps } from './SpecsPage.type';
-import styles from '../backlog.module.css';
+import styles from './SpecsPage.module.css';
 
 export function SpecsPage(_props: SpecsPageProps) {
   const { t } = useTranslation();

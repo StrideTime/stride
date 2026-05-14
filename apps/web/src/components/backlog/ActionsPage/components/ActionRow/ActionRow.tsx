@@ -9,7 +9,7 @@ import { TimeAccounting } from '../TimeAccounting/TimeAccounting';
 import { getPriorityColorVar } from '../../../lib/priority';
 import type { ActionRowProps } from './ActionRow.type';
 import { getActionRowClass } from './utils/getActionRowClass';
-import styles from '../../../../backlog.module.css';
+import styles from './ActionRow.module.css';
 
 export function ActionRow({ action, scope, view }: ActionRowProps) {
   const { t } = useTranslation();

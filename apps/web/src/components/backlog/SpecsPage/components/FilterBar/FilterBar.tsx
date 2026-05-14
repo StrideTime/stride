@@ -8,7 +8,7 @@ import type { BacklogFilters } from '../../../types';
 import type { FilterBarProps } from './FilterBar.type';
 import { getAssigneeOptions } from './utils/getAssigneeOptions';
 import { getAttentionOptions, getSimpleOptions } from './utils/getSimpleOptions';
-import styles from '../../../../backlog.module.css';
+import styles from './FilterBar.module.css';
 
 export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   const { t } = useTranslation();

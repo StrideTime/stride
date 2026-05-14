@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AssigneeAvatar } from '../../../components/AssigneeAvatar/AssigneeAvatar';
 import { getPriorityColorVar } from '../../../lib/priority';
 import type { SpecRowProps } from './SpecRow.type';
-import styles from '../../../../backlog.module.css';
+import styles from './SpecRow.module.css';
 
 export function SpecRow({ spec }: SpecRowProps) {
   const { t } = useTranslation();

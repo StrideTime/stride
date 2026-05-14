@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Typography } from '@stride/ui';
 
-import styles from '../../../backlog.module.css';
+import styles from './Header.module.css';
 
 type HeaderProps = {
   surface: 'specs' | 'actions';

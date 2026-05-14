@@ -4,7 +4,7 @@ import { Typography } from '@stride/ui';
 import { ActionRow } from '../ActionRow/ActionRow';
 import type { ActionListProps } from './ActionList.type';
 import { getActionHeaderClass } from './utils/getActionHeaderClass';
-import styles from '../../../../backlog.module.css';
+import styles from './ActionList.module.css';
 
 export function ActionList({
   title,

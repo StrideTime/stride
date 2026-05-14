@@ -1,4 +1,4 @@
-import styles from '../../../backlog.module.css';
+import styles from './AssigneeAvatar.module.css';
 
 type AssigneeAvatarProps = {
   name?: string;

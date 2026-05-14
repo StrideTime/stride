@@ -1,5 +1,5 @@
 import type { ModeButtonProps } from './ModeButton.type';
-import styles from '../../../backlog.module.css';
+import styles from './ModeButton.module.css';
 
 export function ModeButton({
   view,
