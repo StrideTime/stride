@@ -380,6 +380,11 @@
   letter-spacing: 0.04em;
 }
 
+.completedHeader {
+  background: oklch(22% 0.026 155);
+  color: oklch(74% 0.045 155);
+}
+
 .actionRow,
 .actionRowTeam,
 .actionRowCompleted,

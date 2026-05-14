@@ -389,6 +389,10 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.completedRow {
+  background: oklch(24% 0.032 155);
+}
+
 .actionRow:last-child,
 .actionRowTeam:last-child,
 .actionRowCompleted:last-child,
@@ -397,10 +401,12 @@
 }
 
 .actionRow:hover,
-.actionRowTeam:hover,
-.actionRowCompleted:hover,
-.actionRowTeamCompleted:hover {
+.actionRowTeam:hover {
   background: var(--color-surface-raised);
+}
+
+.completedRow:hover {
+  background: oklch(27% 0.038 155);
 }
 
 .statusHeader {
@@ -411,8 +417,10 @@
 .ownerCell {
   display: flex;
   align-items: center;
+  align-self: center;
   gap: var(--space-2);
   min-width: 0;
+  line-height: 1;
 }
 
 .actionRowTitle span:last-child {
@@ -425,11 +433,33 @@
   white-space: nowrap;
 }
 
+.completedRow .actionRowTitle span:last-child {
+  color: oklch(72% 0.075 155);
+  font-weight: 800;
+}
+
+.completionMark {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: oklch(28% 0.055 155);
+  color: var(--color-success);
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 10%);
+}
+
 .actionSpecId {
+  align-self: center;
   color: var(--color-text-muted);
   font-family: ui-monospace, 'Fira Code', monospace;
   font-size: var(--text-xs);
+  line-height: 1;
   white-space: nowrap;
+}
+
+.completedRow .actionSpecId {
+  color: oklch(74% 0.045 155);
 }
 
 .ownerCell {
@@ -457,6 +487,14 @@
   white-space: nowrap;
 }
 
+.actionRowCompleted .timeCell,
+.actionRowTeamCompleted .timeCell {
+  gap: var(--space-2);
+  border-color: transparent;
+  background: transparent;
+  color: oklch(72% 0.035 155);
+}
+
 .timeCell span {
   padding: 5px 8px;
 }
@@ -465,13 +503,29 @@
   border-left: 1px solid var(--color-border);
 }
 
+.actionRowCompleted .timeCell span,
+.actionRowTeamCompleted .timeCell span {
+  padding: 0;
+}
+
+.actionRowCompleted .timeCell span + span,
+.actionRowTeamCompleted .timeCell span + span {
+  border-left-color: transparent;
+}
+
 .timeCell strong {
   color: var(--color-text);
   font-weight: 800;
 }
 
+.actionRowCompleted .timeCell strong,
+.actionRowTeamCompleted .timeCell strong {
+  color: var(--color-success);
+}
+
 .statusCell {
   display: inline-flex;
+  align-self: center;
   justify-content: center;
   min-width: 0;
 }
@@ -932,9 +986,7 @@
   }
 
   .actionRow,
-  .actionRowTeam,
-  .actionRowCompleted,
-  .actionRowTeamCompleted {
+  .actionRowTeam {
     align-items: start;
   }
 }

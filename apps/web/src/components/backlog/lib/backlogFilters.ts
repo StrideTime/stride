@@ -3,10 +3,10 @@ import type { ActionScope, BacklogActionRow, BacklogFilters, BacklogView } from 
 
 export const defaultBacklogFilters: BacklogFilters = {
   query: '',
-  assignee: 'all',
-  priority: 'all',
-  status: 'all',
-  attention: 'all',
+  assignee: [],
+  priority: [],
+  status: [],
+  attention: [],
   readiness: 'all',
 };
 
@@ -63,10 +63,10 @@ export function getFilterOptions(kind: 'assignee' | 'priority' | 'status') {
 export function getActiveFilterCount(filters: BacklogFilters) {
   return [
     filters.query.trim() ? filters.query : '',
-    filters.assignee !== 'all' ? filters.assignee : '',
-    filters.priority !== 'all' ? filters.priority : '',
-    filters.status !== 'all' ? filters.status : '',
-    filters.attention !== 'all' ? filters.attention : '',
+    filters.assignee.length > 0 ? filters.assignee.join(',') : '',
+    filters.priority.length > 0 ? filters.priority.join(',') : '',
+    filters.status.length > 0 ? filters.status.join(',') : '',
+    filters.attention.length > 0 ? filters.attention.join(',') : '',
     filters.readiness !== 'all' ? filters.readiness : '',
   ].filter(Boolean).length;
 }
@@ -111,26 +111,26 @@ function matchesFilters(spec: BacklogSpec, filters: BacklogFilters) {
   return (
     (!query || searchableText.includes(query)) &&
     matchesAssignee(spec, filters.assignee) &&
-    (filters.priority === 'all' || spec.priority === filters.priority) &&
-    (filters.status === 'all' || spec.sourceStatus === filters.status) &&
-    (filters.attention === 'all' || spec.attention.includes(filters.attention)) &&
+    (filters.priority.length === 0 || filters.priority.includes(spec.priority)) &&
+    (filters.status.length === 0 || filters.status.includes(spec.sourceStatus)) &&
+    (filters.attention.length === 0 || filters.attention.some(attention => spec.attention.includes(attention))) &&
     (filters.readiness === 'all' || spec.readiness === filters.readiness) &&
     assignee.length > 0
   );
 }
 
 function matchesAssignee(spec: BacklogSpec, assigneeFilter: BacklogFilters['assignee']) {
-  if (assigneeFilter === 'all') return true;
-  if (assigneeFilter === 'mine') {
-    return spec.assignee === 'You' || spec.actions.some(action => action.assignee === 'You');
-  }
-  if (assigneeFilter === 'unassigned') {
-    return !spec.assignee || spec.actions.some(action => !action.assignee);
-  }
-  return (
-    spec.assignee === assigneeFilter ||
-    spec.actions.some(action => action.assignee === assigneeFilter)
-  );
+  if (assigneeFilter.length === 0) return true;
+
+  return assigneeFilter.some(assignee => {
+    if (assignee === 'mine') {
+      return spec.assignee === 'You' || spec.actions.some(action => action.assignee === 'You');
+    }
+    if (assignee === 'unassigned') {
+      return !spec.assignee || spec.actions.some(action => !action.assignee);
+    }
+    return spec.assignee === assignee || spec.actions.some(action => action.assignee === assignee);
+  });
 }
 
 function compareActionPriority(left: BacklogActionRow, right: BacklogActionRow) {

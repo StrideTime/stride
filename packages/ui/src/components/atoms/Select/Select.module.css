@@ -67,6 +67,7 @@
 
 .popup {
   min-width: var(--anchor-width);
+  width: max-content;
   max-height: 320px;
   overflow: auto;
   border: 1px solid var(--color-border);

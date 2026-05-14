@@ -470,6 +470,33 @@
   font-weight: 800;
 }
 
+.completed {
+  gap: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: oklch(68% 0.022 155);
+  font-weight: 650;
+}
+
+.completed span {
+  padding: 0;
+}
+
+.completed span + span {
+  border-left: 0;
+}
+
+.completed span + span::before {
+  content: '·';
+  margin-right: var(--space-2);
+  color: oklch(48% 0.02 155);
+}
+
+.completed strong {
+  color: oklch(76% 0.05 155);
+  font-weight: 800;
+}
+
 .statusCell {
   display: inline-flex;
   justify-content: center;

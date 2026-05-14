@@ -3,14 +3,17 @@ import { useTranslation } from 'react-i18next';
 import type { TimeAccountingProps } from './TimeAccounting.type';
 import styles from './TimeAccounting.module.css';
 
-export function TimeAccounting({ action }: TimeAccountingProps) {
+export function TimeAccounting({ action, variant = 'default' }: TimeAccountingProps) {
   const { t } = useTranslation();
+  const className = variant === 'completed'
+    ? `${styles.timeCell} ${styles.completed}`
+    : styles.timeCell;
   const estimate = action.estimateMin ? `${action.estimateMin}m` : '—';
   const planned = action.plannedMin ? `${action.plannedMin}m` : '—';
   const logged = action.loggedMin ? `${action.loggedMin}m` : '—';
 
   return (
-    <span className={styles.timeCell} aria-label={t('backlog.timeAccounting.aria')}>
+    <span className={className} aria-label={t('backlog.timeAccounting.aria')}>
       <span>
         <strong>{estimate}</strong> {t('backlog.timeAccounting.estimate')}
       </span>

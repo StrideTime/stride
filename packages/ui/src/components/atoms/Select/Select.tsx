@@ -44,7 +44,7 @@ export function Select({ label, value, options, onChange, className }: SelectPro
         </BaseSelect.Trigger>
       </div>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner sideOffset={6} align="start">
+        <BaseSelect.Positioner align="start" alignItemWithTrigger={false} sideOffset={6}>
           <BaseSelect.Popup className={styles.popup}>
             <BaseSelect.List className={styles.list}>
               {options.map(option => (

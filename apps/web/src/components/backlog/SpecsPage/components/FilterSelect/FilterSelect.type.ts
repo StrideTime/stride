@@ -2,7 +2,9 @@ import type { FilterOption } from '../../../types';
 
 export type FilterSelectProps = {
   label: string;
-  value: string;
+  values: string[];
   options: FilterOption[];
-  onChange: (value: string) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  onChange: (values: string[]) => void;
 };

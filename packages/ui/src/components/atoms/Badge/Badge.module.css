@@ -24,9 +24,9 @@
 }
 
 .success {
-  border-color: var(--color-success-border);
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
+  border-color: oklch(46% 0.09 155);
+  background: oklch(28% 0.055 155);
+  color: var(--color-success);
 }
 
 .warning {

@@ -1,3 +1,4 @@
+import { UserCirclePlus } from '@phosphor-icons/react';
 import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,9 @@ export function SpecRow({ spec }: SpecRowProps) {
   const [isExpanded, setIsExpanded] = useState(
     spec.actions.length > 0 && spec.id === 'spec-2',
   );
+  const isMine = spec.assignee === 'You';
+  const isUnassigned = !spec.assignee;
+  const canBreakDown = isMine || isUnassigned;
 
   return (
     <article
@@ -32,6 +36,24 @@ export function SpecRow({ spec }: SpecRowProps) {
       </button>
       {isExpanded ? (
         <div className={styles.actionTable}>
+          {isUnassigned ? (
+            <div className={styles.claimBanner}>
+              <span className={styles.claimGlyph}>
+                <UserCirclePlus size={18} weight="bold" />
+              </span>
+              <span className={styles.claimCopy}>{t('backlog.specRow.unassignedPrompt')}</span>
+              <button>{t('backlog.specRow.claim')}</button>
+            </div>
+          ) : null}
+          {canBreakDown && spec.actions.length === 0 ? (
+            <button className={styles.emptyBreakdownPanel} type="button">
+              <span className={styles.breakdownGlyph}>＋</span>
+              <span className={styles.breakdownCopy}>
+                <strong>{t('backlog.specRow.breakDown')}</strong>
+                <span>{t('backlog.specRow.breakdownPrompt')}</span>
+              </span>
+            </button>
+          ) : null}
           {spec.actions.length > 0 ? (
             spec.actions.map(action => (
               <div key={action.id} className={styles.actionCompactRow}>
@@ -42,22 +64,19 @@ export function SpecRow({ spec }: SpecRowProps) {
                     {spec.sourcePriority} · {action.done ? t('backlog.specRow.done') : t('backlog.specRow.open')}
                   </span>
                 </div>
-                <span className={styles.actionSegmentedCtas}>
-                  <button>{t('backlog.specRow.schedule')}</button>
-                  {(action.assignee ?? spec.assignee) === 'You' ? (
+                {(action.assignee ?? spec.assignee) === 'You' ? (
+                  <span className={styles.actionSegmentedCtas}>
+                    <button>{t('backlog.specRow.schedule')}</button>
                     <button>{t('backlog.specRow.start')}</button>
-                  ) : null}
-                  <button>
-                    {(action.assignee ?? spec.assignee)
-                      ? t('backlog.specRow.assign')
-                      : t('backlog.specRow.claim')}
-                  </button>
-                </span>
+                    <button>{t('backlog.specRow.assign')}</button>
+                  </span>
+                ) : null}
               </div>
             ))
-          ) : (
-            <button className={styles.addActionButton}>{t('backlog.specRow.addFirstAction')}</button>
-          )}
+          ) : null}
+          {canBreakDown && spec.actions.length > 0 ? (
+            <button className={styles.addActionFooterButton}>{t('backlog.specRow.addAction')}</button>
+          ) : null}
         </div>
       ) : null}
     </article>

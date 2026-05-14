@@ -1,7 +1,8 @@
 {
   "backlog": {
     "common": {
-      "create": "Create",
+      "createSpec": "Create spec",
+      "addAction": "Add action",
       "specs": "Specs",
       "actions": "Actions"
     },
@@ -52,6 +53,7 @@
     "filters": {
       "searchAria": "Search specs",
       "searchPlaceholder": "Search title, source key, label",
+      "dropdownSearchPlaceholder": "Filter...",
       "assignee": "Assignee",
       "everyone": "Everyone",
       "mine": "Mine",
@@ -106,6 +108,10 @@
       "start": "Start",
       "assign": "Assign",
       "claim": "Claim",
+      "breakDown": "Break down",
+      "addAction": "Add action",
+      "unassignedPrompt": "Ready to claim",
+      "breakdownPrompt": "Shape the next actions for this spec.",
       "addFirstAction": "Add first action"
     }
   }

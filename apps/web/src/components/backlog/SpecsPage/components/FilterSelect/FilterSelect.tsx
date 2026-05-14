@@ -1,7 +1,23 @@
-import { Select } from '@stride/ui';
+import { MultiSelect } from '@stride/ui';
 
 import type { FilterSelectProps } from './FilterSelect.type';
 
-export function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
-  return <Select label={label} value={value} options={options} onChange={onChange} />;
+export function FilterSelect({
+  label,
+  values,
+  options,
+  onChange,
+  placeholder,
+  searchPlaceholder,
+}: FilterSelectProps) {
+  return (
+    <MultiSelect
+      label={label}
+      values={values}
+      options={options}
+      placeholder={placeholder}
+      searchPlaceholder={searchPlaceholder}
+      onChange={onChange}
+    />
+  );
 }

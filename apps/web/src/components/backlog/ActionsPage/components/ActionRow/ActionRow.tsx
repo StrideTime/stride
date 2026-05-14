@@ -1,3 +1,4 @@
+import { CheckCircle } from '@phosphor-icons/react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +25,13 @@ export function ActionRow({ action, scope, view }: ActionRowProps) {
       }
     >
       <div className={styles.actionRowTitle}>
-        <span className={styles.actionPriority}>{action.spec.sourcePriority}</span>
+        {view === 'completed' ? (
+          <span className={styles.completionMark} aria-hidden="true">
+            <CheckCircle size={18} weight="fill" />
+          </span>
+        ) : (
+          <span className={styles.actionPriority}>{action.spec.sourcePriority}</span>
+        )}
         <span>{action.title}</span>
       </div>
       <code className={styles.actionSpecId}>{action.spec.sourceKey}</code>
@@ -36,13 +43,11 @@ export function ActionRow({ action, scope, view }: ActionRowProps) {
           <span>{action.assignee}</span>
         </div>
       ) : null}
-      <TimeAccounting action={action} />
+      <TimeAccounting action={action} variant={view === 'completed' ? 'completed' : 'default'} />
       <span className={styles.statusCell}>
         <StatusPill action={action} />
       </span>
-      {view === 'completed' ? (
-        <span className={styles.actionCtaPlaceholder} aria-hidden="true" />
-      ) : (
+      {view === 'completed' ? null : (
         <span className={styles.actionRowCtas}>
           {view === 'blocked' ? (
             action.isMine ? (

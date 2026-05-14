@@ -1,6 +1,4 @@
-import { Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@stride/ui';
 
 import { ModeButton } from '../ModeButton/ModeButton';
 import type { ControlsProps } from './Controls.type';
@@ -31,15 +29,6 @@ export function Controls({
             />
           ))}
         </div>
-        {surface === 'specs' ? (
-          <Button
-            className={styles.createButton}
-            icon={<Plus size={15} weight="bold" />}
-            variant="secondary"
-          >
-            {t('backlog.common.create')}
-          </Button>
-        ) : null}
       </div>
     </div>
   );

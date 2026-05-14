@@ -1,0 +1,10 @@
+{
+  "buildCommand": "BUILD_TARGET=desktop pnpm --filter web build",
+  "outputDirectory": "apps/web/dist/client",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/_shell.html"
+    }
+  ]
+}

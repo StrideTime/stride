@@ -16,10 +16,10 @@ export type AssigneeFilter = 'all' | 'mine' | 'unassigned' | string;
 
 export type BacklogFilters = {
   query: string;
-  assignee: AssigneeFilter;
-  priority: 'all' | BacklogSpec['priority'];
-  status: 'all' | string;
-  attention: 'all' | BacklogSpec['attention'][number];
+  assignee: string[];
+  priority: BacklogSpec['priority'][];
+  status: string[];
+  attention: BacklogSpec['attention'][number][];
   readiness: 'all' | BacklogSpec['readiness'];
 };
 

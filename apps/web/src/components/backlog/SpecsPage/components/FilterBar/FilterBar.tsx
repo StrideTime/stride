@@ -28,14 +28,18 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       />
       <FilterSelect
         label={t('backlog.filters.assignee')}
-        value={filters.assignee}
+        values={filters.assignee}
         options={getAssigneeOptions(getFilterOptions('assignee'), t)}
+        placeholder={t('backlog.filters.everyone')}
+        searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={assignee => onFilterChange({ ...filters, assignee })}
       />
       <FilterSelect
         label={t('backlog.filters.priority')}
-        value={filters.priority}
+        values={filters.priority}
         options={getSimpleOptions(t('backlog.filters.anyPriority'), getFilterOptions('priority'))}
+        placeholder={t('backlog.filters.anyPriority')}
+        searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={priority =>
           onFilterChange({
             ...filters,
@@ -45,14 +49,18 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       />
       <FilterSelect
         label={t('backlog.filters.status')}
-        value={filters.status}
+        values={filters.status}
         options={getSimpleOptions(t('backlog.filters.anyStatus'), getFilterOptions('status'))}
+        placeholder={t('backlog.filters.anyStatus')}
+        searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={status => onFilterChange({ ...filters, status })}
       />
       <FilterSelect
         label={t('backlog.filters.attention')}
-        value={filters.attention}
+        values={filters.attention}
         options={getAttentionOptions(t)}
+        placeholder={t('backlog.filters.anyAttention')}
+        searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={attention =>
           onFilterChange({
             ...filters,
