@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-updated: 2026-05-12
+updated: 2026-05-13
 status: draft
 owner: jaren
 ---
@@ -38,7 +38,8 @@ Guiding shape: **establish the system early (cheap, doesn't depend on knowing ev
 
 ## Phase 3 — Backend, trailing the FE by one screen
 
-- Once the MVP cut is confirmed: `apps/api` (rename from `apps/server`), `packages/db` (Drizzle schema + drizzle-zod), `packages/api-client` (`hc` client), `packages/queue` (mutation-queue abstraction).
+- Keep `apps/api` as a buildable Hono stub during FE prototyping. Do not elaborate the backend until the mocked FE flows make the required RPC surface obvious.
+- Once the FE shape is clear: `apps/api` (Hono on CF Workers — replaces the current `@hono/node-server` stub), `packages/db` (Drizzle schema + drizzle-zod), `packages/api-client` (`hc` client), `packages/queue` (mutation-queue abstraction).
 - Build entities + Hono routes one beat behind the FE — the FE for screen N tells you exactly what screen N's API needs; no speculative endpoints. Follow `service-patterns.mdc` / `db-patterns.mdc` / `testing.mdc`.
 - Source sync (Jira + Linear): CF Queue consumer + cron fallback. Better Auth + RLS. `processed_mutations` idempotency table.
 - Wire the desktop: `apps/desktop` Tauri shell, two windows, native SQLite driver for the queue.

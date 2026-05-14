@@ -1,6 +1,6 @@
 ---
 title: Open product questions
-updated: 2026-05-12
+updated: 2026-05-13
 status: current
 owner: jaren
 ---
@@ -43,7 +43,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Doc / repo hygiene (not strictly product, but open)
 
-13. **`apps/server` → `apps/api`?** The directory is `apps/server`; every `.cursor/rules/*.mdc` reference, the git commit scopes, and the build commands say `apps/api`. Rename the dir, or update the conventions. Recommend: rename the dir.
+13. ~~**`apps/server` → `apps/api`?**~~ — **[resolved 2026-05-13]** directory renamed to `apps/api` to match `.cursor/rules/*.mdc`, the git commit scopes, and the build commands. The contents are still the `@hono/node-server` starter; the CF Workers rewrite is Phase 3.
 14. **`PRODUCT.md` accuracy.** It says "Jira and Linear" (GitHub is a future source; in v1 it's Jira + Linear) and uses "shipped" (rejected as a metric label — use "specs closed" / "PRs merged"). Update `PRODUCT.md`, or leave it as the strategic frame and let [`overview.md`](overview.md) carry current truth (which is what it does now).
 15. **`landing-page/` fate.** It's on a different stack (MUI 7 + Emotion + `@stridetime/branding`/`@stridetime/theme`, packages not in the monorepo) and predates the 2026-05-04 reset. Rebuild to match the app stack? Keep deliberately separate? Retire? See [`../reference/archived.md`](../reference/archived.md).
 
@@ -51,6 +51,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Changelog
 
+- **2026-05-13 — Q13 resolved.** `apps/server` renamed to `apps/api`. Aligns the directory with the conventions (which already said `apps/api`); contents unchanged — the CF Workers rewrite is Phase 3.
 - **2026-05-12 — Desktop / TanStack Start integration approach documented** in [`.cursor/rules/architecture.mdc`](../../.cursor/rules/architecture.mdc): the desktop app is `apps/web`'s SPA build (`BUILD_TARGET=desktop`) wrapped by a Tauri 2 shell (two windows; one shared native SQLite; the mutation drainer Rust-side); data access via `packages/api-client` (configurable base URL), not server functions; the Query cache persisted for offline reads; desktop auth via bearer-token-in-keychain. Auth-transport / OAuth-callback / drainer-location specifics → Q18–Q20. Refines the 2026-05-04 decision; an ADR refinement is pending.
 - **2026-05-12 — v1 scope decided** (the scope-lever Q&A). v1 = the full product as designed minus the go-to-market layer: the four deep surfaces + the full desktop tray; Jira + Linear; the full team layer with roles; all at prototype fidelity; with public self-serve signup, billing, and marketing onboarding deferred. Recorded in [`mvp.md`](mvp.md).
 - **2026-05-12 — LLM features out of v1.** No AI-assisted break down, no AI insights, nothing LLM-dependent in v1; break down is manual. The architecture stays LLM-ready for later. Recorded in [`mvp.md`](mvp.md).

@@ -3,7 +3,12 @@ import { Hono } from 'hono';
 
 const app = new Hono();
 
-app.get('/', c => c.text('Hello Hono!'));
+app.get('/', c =>
+  c.json({
+    name: 'stride-api',
+    status: 'stubbed',
+  }),
+);
 
 const port = Number(process.env.PORT ?? 4000);
 

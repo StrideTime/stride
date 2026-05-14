@@ -1,6 +1,6 @@
 ---
 title: Architecture overview
-updated: 2026-05-12
+updated: 2026-05-13
 status: current
 owner: jaren
 ---
@@ -55,7 +55,7 @@ Dependency direction is strict (see `architecture.mdc`): `apps/web` → `package
 The conventions are written **ahead of** the code — that's intentional. As of 2026-05-12 the repo (one commit, "initial commit") has:
 
 - `apps/web/` — a bare `create-vite` React + TS scaffold. **To do:** replace with a TanStack Start app (`routes/`, server functions, the SSR/SPA build-target split).
-- `apps/server/` — a "Hello Hono" + Drizzle starter. **Naming mismatch:** everything in `.cursor/rules/*.mdc`, the git commit scopes, and the build commands say `apps/api`. Either rename the dir to `apps/api` (recommended) or update the conventions. Tracked in [`../product/open-questions.md`](../product/open-questions.md) Q13.
+- `apps/api/` — a "Hello Hono" + Drizzle starter, still on `@hono/node-server`. **Stack mismatch:** the locked stack (2026-05-04) is Hono on Cloudflare Workers, mounted in the same Worker as TanStack Start at `/api/$`. The current contents will be rewritten in Phase 3 ([`../plan/roadmap.md`](../plan/roadmap.md)).
 - `packages/` — only `eslint-config` and `typescript-config` exist. **To do:** add `ui`, `db`, `api-client`, `queue` when they're needed (per the roadmap — not all at once).
 - `apps/desktop/` (Tauri) — not created yet; the integration approach is documented ("Desktop & web from one codebase" above + `architecture.mdc`).
 - No `.claude/` dir; `stride/CLAUDE.md` was added (2026-05-12) as the agent pointer.
