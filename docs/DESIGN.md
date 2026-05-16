@@ -91,6 +91,7 @@ Rules:
 - Use cards when the boundary communicates priority or selection.
 - Avoid nested cards.
 - Avoid giant top hero metrics on operating surfaces.
+- Do not use left-border accent rails for emphasis; prefer full-border, background, spacing, type, or contained chips.
 - Vary spacing for rhythm: page padding, group gaps, row padding, and chip spacing should not all be identical.
 
 ## Surface density
