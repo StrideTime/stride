@@ -23,6 +23,7 @@ import { Route as AuthBacklogRouteImport } from './routes/_auth/backlog'
 import { Route as AuthSpecsSpecIdRouteImport } from './routes/_auth/specs.$specId'
 import { Route as AuthBacklogSpecsRouteImport } from './routes/_auth/backlog/specs'
 import { Route as AuthBacklogActionsRouteImport } from './routes/_auth/backlog/actions'
+import { Route as AuthScheduleDayDateRouteImport } from './routes/_auth/schedule.day.$date'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -93,6 +94,11 @@ const AuthBacklogActionsRoute = AuthBacklogActionsRouteImport.update({
   path: '/actions',
   getParentRoute: () => AuthBacklogRoute,
 } as any)
+const AuthScheduleDayDateRoute = AuthScheduleDayDateRouteImport.update({
+  id: '/day/$date',
+  path: '/day/$date',
+  getParentRoute: () => AuthScheduleRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
@@ -102,12 +108,13 @@ export interface FileRoutesByFullPath {
   '/backlog': typeof AuthBacklogRouteWithChildren
   '/inbox': typeof AuthInboxRoute
   '/insights': typeof AuthInsightsRoute
-  '/schedule': typeof AuthScheduleRoute
+  '/schedule': typeof AuthScheduleRouteWithChildren
   '/settings': typeof AuthSettingsRoute
   '/tray': typeof AuthTrayRoute
   '/backlog/actions': typeof AuthBacklogActionsRoute
   '/backlog/specs': typeof AuthBacklogSpecsRoute
   '/specs/$specId': typeof AuthSpecsSpecIdRoute
+  '/schedule/day/$date': typeof AuthScheduleDayDateRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -116,13 +123,14 @@ export interface FileRoutesByTo {
   '/backlog': typeof AuthBacklogRouteWithChildren
   '/inbox': typeof AuthInboxRoute
   '/insights': typeof AuthInsightsRoute
-  '/schedule': typeof AuthScheduleRoute
+  '/schedule': typeof AuthScheduleRouteWithChildren
   '/settings': typeof AuthSettingsRoute
   '/tray': typeof AuthTrayRoute
   '/': typeof AuthIndexRoute
   '/backlog/actions': typeof AuthBacklogActionsRoute
   '/backlog/specs': typeof AuthBacklogSpecsRoute
   '/specs/$specId': typeof AuthSpecsSpecIdRoute
+  '/schedule/day/$date': typeof AuthScheduleDayDateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,13 +141,14 @@ export interface FileRoutesById {
   '/_auth/backlog': typeof AuthBacklogRouteWithChildren
   '/_auth/inbox': typeof AuthInboxRoute
   '/_auth/insights': typeof AuthInsightsRoute
-  '/_auth/schedule': typeof AuthScheduleRoute
+  '/_auth/schedule': typeof AuthScheduleRouteWithChildren
   '/_auth/settings': typeof AuthSettingsRoute
   '/_auth/tray': typeof AuthTrayRoute
   '/_auth/': typeof AuthIndexRoute
   '/_auth/backlog/actions': typeof AuthBacklogActionsRoute
   '/_auth/backlog/specs': typeof AuthBacklogSpecsRoute
   '/_auth/specs/$specId': typeof AuthSpecsSpecIdRoute
+  '/_auth/schedule/day/$date': typeof AuthScheduleDayDateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/backlog/actions'
     | '/backlog/specs'
     | '/specs/$specId'
+    | '/schedule/day/$date'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/backlog/actions'
     | '/backlog/specs'
     | '/specs/$specId'
+    | '/schedule/day/$date'
   id:
     | '__root__'
     | '/_auth'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/_auth/backlog/actions'
     | '/_auth/backlog/specs'
     | '/_auth/specs/$specId'
+    | '/_auth/schedule/day/$date'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -297,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthBacklogActionsRouteImport
       parentRoute: typeof AuthBacklogRoute
     }
+    '/_auth/schedule/day/$date': {
+      id: '/_auth/schedule/day/$date'
+      path: '/day/$date'
+      fullPath: '/schedule/day/$date'
+      preLoaderRoute: typeof AuthScheduleDayDateRouteImport
+      parentRoute: typeof AuthScheduleRoute
+    }
   }
 }
 
@@ -314,11 +333,23 @@ const AuthBacklogRouteWithChildren = AuthBacklogRoute._addFileChildren(
   AuthBacklogRouteChildren,
 )
 
+interface AuthScheduleRouteChildren {
+  AuthScheduleDayDateRoute: typeof AuthScheduleDayDateRoute
+}
+
+const AuthScheduleRouteChildren: AuthScheduleRouteChildren = {
+  AuthScheduleDayDateRoute: AuthScheduleDayDateRoute,
+}
+
+const AuthScheduleRouteWithChildren = AuthScheduleRoute._addFileChildren(
+  AuthScheduleRouteChildren,
+)
+
 interface AuthRouteChildren {
   AuthBacklogRoute: typeof AuthBacklogRouteWithChildren
   AuthInboxRoute: typeof AuthInboxRoute
   AuthInsightsRoute: typeof AuthInsightsRoute
-  AuthScheduleRoute: typeof AuthScheduleRoute
+  AuthScheduleRoute: typeof AuthScheduleRouteWithChildren
   AuthSettingsRoute: typeof AuthSettingsRoute
   AuthTrayRoute: typeof AuthTrayRoute
   AuthIndexRoute: typeof AuthIndexRoute
@@ -329,7 +360,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthBacklogRoute: AuthBacklogRouteWithChildren,
   AuthInboxRoute: AuthInboxRoute,
   AuthInsightsRoute: AuthInsightsRoute,
-  AuthScheduleRoute: AuthScheduleRoute,
+  AuthScheduleRoute: AuthScheduleRouteWithChildren,
   AuthSettingsRoute: AuthSettingsRoute,
   AuthTrayRoute: AuthTrayRoute,
   AuthIndexRoute: AuthIndexRoute,

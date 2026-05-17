@@ -33,8 +33,8 @@
 }
 
 .primary {
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
 }
 
 .secondary {

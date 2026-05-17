@@ -1,6 +1,6 @@
 ---
 title: Surfaces (screens & routes)
-updated: 2026-05-14
+updated: 2026-05-16
 status: current
 owner: jaren
 ---
@@ -24,7 +24,8 @@ __root.tsx                     providers (QueryClient, i18n, theme)
     ├── index.tsx           /              Today — the dashboard
     ├── inbox.tsx           /inbox         newly synced specs, handoffs, and unmapped source items before backlog planning
     ├── backlog.tsx         /backlog       Ready ↔ Breakdown ↔ Waiting ↔ All work as in-page views (?view=…); Actions can be an in-page lens, not separate routes
-    ├── schedule.tsx        /schedule      week ↔ month as in-page views (?view=…)
+    ├── schedule.tsx        /schedule      week planning overview: chronological day columns + right scheduling tray
+    ├── schedule.day.$date.tsx /schedule/day/$date dedicated 24-hour day planning canvas
     ├── insights.tsx        /insights      v1: Performance view only. Post-v1: + Team / Goals / Burnout / Focus Time as tabs (?tab=…), with the solo/lead persona switch as a mode
     ├── settings/…          /settings/*    workspace, source/calendar connections, … — sub-pages TBD (open-questions Q12)
     ├── specs.$specId.tsx   /specs/$specId the dedicated spec view — a real, deep-linkable route. Renders as an overlay over the page you were on when opened from inside the app; standalone when cold-loaded (deep links, "Open in Stride", "review this incoming spec")
@@ -33,7 +34,7 @@ __root.tsx                     providers (QueryClient, i18n, theme)
 
 Plus, **not a route — client state**: an **ad-hoc spec modal** (`openSpecId`). Pop it anywhere for a quick peek at a spec (a blocker row, an Info Hub widget, a mention) without changing the URL; it carries a "view full spec →" affordance that navigates to `/specs/$specId`. So the `/specs/$specId` route is the canonical, shareable, back-button view; the client-state modal is the ephemeral in-context quick-look.
 
-Assumptions baked in (flag if wrong): routes are flat under `_auth.tsx`; the prototype's "Tray demo" nav entry was a demo affordance — gone in the real web nav; Backlog's Specs/Actions/Blockers, Schedule's week/month, and Insights' tabs are in-page state (search params), not routes. Round-2 items still to pin (open-questions Q11–Q12): the ⌥Space capture window's route (`/tray/capture` vs `/capture` vs not-a-route), the `/settings/*` sub-pages, and the `/onboarding`·`/login`·`/signup` shape.
+Assumptions baked in (flag if wrong): routes are flat under `_auth.tsx`; the prototype's "Tray demo" nav entry was a demo affordance — gone in the real web nav; Backlog's Specs/Actions/Blockers and Insights' tabs are in-page state (search params), not routes. Schedule has a real day-planning child route because precise drag/resize editing needs a dedicated canvas. Round-2 items still to pin (open-questions Q11–Q12): the ⌥Space capture window's route (`/tray/capture` vs `/capture` vs not-a-route), the `/settings/*` sub-pages, and the `/onboarding`·`/login`·`/signup` shape.
 
 ## Navigation
 
@@ -62,15 +63,34 @@ The workspace's spec list. Find, break down, schedule.
 - **Actions lens** (in-page) — a flat, priority-ranked list of every action across all specs, with a time-accounting line: estimated · logged · planned · unaccounted.
 - **Blockers/Waiting lens** — "Waiting on others" + a ranked "Chokepoints" list (specs of yours that the most teammates are blocked on). Not a peer top-level tab beside Specs and Actions.
 
-## Schedule — the calendar · `/schedule`
+## Schedule — week planning overview · `/schedule`
 
-Plan your week. Drag actions onto a time grid; see plan-vs-actual inline.
+Plan the week by distributing work across days. The page is a planning surface, not a passive calendar clone.
 
-- **Week grid** — 7a–8p scroll range, 9a–6p working hours highlighted, 15-min snap; blocks positioned by start/duration; a "now" line; a capacity readout; week navigation (prev / next / today; other weeks show a recap state).
-- **Drag interactions** — drag an unscheduled action from the right rail onto the grid; drag to move; drag handles to resize.
-- **Plan vs actual — always inline, no toggle** — past blocks show actual time logged as an inset fill, with a striped overflow band if you went over.
-- **Typed blocks** — `action` / `meeting` / `focus` / `break`, each with its own icon + color.
-- **Month overview** (in-page) — a lower-fidelity month view alongside the week.
+- **Week columns** — one column per day, inspired by compact chronological day cards. Columns show timed blocks in chronological order with lightweight time labels. Clicking a day navigates to `/schedule/day/$date` for precise planning.
+- **Plan / Actual toggle** — the week overview shows one layer at a time. **Plan** shows ScheduledEvents and external events. **Actual** shows Sessions and external events. The layout stays stable across the toggle, but styling distinguishes planned blocks, actual sessions, and immutable external events.
+- **Capacity summary** — each day shows compact planned-work vs available-working-hours capacity. Capacity is based on configured working hours. External busy events, meetings, breaks, personal blocks, and buffers reduce available capacity. Action-linked scheduled events and generic focus blocks count as planned work. Off-hours can be scheduled but do not inflate normal capacity.
+- **Scheduling tray** — a collapsible right drawer, default open. The tray is an explainable planning queue for distributing Actions through the week. Its primary signal is remaining time needed: `estimate - completed actual session time - future scheduled Action-event time`, clamped at zero. Highest-priority unscheduled and underplanned Actions rise to the top; overplanned is quiet context, not an error.
+- **Week drag interactions** — dragging an Action from the tray onto a day creates an untimed day assignment, not a timed ScheduledEvent. Day columns remain clean after drop, but show a temporary target state like "Plan for Tuesday" while dragging. Dragging an Action-linked timed block to another day converts it to an untimed assignment for that day. Dragging a generic Stride-owned block between days preserves its time. External events are fixed.
+- **No plus buttons in week columns** — generic event creation happens in the day planning route.
+- **Week navigation** — previous/next week arrows plus a reusable month calendar popover. In week-selection mode, hovering/selecting highlights the whole week row; clicking any date selects that week and remembers that date as the focused day. The same component must support single-day selection for the day route.
+
+## Schedule — day planning canvas · `/schedule/day/$date`
+
+A dedicated 24-hour canvas for precise drag, resize, overlap, and actual-correction work.
+
+- **Route structure** — header navigation, a 24-hour time canvas, and a collapsible right drawer. The drawer is a scheduling tray by default and switches to a contextual inspector when a block is selected. A compact week strip at the top is optional/provisional pending design validation.
+- **Navigation** — a clear "Back to week" control preserves week context. Previous/next day arrows and the reusable date picker support day-to-day planning.
+- **24-hour canvas** — render the full day, initially focused to the user's working-hours start or 8 AM if unset. Off-hours remain schedulable but get a distinct visual state when working hours are configured. Show a current-time indicator only for today.
+- **Plan / Actual toggle** — only two states. In **Plan**, ScheduledEvents are active/editable and Sessions are shown as click-through contextual actuals. In **Actual**, Sessions are active/editable and ScheduledEvents are shown as click-through planned context. No Compare mode in v1.
+- **Drag and resize** — snap to 15-minute increments. Drag a block body to move it. Drag top/bottom handles to resize. After drag or resize ends, select the changed block and open its inspector.
+- **Overlap behavior** — overlapping blocks are allowed without warnings. Same-layer overlaps are laid out side by side with width adjusted as needed. Planned and actual layers calculate collision layout separately; cross-layer overlap is comparison context, not collision. External events participate in collision layout with the active layer but remain immutable.
+- **Action scheduling** — dragging an Action from the tray creates an Action-linked ScheduledEvent using the Action estimate as default duration, or 30 minutes if no estimate exists. Resizing the event changes only that ScheduledEvent duration; it never changes the Action estimate. A single Action may have multiple ScheduledEvents.
+- **Generic event creation** — click-drag empty time to create a `focus` block by default, with immediate ability to change type. Provide an Add block fallback for keyboard access, exact entry, and recurrence setup.
+- **Actual editing** — Actual mode allows creating and editing Sessions directly. Manual Session creation requires linking to an Action. The picker defaults to ranked tray candidates and supports broader Action search.
+- **Inspector** — single-click selects a block and opens the right-drawer inspector. No double-click shortcuts in v1. Action-linked ScheduledEvent inspection emphasizes event details first, with Action context and explicit links to dedicated Action/Spec routes. Week overview uses the same inspector pattern in a limited form, with explicit actions to open the day route for precise edits.
+- **Keyboard access** — blocks are focusable/selectable and inspector forms support exact start/end/duration edits. Advanced arrow-key move/resize can wait.
+- **Mobile** — keep the right drawer pattern on desktop; provide a mobile-friendly alternative such as a bottom sheet/collapsible panel.
 
 ## Insights — analytics · `/insights`
 
