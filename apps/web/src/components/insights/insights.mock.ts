@@ -204,3 +204,169 @@ export const meWeeks: MeWeek[] = [
     ],
   },
 ];
+
+// --- Projects scope ---------------------------------------------------------
+//
+// Everything here is project-level and aggregate. No field is keyed to an
+// individual, so the same data shape is safe for a Member, a Team Admin, and a
+// Workspace Admin. The viewer's role only changes how many projects appear,
+// never the granularity (a Member preview still sees their whole team).
+
+export type ProjectHealth = 'on-track' | 'watch' | 'at-risk';
+
+export type ProjectSource = 'Jira' | 'Linear' | 'GitHub';
+
+export type ProjectAtRisk = {
+  sourceKey: string;
+  title: string;
+  reason: string;
+};
+
+export type ProjectInsight = {
+  id: string;
+  name: string;
+  source: ProjectSource;
+  health: ProjectHealth;
+  takeaway: string;
+  specsClosed: number;
+  specsOpen: number;
+  blocked: number;
+  estAccuracy: number;
+  // Specs closed per week over the trailing 8 weeks. Drives the trend chart.
+  pace: number[];
+  atRisk: ProjectAtRisk[];
+};
+
+// Trailing 8-week window the closure-pace chart is labelled against.
+export const PROJECT_TREND_WEEKS = [
+  'Mar 23',
+  'Mar 30',
+  'Apr 6',
+  'Apr 13',
+  'Apr 20',
+  'Apr 27',
+  'May 4',
+  'May 11',
+] as const;
+
+export const projects: ProjectInsight[] = [
+  {
+    id: 'proj-billing',
+    name: 'Billing & Payments',
+    source: 'Jira',
+    health: 'on-track',
+    takeaway: 'Billing closes work faster than it takes it on, with no blockers.',
+    specsClosed: 11,
+    specsOpen: 6,
+    blocked: 0,
+    estAccuracy: 88,
+    pace: [1, 2, 1, 2, 2, 3, 2, 3],
+    atRisk: [],
+  },
+  {
+    id: 'proj-scheduling',
+    name: 'Scheduling',
+    source: 'Jira',
+    health: 'on-track',
+    takeaway: 'Scheduling holds a steady pace; one blocker is already being cleared.',
+    specsClosed: 9,
+    specsOpen: 7,
+    blocked: 1,
+    estAccuracy: 82,
+    pace: [2, 1, 2, 1, 2, 2, 3, 2],
+    atRisk: [
+      {
+        sourceKey: 'SCH-44',
+        title: 'Drag snapping on touch',
+        reason: 'Blocked on a Tauri input fix.',
+      },
+    ],
+  },
+  {
+    id: 'proj-sync',
+    name: 'Source Sync',
+    source: 'Jira',
+    health: 'watch',
+    takeaway: 'Source Sync slowed through mid-April and has work outpacing closure.',
+    specsClosed: 6,
+    specsOpen: 9,
+    blocked: 2,
+    estAccuracy: 71,
+    pace: [1, 1, 2, 0, 1, 1, 1, 2],
+    atRisk: [
+      {
+        sourceKey: 'SYNC-22',
+        title: 'Linear webhook backfill',
+        reason: 'Estimate is roughly 3x recent actuals.',
+      },
+    ],
+  },
+  {
+    id: 'proj-onboarding',
+    name: 'Onboarding',
+    source: 'GitHub',
+    health: 'watch',
+    takeaway: 'Onboarding is taking on more than it closes, with ready work unscheduled.',
+    specsClosed: 4,
+    specsOpen: 8,
+    blocked: 1,
+    estAccuracy: 76,
+    pace: [0, 1, 1, 1, 0, 1, 1, 1],
+    atRisk: [
+      {
+        sourceKey: 'ONB-9',
+        title: 'First-sync project picker',
+        reason: 'Unestimated and not on the calendar.',
+      },
+    ],
+  },
+  {
+    id: 'proj-insights',
+    name: 'Insights & Reporting',
+    source: 'Linear',
+    health: 'at-risk',
+    takeaway: 'Insights carries the most blocked work of any project and has stalled.',
+    specsClosed: 3,
+    specsOpen: 12,
+    blocked: 4,
+    estAccuracy: 64,
+    pace: [1, 0, 1, 0, 1, 0, 1, 1],
+    atRisk: [
+      {
+        sourceKey: 'INS-31',
+        title: 'Org rollup query',
+        reason: 'Blocked 9 days on a schema change.',
+      },
+      {
+        sourceKey: 'INS-37',
+        title: 'Chart interaction spec',
+        reason: 'No actions broken down yet.',
+      },
+    ],
+  },
+  {
+    id: 'proj-mobile',
+    name: 'Mobile Shell',
+    source: 'Linear',
+    health: 'at-risk',
+    takeaway: 'Mobile Shell estimates run far over actuals and closure has stalled.',
+    specsClosed: 2,
+    specsOpen: 10,
+    blocked: 3,
+    estAccuracy: 58,
+    pace: [0, 1, 0, 1, 0, 0, 1, 0],
+    atRisk: [
+      {
+        sourceKey: 'MOB-5',
+        title: 'Expo navigation shell',
+        reason: 'Estimate is about 2x recent actuals.',
+      },
+    ],
+  },
+];
+
+export const HEALTH_META: Record<ProjectHealth, { label: string }> = {
+  'at-risk': { label: 'At risk' },
+  watch: { label: 'Watch' },
+  'on-track': { label: 'On track' },
+};

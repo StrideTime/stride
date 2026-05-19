@@ -9,6 +9,7 @@ import {
 import { Typography } from '@stride/ui';
 
 import { MeScope } from './MeScope';
+import { ProjectsScope } from './ProjectsScope';
 import {
   ROLE_OPTIONS,
   ROLE_RANK,
@@ -56,6 +57,8 @@ export function InsightsView() {
 
       {activeScope.scope === 'me' ? (
         <MeScope />
+      ) : activeScope.scope === 'projects' ? (
+        <ProjectsScope />
       ) : (
         <ScopePlaceholder meta={activeScope} />
       )}
