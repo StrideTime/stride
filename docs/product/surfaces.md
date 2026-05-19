@@ -94,15 +94,18 @@ A dedicated 24-hour canvas for precise drag, resize, overlap, and actual-correct
 
 ## Insights — analytics · `/insights`
 
-**v1 scope: the Performance view only** — the personal stat cards (specs closed / PRs merged / hours / estimate accuracy) with `(i)` explainer tooltips, plus the estimate-vs-actual scatter. (In Team scope: a velocity trend and a roster contribution table.) *Working assumption — whether the Team tab (or more) comes into v1 is still being iterated: [`open-questions.md`](open-questions.md) Q16.*
+Insights is a focused query surface, not a dashboard wall. The user picks a scope, then sees a short readout, formatted top-down with minimal chrome: a one-line takeaway, a single metrics block (four stats as a divided strip with deltas, feeding one interactive area chart for the selected stat), then two borderless lanes — a patterns or status list, and a computed "suggested next steps" list.
 
-Post-v1, `/insights` grows the rest as tabs (`?tab=…`), with a Solo ↔ Team-Lead persona switch as a mode, in roughly this priority order:
+Scopes are **role-gated** (roles are additive — Member ⊂ Team Admin ⊂ Workspace Admin); the scope tabs only show what the viewer's role can see:
 
-1. **Team** — "the human side": live presence/status, lead notes, signals. Throughput numbers deliberately omitted here (they live in Performance).
-2. **Team Analytics / Bottlenecks** — though "Bottlenecks" largely moved to Backlog's Blockers view.
-3. **Burnout** — manager early-warning: team risk score, reports sorted by risk, contributing factors, suggestions.
-4. **Goals** — team + personal goals, auto-tracked from captured data (no manual % updates), with a goal-creation flow; achievements / badges.
-5. **Focus Time** — a circular-timer focus surface. Whether it grows into a full Pomodoro engine is [`open-questions.md`](open-questions.md) Q7.
+1. **Me** — *every role.* A warm but grounded personal readout: a takeaway, accomplishment stats (focus time, specs closed, actions completed, streak), a "how you work" patterns lane, and suggested next steps. Built to motivate through real captured data — not gamification, not surveillance.
+2. **Projects** — *every role.* Status of the projects the user contributes to: the KPI grid plus a per-project status list with progress. This is how an individual contributor sees the progress of work they're part of.
+3. **Team** — *Team Admin and above.* Aggregate team flow only: committed-work coverage, closure pace, estimate variance, ready-but-unplanned work, and flow by area. Never per-person rows.
+4. **Org** — *Workspace Admin only.* Initiative-level progress across the workspace: forecastable committed work, active initiatives, median cycle time, at-risk specs, and an initiative status list.
+
+Team and Org scopes stay aggregated by area/initiative — the anti-surveillance constraint lives in the data shape, surfaced with a quiet footnote rather than a leading disclaimer. No scope ranks individuals against each other, and no scope lets one person compare themselves to another.
+
+The "suggested next steps" lane is **rule-derived** from the metrics, not LLM-generated — LLM features are deferred post-v1 (see [`mvp.md`](mvp.md)). Until Better Auth + memberships land, a dev-only "Preview as" role switcher in the header stands in for the current user's role.
 
 ## Tray — the desktop cockpit · `/tray`
 

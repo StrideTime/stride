@@ -1,0 +1,185 @@
+.page {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--space-6) clamp(var(--space-4), 3vw, var(--space-8));
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding-bottom: var(--space-1);
+}
+
+/* Role switcher (dev-only stand-in for the session role) */
+
+.roleSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.roleLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.roleOptions {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.roleButton,
+.roleButtonActive {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 750;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.roleButton:hover {
+  color: var(--color-text);
+}
+
+.roleButtonActive {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.roleButton:focus-visible,
+.roleButtonActive:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Scope switcher (app navUseCases / modes pattern) */
+
+.scopeNav {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.scopeMode,
+.scopeModeActive {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.scopeMode:hover {
+  background: var(--color-surface-raised);
+}
+
+.scopeModeActive {
+  background: var(--color-accent-subtle);
+}
+
+.scopeIcon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-accent);
+}
+
+.scopeModeActive .scopeIcon {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.scopeCopy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scopeTitle {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.scopeModeActive .scopeTitle {
+  color: var(--color-accent);
+}
+
+.scopeSubtitle {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Placeholder for scopes not yet built */
+
+.placeholder {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-10) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.placeholderIcon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+.placeholderDetail {
+  max-width: 38ch;
+}
+
+@media (max-width: 880px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .scopeNav {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+  }
+}
