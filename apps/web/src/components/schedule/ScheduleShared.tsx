@@ -5,8 +5,10 @@ import {
   CalendarBlankIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  FlagIcon,
   RepeatIcon,
   SquaresFourIcon,
+  TrashIcon,
 } from '@phosphor-icons/react';
 import { Badge, Button, TextInput, Typography } from '@stride/ui';
 
@@ -34,6 +36,10 @@ type ScheduleDateNavigatorProps = {
 
 type ScheduleTrayProps = {
   selectedBlock?: SelectedScheduleBlock | null;
+  showAdjustInSchedule?: boolean;
+  onRenameBlock?: (blockId: string, title: string) => void;
+  onLinkAction?: (blockId: string, action: ScheduleAction | null) => void;
+  onDeleteBlock?: (blockId: string) => void;
   onClearSelection?: () => void;
 };
 
@@ -43,6 +49,7 @@ type ScheduleBlockCardProps = {
   selected?: boolean;
   compact?: boolean;
   onSelect?: (block: SelectedScheduleBlock) => void;
+  onRename?: (blockId: string, title: string) => void;
   draggable?: boolean;
 };
 
@@ -117,14 +124,14 @@ export function ModeToggle({
         type="button"
         onClick={() => onModeChange('plan')}
       >
-        Plan
+        Schedule
       </button>
       <button
         className={mode === 'actual' ? styles.modeButtonActive : styles.modeButton}
         type="button"
         onClick={() => onModeChange('actual')}
       >
-        Actual
+        Sessions
       </button>
     </div>
   );
@@ -132,11 +139,19 @@ export function ModeToggle({
 
 export function ScheduleTray({
   selectedBlock,
+  showAdjustInSchedule = true,
+  onRenameBlock,
+  onLinkAction,
+  onDeleteBlock,
   onClearSelection,
 }: ScheduleTrayProps) {
   const [query, setQuery] = useState('');
-  const [workFilter, setWorkFilter] = useState<'neverStarted' | 'inProgress' | 'highestPriority'>('highestPriority');
+  const [workFilter, setWorkFilter] = useState<'neverStarted' | 'inProgress' | 'highestPriority'>(
+    'highestPriority'
+  );
   const [sortBy, setSortBy] = useState<'recent' | 'modified' | 'oldest'>('recent');
+  const [linkActionQuery, setLinkActionQuery] = useState('');
+  const [isLinkActionPickerOpen, setIsLinkActionPickerOpen] = useState(false);
   const filteredActions = trayActions.filter(action => {
     const matchesQuery = `${action.title} ${action.sourceKey}`
       .toLowerCase()
@@ -158,23 +173,31 @@ export function ScheduleTray({
 
     return compareDates(right.createdAt, left.createdAt);
   });
+  const filteredLinkActions = trayActions.filter(action => (
+    `${action.title} ${action.specTitle ?? ''} ${action.sourceKey}`
+  ).toLowerCase().includes(linkActionQuery.toLowerCase()));
+
   if (selectedBlock) {
     return (
       <ScheduleSideTray
         title={selectedBlock.title}
         onBack={onClearSelection}
+        titleControl={!selectedBlock.fixed ? (
+          <label className={styles.sideTrayTitleEditor} title={selectedBlock.title}>
+            <span className={styles.sideTrayTitleSizer}>{selectedBlock.title || formatEventType(selectedBlock.type)}</span>
+            <input
+              className={styles.sideTrayTitleInput}
+              aria-label="Scheduled event title"
+              title={selectedBlock.title}
+              value={selectedBlock.title}
+              onChange={event => onRenameBlock?.(selectedBlock.id, event.target.value)}
+            />
+          </label>
+        ) : undefined}
         meta={(
-          <div className={styles.sideTrayMeta}>
-            <Badge variant={getEventTypeBadgeVariant(selectedBlock.type)}>
-              {formatEventType(selectedBlock.type)}
-            </Badge>
-            {selectedBlock.sourceKey ? <span className={styles.sourceKey}>{selectedBlock.sourceKey}</span> : null}
-            {selectedBlock.source ? (
-              <span className={styles.sourceMark} aria-label={`From ${selectedBlock.source}`} title={selectedBlock.source}>
-                <CalendarBlankIcon size={12} />
-              </span>
-            ) : null}
-          </div>
+          <Badge variant={getEventTypeBadgeVariant(selectedBlock.type)}>
+            {formatEventType(selectedBlock.type)}
+          </Badge>
         )}
       >
         <div className={styles.inspector}>
@@ -185,28 +208,118 @@ export function ScheduleTray({
                 <Typography size="sm">{selectedBlock.description}</Typography>
               </div>
             ) : null}
-            <div className={styles.detailGrid}>
-              <Detail label="Scheduled" value={formatBlockTime(selectedBlock)} />
-              {selectedBlock.type === 'action' ? (
-                <>
-                  <Detail label="Planned" value={formatDuration(selectedBlock.plannedMin ?? selectedBlock.durationMin)} />
-                  <Detail label="Actual" value={formatDuration(selectedBlock.actualMin ?? 0)} />
-                </>
-              ) : (
-                <Detail label="Duration" value={formatDuration(selectedBlock.durationMin)} />
-              )}
-              {selectedBlock.source ? <Detail label="Source" value={selectedBlock.source} /> : null}
-              {selectedBlock.recurring ? <Detail label="Repeats" value="Yes" /> : null}
+            <div className={styles.scheduleSection}>
+              <div className={styles.detailGrid}>
+                <Detail label="Scheduled" value={formatBlockTime(selectedBlock)} />
+                {selectedBlock.type === 'action' ? (
+                  <>
+                    <Detail
+                      label="Planned"
+                      value={formatDuration(selectedBlock.plannedMin ?? selectedBlock.durationMin)}
+                    />
+                    <Detail label="Actual" value={formatDuration(selectedBlock.actualMin ?? 0)} />
+                  </>
+                ) : (
+                  <Detail label="Duration" value={formatDuration(selectedBlock.durationMin)} />
+                )}
+                {selectedBlock.type === 'session' ? (
+                  <div className={styles.linkedActionDetail}>
+                    <Typography size="xs" color="muted">Linked action</Typography>
+                    {selectedBlock.actionId && selectedBlock.sourceKey ? (
+                      <div className={styles.linkedActionPill}>
+                        <button
+                          className={styles.linkedActionPillMain}
+                          type="button"
+                          onClick={() => setIsLinkActionPickerOpen(true)}
+                        >
+                          <span>{selectedBlock.title}</span>
+                          <span>{selectedBlock.sourceKey}</span>
+                        </button>
+                        <button
+                          className={styles.linkedActionDelete}
+                          type="button"
+                          aria-label="Remove linked action"
+                          onClick={() => {
+                            onLinkAction?.(selectedBlock.id, null);
+                            setIsLinkActionPickerOpen(false);
+                            setLinkActionQuery('');
+                          }}
+                        >
+                          <TrashIcon size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className={styles.linkedActionEmptyButton}
+                        type="button"
+                        onClick={() => setIsLinkActionPickerOpen(true)}
+                      >
+                        Link action
+                      </button>
+                    )}
+                    {isLinkActionPickerOpen ? (
+                      <div className={styles.linkActionPicker}>
+                        <TextInput
+                          aria-label="Search actions to link"
+                          placeholder="Search action name, spec name, or spec ID"
+                          value={linkActionQuery}
+                          onChange={event => setLinkActionQuery(event.target.value)}
+                        />
+                        <div className={styles.linkActionResults}>
+                          {filteredLinkActions.map(action => (
+                            <button
+                              key={action.id}
+                              className={styles.linkActionResult}
+                              type="button"
+                              onClick={() => {
+                                onLinkAction?.(selectedBlock.id, action);
+                                setIsLinkActionPickerOpen(false);
+                                setLinkActionQuery('');
+                              }}
+                            >
+                              <span>{action.title}</span>
+                              <span className={styles.linkActionResultMeta}>
+                                <span>{action.sourceKey}</span>
+                                <FlagIcon
+                                  size={13}
+                                  weight="fill"
+                                  aria-label={`${action.priority} priority`}
+                                />
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : selectedBlock.actionId && selectedBlock.sourceKey ? (
+                  <Detail label="Linked action" value={selectedBlock.sourceKey} />
+                ) : null}
+                {selectedBlock.source ? <Detail label="Source" value={selectedBlock.source} /> : null}
+                {selectedBlock.recurring ? <Detail label="Repeats" value="Yes" /> : null}
+              </div>
             </div>
           </div>
           <div className={styles.inspectorActions}>
-            <Button size="sm" variant="primary" icon={<CalendarBlankIcon size={15} />}>
-              Adjust in schedule
-            </Button>
+            {showAdjustInSchedule ? (
+              <Button size="sm" variant="primary" icon={<CalendarBlankIcon size={15} />}>
+                Adjust in schedule
+              </Button>
+            ) : null}
             {selectedBlock.actionId && selectedBlock.sourceKey ? (
               <Button size="sm" variant="secondary" icon={<SquaresFourIcon size={15} />}>
                 View in spec
               </Button>
+            ) : null}
+            {!selectedBlock.fixed ? (
+              <button
+                className={styles.destructiveIconButton}
+                type="button"
+                aria-label="Delete block"
+                onClick={() => onDeleteBlock?.(selectedBlock.id)}
+              >
+                <TrashIcon size={15} />
+              </button>
             ) : null}
           </div>
         </div>
@@ -271,6 +384,7 @@ function ScheduleSideTray({
   title,
   description,
   onBack,
+  titleControl,
   meta,
   children,
   footer,
@@ -278,6 +392,7 @@ function ScheduleSideTray({
   title: string;
   description?: string;
   onBack?: () => void;
+  titleControl?: React.ReactNode;
   meta?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -294,10 +409,14 @@ function ScheduleSideTray({
             ) : null}
           </div>
           <div className={styles.sideTrayHeading}>
-            <Typography as="h2" size="lg" weight="bold">
-              {title}
-            </Typography>
-            {meta}
+            <div className={styles.sideTrayHeadingRow}>
+              {titleControl ?? (
+                <Typography as="h2" size="lg" weight="bold">
+                  {title}
+                </Typography>
+              )}
+              {meta ? <div className={styles.sideTrayHeadingMeta}>{meta}</div> : null}
+            </div>
             {description ? (
               <Typography size="sm" color="muted">
                 {description}
@@ -319,6 +438,7 @@ export function ScheduleBlockCard({
   selected = false,
   compact = false,
   onSelect,
+  onRename,
   draggable = false,
 }: ScheduleBlockCardProps) {
   const draggableBlock = useDraggable({
@@ -328,8 +448,12 @@ export function ScheduleBlockCard({
   });
   const classNames = [
     styles.block,
+    styles[getBlockTypeClassName(block.type)],
+    block.fixed ? styles.blockFixed : null,
     selected ? styles.blockSelected : null,
     compact ? styles.blockCompact : null,
+    compact && block.durationMin <= 30 ? styles.blockTiny : null,
+    compact && block.durationMin <= 15 ? styles.blockMicro : null,
   ]
     .filter(Boolean)
     .join(' ');
@@ -338,6 +462,7 @@ export function ScheduleBlockCard({
     <button
       ref={draggableBlock.setNodeRef}
       className={classNames}
+      data-event-type={block.type}
       type="button"
       {...draggableBlock.attributes}
       {...draggableBlock.listeners}
@@ -347,10 +472,28 @@ export function ScheduleBlockCard({
         onSelect?.({ ...block, layer });
       }}
     >
-      <span className={styles.blockTitle}>{block.title}</span>
-      <Badge className={styles.blockType} variant={getEventTypeBadgeVariant(block.type)}>
-        {formatEventType(block.type)}
-      </Badge>
+      {block.fixed && block.source ? (
+        <span className={styles.externalSourceBadge} title={`Imported from ${block.source}; drag is disabled`}>
+          <CalendarBlankIcon size={12} />
+          <span>{block.source}</span>
+        </span>
+      ) : null}
+      {selected && !block.fixed ? (
+        <span className={styles.blockTitleEditor} title={block.title}>
+          <span className={styles.blockTitleSizer}>{block.title || formatEventType(block.type)}</span>
+          <input
+            className={styles.blockTitleInput}
+            aria-label="Scheduled event title"
+            title={block.title}
+            value={block.title}
+            onPointerDownCapture={event => event.stopPropagation()}
+            onClick={event => event.stopPropagation()}
+            onChange={event => onRename?.(block.id, event.target.value)}
+          />
+        </span>
+      ) : (
+        <span className={styles.blockTitle} title={block.title}>{block.title}</span>
+      )}
       <span className={styles.blockBottomRow}>
         <span className={block.startMin === undefined ? styles.blockTimeUnscheduled : styles.blockTimeRow}>
           {formatBlockTime(block)}
@@ -481,8 +624,30 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
+function getBlockTypeClassName(type: ScheduleBlock['type']) {
+  switch (type) {
+    case 'session':
+      return styles.blockSession ?? '';
+    case 'action':
+      return styles.blockAction ?? '';
+    case 'meeting':
+      return styles.blockMeeting ?? '';
+    case 'break':
+      return styles.blockBreak ?? '';
+    case 'focus':
+      return styles.blockFocus ?? '';
+    case 'personal':
+      return styles.blockPersonal ?? '';
+    case 'buffer':
+      return styles.blockBuffer ?? '';
+    case 'external':
+      return styles.blockExternal ?? '';
+  }
+}
+
 function getEventTypeBadgeVariant(type: ScheduleBlock['type']) {
   const variants: Record<ScheduleBlock['type'], 'neutral' | 'accent' | 'success' | 'warning' | 'danger'> = {
+    session: 'accent',
     action: 'accent',
     meeting: 'warning',
     break: 'success',
@@ -497,6 +662,7 @@ function getEventTypeBadgeVariant(type: ScheduleBlock['type']) {
 
 function formatEventType(type: ScheduleBlock['type']) {
   const labels: Record<ScheduleBlock['type'], string> = {
+    session: 'Session',
     action: 'Action',
     meeting: 'Meeting',
     break: 'Break',

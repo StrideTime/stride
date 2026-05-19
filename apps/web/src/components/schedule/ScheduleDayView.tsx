@@ -1,6 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { CaretLeftIcon } from '@phosphor-icons/react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  CalendarBlankIcon,
+  CaretDownIcon,
+  CaretLeftIcon,
+  CoffeeIcon,
+  PlusIcon,
+  TargetIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import { Button, Typography } from '@stride/ui';
 
@@ -11,26 +32,49 @@ import {
   ScheduleBlockCard,
   ScheduleDateNavigator,
   ScheduleTray,
+  toScheduleBlock,
   type SelectedScheduleBlock,
 } from './ScheduleShared';
-import { actualBlocks, plannedBlocks, type ScheduleMode } from './schedule.mock';
+import {
+  actualBlocks,
+  plannedBlocks,
+  type ScheduleAction,
+  type ScheduleBlock,
+  type ScheduleMode,
+} from './schedule.mock';
 import styles from './ScheduleDayView.module.css';
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-const HOUR_HEIGHT = 72;
+const HOUR_HEIGHT = 96;
 const DEFAULT_WORKDAY_START_HOUR = 8;
+const SLOT_MINUTES = 15;
+const MIN_BLOCK_MINUTES = 15;
 
 export function ScheduleDayView({ date }: { date: string }) {
   const [mode, setMode] = useState<ScheduleMode>('plan');
   const navigate = useNavigate();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const canvasShellRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const dragOffsetMinRef = useRef(0);
+  const lastClientPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const lastSchedulePointerRef = useRef<{ x: number; y: number } | null>(null);
+  const activeDragDataRef = useRef<Record<string, unknown> | null>(null);
+  const resizeStateRef = useRef<ResizeState | null>(null);
+  const [activeDrag, setActiveDrag] = useState<ScheduleAction | ScheduleBlock | null>(null);
+  const [activeGenericDrag, setActiveGenericDrag] = useState<GenericBlockType | null>(null);
+  const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
+  const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<SelectedScheduleBlock | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [plannedScheduleBlocks, setPlannedScheduleBlocks] = useState(plannedBlocks);
-  const activeBlocks = (mode === 'plan' ? plannedScheduleBlocks : actualBlocks)
-    .filter(block => block.date === date && block.startMin !== undefined);
-  const contextBlocks = (mode === 'plan' ? actualBlocks : plannedScheduleBlocks)
-    .filter(block => block.date === date && block.startMin !== undefined);
+  const [actualScheduleBlocks, setActualScheduleBlocks] = useState(actualBlocks);
+  const scheduleBlocks = mode === 'plan' ? plannedScheduleBlocks : actualScheduleBlocks;
+  const contextScheduleBlocks = mode === 'plan' ? actualScheduleBlocks : plannedScheduleBlocks;
+  const activeBlocks = scheduleBlocks.filter(block => block.date === date && block.startMin !== undefined);
+  const contextBlocks = contextScheduleBlocks.filter(block => block.date === date && block.startMin !== undefined);
   const activeBlockLayouts = layoutScheduleBlocks(activeBlocks);
+  const contextBlockLayouts = layoutScheduleBlocks(contextBlocks);
 
   function handleDayChange(dayOffset: number) {
     navigate({
@@ -46,113 +90,786 @@ export function ScheduleDayView({ date }: { date: string }) {
     });
   }, [date]);
 
-  function handleCanvasDrop(event: React.DragEvent) {
-    event.preventDefault();
-
-    const actionId = event.dataTransfer.getData('application/stride-action-id');
-    const title = event.dataTransfer.getData('application/stride-action-title');
-
-    if (!actionId || !title || !canvasShellRef.current) {
+  useEffect(() => {
+    if (!activeDrag && !activeGenericDrag) {
       return;
     }
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const top = event.clientY - rect.top;
-    const startMin = Math.max(0, Math.round((top / HOUR_HEIGHT) * 4) * 15);
+    function handlePointerMove(event: PointerEvent) {
+      lastClientPointerRef.current = { x: event.clientX, y: event.clientY };
+    }
 
-    setPlannedScheduleBlocks(blocks => [
-      ...blocks,
-      {
-        id: `planned-${actionId}-${date}-${startMin}`,
-        date,
-        title,
-        type: 'action',
+    window.addEventListener('pointermove', handlePointerMove, true);
+
+    return () => window.removeEventListener('pointermove', handlePointerMove, true);
+  }, [activeDrag, activeGenericDrag]);
+
+  function handleDragStart(event: DragStartEvent) {
+    const data = event.active.data.current;
+    activeDragDataRef.current = data ?? null;
+    lastClientPointerRef.current = getEventPointer(event.activatorEvent);
+
+    setActiveDrag((data?.action ?? data?.block ?? null) as ScheduleAction | ScheduleBlock | null);
+    setActiveGenericDrag(data?.type === 'generic' ? data.blockType as GenericBlockType : null);
+
+    if (data?.type === 'action' || data?.type === 'generic') {
+      dragOffsetMinRef.current = 0;
+      lastSchedulePointerRef.current = null;
+      setDraggingBlockId(null);
+      return;
+    }
+
+    if (data?.type !== 'block' || !canvasRef.current) {
+      dragOffsetMinRef.current = 0;
+      lastSchedulePointerRef.current = null;
+      setDraggingBlockId(null);
+      return;
+    }
+
+    const block = data.block as ScheduleBlock;
+    setDraggingBlockId(block.id);
+
+    if (block.startMin === undefined) {
+      dragOffsetMinRef.current = 0;
+      return;
+    }
+
+    dragOffsetMinRef.current = Math.max(
+      0,
+      getPointerMinutes(event.activatorEvent, canvasRef.current) - block.startMin
+    );
+  }
+
+  function handleDragMove(event: DragMoveEvent) {
+    const data = event.active.data.current;
+
+    if (!data || !canvasRef.current || !canvasShellRef.current) {
+      lastClientPointerRef.current = null;
+      lastSchedulePointerRef.current = null;
+      setDropPreview(null);
+      return;
+    }
+
+    const pointer = lastClientPointerRef.current
+      ?? getDragPointer(event.activatorEvent, event.delta.x, event.delta.y);
+
+    if (!isPointerInsideElement(pointer, canvasShellRef.current)) {
+      lastSchedulePointerRef.current = null;
+      setDropPreview(null);
+      return;
+    }
+
+    lastSchedulePointerRef.current = pointer;
+
+    if (data.type === 'action' || data.type === 'generic') {
+      const durationMin = data.type === 'generic'
+        ? getGenericBlockDuration(data.blockType as GenericBlockType)
+        : 60;
+      const block = data.type === 'generic'
+        ? createGenericBlock(data.blockType as GenericBlockType, date, mode, 0)
+        : toScheduleBlock(data.action as ScheduleAction, date);
+      const startMin = clampStart(getEventStartMinutes(pointer, canvasRef.current, 0), durationMin);
+
+      setDropPreview({
+        block: { ...block, durationMin },
         startMin,
-        durationMin: 60,
-        actionId,
-      },
-    ]);
+        durationMin,
+      });
+      return;
+    }
+
+    const block = data.block as ScheduleBlock;
+    const startMin = clampStart(
+      getEventStartMinutes(pointer, canvasRef.current, dragOffsetMinRef.current),
+      block.durationMin
+    );
+
+    setDropPreview({
+      block,
+      startMin,
+      durationMin: block.durationMin,
+    });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const data = event.active.data.current ?? activeDragDataRef.current;
+    const activeDragAtDrop = activeDrag;
+    const pointer = lastClientPointerRef.current
+      ?? getDragPointer(event.activatorEvent, event.delta.x, event.delta.y);
+    const schedulePointer = canvasShellRef.current && isPointerInsideElement(pointer, canvasShellRef.current)
+      ? pointer
+      : lastSchedulePointerRef.current ?? pointer;
+
+    setActiveDrag(null);
+    setActiveGenericDrag(null);
+    setDropPreview(null);
+    setDraggingBlockId(null);
+    activeDragDataRef.current = null;
+    lastClientPointerRef.current = null;
+
+    if (!canvasRef.current || !data) {
+      dragOffsetMinRef.current = 0;
+      lastSchedulePointerRef.current = null;
+      return;
+    }
+
+    if (data.type === 'action' || (activeDragAtDrop && 'estimateMin' in activeDragAtDrop)) {
+      const action = (data.action ?? activeDragAtDrop) as ScheduleAction;
+      const durationMin = 60;
+      const startMin = dropPreview
+        ? dropPreview.startMin
+        : clampStart(getEventStartMinutes(schedulePointer, canvasRef.current, 0), durationMin);
+      const block = toScheduleBlock(action, date);
+
+      dragOffsetMinRef.current = 0;
+      lastSchedulePointerRef.current = null;
+      updateScheduleBlocks(blocks => [
+        ...blocks,
+        {
+          ...block,
+          id: `${mode}-${block.id}-${startMin}`,
+          startMin,
+          durationMin,
+        },
+      ]);
+      return;
+    }
+
+    if (data.type === 'generic') {
+      const blockType = data.blockType as GenericBlockType;
+      const durationMin = getGenericBlockDuration(blockType);
+      const startMin = dropPreview
+        ? dropPreview.startMin
+        : clampStart(getEventStartMinutes(schedulePointer, canvasRef.current, 0), durationMin);
+      const block = createGenericBlock(blockType, date, mode, startMin);
+
+      dragOffsetMinRef.current = 0;
+      lastSchedulePointerRef.current = null;
+      updateScheduleBlocks(blocks => [...blocks, block]);
+      setSelectedBlock({ ...block, layer: mode });
+      setAddMenuOpen(false);
+      return;
+    }
+
+    if (data.type === 'block') {
+      const block = data.block as ScheduleBlock;
+      const startMin = dropPreview
+        ? dropPreview.startMin
+        : clampStart(
+            getEventStartMinutes(schedulePointer, canvasRef.current, dragOffsetMinRef.current),
+            block.durationMin
+          );
+
+      dragOffsetMinRef.current = 0;
+      lastSchedulePointerRef.current = null;
+      updateScheduleBlocks(blocks => blocks.map(item => (
+        item.id === block.id ? { ...item, date, startMin } : item
+      )));
+    }
+  }
+
+  function handleResize(block: ScheduleBlock, edge: 'start' | 'end', pointerDeltaY: number) {
+    if (block.startMin === undefined) {
+      return;
+    }
+
+    if (!resizeStateRef.current || resizeStateRef.current.blockId !== block.id) {
+      resizeStateRef.current = {
+        blockId: block.id,
+        startMin: block.startMin,
+        durationMin: block.durationMin,
+      };
+    }
+
+    const initial = resizeStateRef.current;
+    const deltaMin = snapDeltaMinutes((pointerDeltaY / HOUR_HEIGHT) * 60);
+    const initialEndMin = initial.startMin + initial.durationMin;
+    const nextStartMin = edge === 'start'
+      ? Math.min(initial.startMin + deltaMin, initialEndMin - MIN_BLOCK_MINUTES)
+      : initial.startMin;
+    const nextEndMin = edge === 'end'
+      ? Math.max(initialEndMin + deltaMin, initial.startMin + MIN_BLOCK_MINUTES)
+      : initialEndMin;
+    const durationMin = Math.max(MIN_BLOCK_MINUTES, nextEndMin - nextStartMin);
+    const clampedStart = clampStart(nextStartMin, durationMin);
+
+    updateScheduleBlocks(blocks => blocks.map(item => (
+      item.id === block.id ? { ...item, startMin: clampedStart, durationMin } : item
+    )));
+  }
+
+  function handleAddGenericBlock(type: GenericBlockType) {
+    const durationMin = getGenericBlockDuration(type);
+    const startMin = getVisibleCenterStart(canvasShellRef.current, durationMin);
+    const block = createGenericBlock(type, date, mode, startMin);
+
+    updateScheduleBlocks(blocks => [...blocks, block]);
+    setSelectedBlock({ ...block, layer: mode });
+  }
+
+  function handleRenameBlock(blockId: string, title: string) {
+    updateScheduleBlocks(blocks => blocks.map(block => (
+      block.id === blockId ? { ...block, title } : block
+    )));
+    setSelectedBlock(block => (block?.id === blockId ? { ...block, title } : block));
+  }
+
+  function handleLinkAction(blockId: string, action: ScheduleAction | null) {
+    const linkedFields = action
+      ? { actionId: action.id, sourceKey: action.sourceKey, title: action.title }
+      : { actionId: undefined, sourceKey: undefined };
+
+    updateScheduleBlocks(blocks => blocks.map(block => (
+      block.id === blockId ? { ...block, ...linkedFields } : block
+    )));
+    setSelectedBlock(block => (block?.id === blockId ? { ...block, ...linkedFields } : block));
+  }
+
+  function handleDeleteBlock(blockId: string) {
+    updateScheduleBlocks(blocks => blocks.filter(block => block.id !== blockId));
+    setSelectedBlock(null);
+  }
+
+  function updateScheduleBlocks(updater: (blocks: ScheduleBlock[]) => ScheduleBlock[]) {
+    if (mode === 'plan') {
+      setPlannedScheduleBlocks(updater);
+      return;
+    }
+
+    setActualScheduleBlocks(updater);
   }
 
   return (
-    <section className={styles.page}>
-      <div className={styles.mainContent}>
-        <div className={styles.topBar}>
-          <Button
-            size="sm"
-            variant="secondary"
-            aria-label="Back to week"
-            icon={<CaretLeftIcon size={15} />}
-            onClick={() => navigate({ to: '/schedule' })}
-          >
-            Back
-          </Button>
-          <ScheduleDateNavigator
-            label={formatDateSelectorLabel(date)}
-            previousLabel="Previous day"
-            nextLabel="Next day"
-            onPrevious={() => handleDayChange(-1)}
-            onNext={() => handleDayChange(1)}
-          />
-          <ModeToggle mode={mode} onModeChange={setMode} />
-        </div>
-        <MiniWeekStrip selectedDate={date} />
-        <div className={styles.layout}>
-          <div className={styles.canvasShell} ref={canvasShellRef}>
-            <div
-              className={styles.canvas}
-              style={{ '--hour-height': `${HOUR_HEIGHT}px` } as React.CSSProperties}
-              onDragOver={event => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'copy';
-              }}
-              onDrop={handleCanvasDrop}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragCancel={() => {
+        dragOffsetMinRef.current = 0;
+        lastClientPointerRef.current = null;
+        lastSchedulePointerRef.current = null;
+        setActiveDrag(null);
+        setActiveGenericDrag(null);
+        setDraggingBlockId(null);
+        activeDragDataRef.current = null;
+        setDropPreview(null);
+      }}
+      onDragEnd={handleDragEnd}
+    >
+      <section className={styles.page}>
+        <div className={styles.mainContent}>
+          <div className={styles.topBar}>
+            <Button
+              size="sm"
+              variant="secondary"
+              aria-label="Back to week"
+              icon={<CaretLeftIcon size={15} />}
+              onClick={() => navigate({ to: '/schedule' })}
             >
-              {HOURS.map(hour => (
-                <div key={hour} className={isWorkingHour(hour) ? styles.hourRow : styles.hourRowOff}>
-                  <Typography size="xs" color="muted">{formatTime(hour * 60)}</Typography>
-                </div>
-              ))}
-              <div className={styles.nowLine} style={{ top: `${14.35 * HOUR_HEIGHT}px` }} />
-              {contextBlocks.map(block => (
-                <div
-                  key={block.id}
-                  className={styles.contextBlock}
-                  style={blockStyle(block.startMin ?? 0, block.durationMin)}
-                >
-                  <ScheduleBlockCard block={block} layer={mode === 'plan' ? 'actual' : 'plan'} compact />
-                </div>
-              ))}
-              {activeBlockLayouts.map(({ block, column, columnCount }) => (
-                <div
-                  key={block.id}
-                  className={styles.activeBlock}
-                  style={{
-                    ...blockStyle(block.startMin ?? 0, block.durationMin),
-                    ...columnStyle(column, columnCount),
+              Back
+            </Button>
+            <ScheduleDateNavigator
+              label={formatDateSelectorLabel(date)}
+              previousLabel="Previous day"
+              nextLabel="Next day"
+              onPrevious={() => handleDayChange(-1)}
+              onNext={() => handleDayChange(1)}
+            />
+            <ModeToggle mode={mode} onModeChange={setMode} />
+          </div>
+          <MiniWeekStrip selectedDate={date} />
+          <DayCanvas
+            mode={mode}
+            canvasRef={canvasRef}
+            canvasShellRef={canvasShellRef}
+            activeBlockLayouts={activeBlockLayouts}
+            contextBlockLayouts={contextBlockLayouts}
+            selectedBlock={selectedBlock}
+            draggingBlockId={draggingBlockId}
+            dropPreview={dropPreview}
+            onSelectBlock={block => setSelectedBlock(block)}
+            onClearSelection={() => setSelectedBlock(null)}
+            onRenameBlock={handleRenameBlock}
+            onDeleteBlock={handleDeleteBlock}
+            onResize={handleResize}
+            onResizeEnd={() => {
+              resizeStateRef.current = null;
+            }}
+          />
+        </div>
+        <ScheduleTray
+          selectedBlock={selectedBlock}
+          showAdjustInSchedule={false}
+          onRenameBlock={handleRenameBlock}
+          onLinkAction={handleLinkAction}
+          onDeleteBlock={handleDeleteBlock}
+          onClearSelection={() => setSelectedBlock(null)}
+        />
+        <FloatingAddBlock
+          mode={mode}
+          open={addMenuOpen}
+          onOpenChange={setAddMenuOpen}
+          onAddBlock={handleAddGenericBlock}
+        />
+      </section>
+      <DragOverlay zIndex={9999} dropAnimation={null}>
+        {activeDrag && 'estimateMin' in activeDrag ? (
+          <div className={styles.trayDragOverlay}>
+            <Typography size="sm" weight="semibold">{activeDrag.title}</Typography>
+            <Typography size="xs" color="muted">
+              {activeDrag.sourceKey} · {activeDrag.priority} · 1h block
+            </Typography>
+          </div>
+        ) : null}
+        {activeGenericDrag ? (
+          <div className={styles.genericDragOverlay}>
+            <Typography size="xs" weight="semibold">{getGenericBlockTitle(activeGenericDrag)}</Typography>
+            <Typography size="xs" color="muted">30m</Typography>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+type DropPreview = {
+  block: ScheduleBlock;
+  startMin: number;
+  durationMin: number;
+};
+
+type ResizeState = {
+  blockId: string;
+  startMin: number;
+  durationMin: number;
+};
+
+type GenericBlockType = 'session' | 'break' | 'focus' | 'meeting';
+
+type DayCanvasProps = {
+  mode: ScheduleMode;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+  canvasShellRef: React.RefObject<HTMLDivElement | null>;
+  activeBlockLayouts: ReturnType<typeof layoutScheduleBlocks>;
+  contextBlockLayouts: ReturnType<typeof layoutScheduleBlocks>;
+  selectedBlock: SelectedScheduleBlock | null;
+  draggingBlockId: string | null;
+  dropPreview: DropPreview | null;
+  onSelectBlock: (block: SelectedScheduleBlock) => void;
+  onClearSelection: () => void;
+  onRenameBlock: (blockId: string, title: string) => void;
+  onDeleteBlock: (blockId: string) => void;
+  onResize: (block: ScheduleBlock, edge: 'start' | 'end', pointerDeltaY: number) => void;
+  onResizeEnd: () => void;
+};
+
+function DayCanvas({
+  mode,
+  canvasRef,
+  canvasShellRef,
+  activeBlockLayouts,
+  contextBlockLayouts,
+  selectedBlock,
+  draggingBlockId,
+  dropPreview,
+  onSelectBlock,
+  onClearSelection,
+  onRenameBlock,
+  onDeleteBlock,
+  onResize,
+  onResizeEnd,
+}: DayCanvasProps) {
+  const droppable = useDroppable({ id: 'day-canvas' });
+
+  return (
+    <div className={styles.layout}>
+      <div className={styles.canvasShell} ref={canvasShellRef}>
+        <div
+          ref={node => {
+            canvasRef.current = node;
+            droppable.setNodeRef(node);
+          }}
+          className={styles.canvas}
+          style={{ '--hour-height': `${HOUR_HEIGHT}px` } as React.CSSProperties}
+          onClick={onClearSelection}
+        >
+          {HOURS.map(hour => (
+            <div key={hour} className={isWorkingHour(hour) ? styles.hourRow : styles.hourRowOff}>
+              <div className={styles.hourLabel}>
+                <Typography size="xs" color="muted">{formatTime(hour * 60)}</Typography>
+              </div>
+            </div>
+          ))}
+          <div className={styles.nowLine} style={{ top: `${14.35 * HOUR_HEIGHT}px` }} />
+          {dropPreview ? (
+            <div
+              className={styles.dropPreview}
+              style={{
+                ...blockStyle(dropPreview.startMin, dropPreview.durationMin),
+                ...columnStyle(0, 1),
+              }}
+            >
+              <ScheduleBlockCard
+                block={{
+                  ...dropPreview.block,
+                  id: `preview-${dropPreview.block.id}`,
+                  date: dropPreview.block.date,
+                  startMin: dropPreview.startMin,
+                  durationMin: dropPreview.durationMin,
+                }}
+                layer={mode}
+                compact
+              />
+            </div>
+          ) : null}
+          {contextBlockLayouts.map(({ block, column }) => (
+            <div
+              key={block.id}
+              className={styles.contextBlock}
+              style={{
+                ...contextBlockStyle(block.startMin ?? 0, block.durationMin, column),
+              }}
+            >
+              <ScheduleGhostBlock block={block} layer={mode === 'plan' ? 'actual' : 'plan'} />
+            </div>
+          ))}
+          {activeBlockLayouts.map(({ block, column, columnCount }) => (
+            <div
+              key={block.id}
+              className={[
+                styles.activeBlock,
+                block.durationMin <= 15 ? styles.activeBlockMicro : null,
+                block.id === draggingBlockId && dropPreview ? styles.activeBlockDragging : null,
+              ].filter(Boolean).join(' ') }
+              style={{ 
+                ...blockStyle(block.startMin ?? 0, block.durationMin),
+                ...columnStyle(column, columnCount),
+              }}
+            >
+              {!block.fixed ? (
+                <button
+                  className={styles.deleteBlockButton}
+                  type="button"
+                  aria-label={`Delete ${block.title}`}
+                  onPointerDownCapture={event => {
+                    event.stopPropagation();
+                  }}
+                  onClick={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onDeleteBlock(block.id);
                   }}
                 >
-                  <div className={styles.resizeHandle} aria-hidden="true" />
-                  <ScheduleBlockCard
-                    block={block}
-                    layer={mode}
-                    selected={selectedBlock?.id === block.id}
-                    compact
-                    onSelect={blockSelection => setSelectedBlock(blockSelection)}
-                  />
-                  <div className={styles.resizeHandle} aria-hidden="true" />
-                </div>
-              ))}
+                  <TrashIcon size={13} weight="bold" />
+                </button>
+              ) : null}
+              <ResizeHandle
+                disabled={Boolean(block.fixed)}
+                edge="start"
+                onResizeStart={() => undefined}
+                onResize={pointerDeltaY => onResize(block, 'start', pointerDeltaY)}
+                onResizeEnd={onResizeEnd}
+              />
+              <DraggableScheduleBlock
+                block={block}
+                layer={mode}
+                selected={selectedBlock?.id === block.id}
+                onSelect={onSelectBlock}
+                onRename={onRenameBlock}
+              />
+              <ResizeHandle
+                disabled={Boolean(block.fixed)}
+                edge="end"
+                onResizeStart={() => undefined}
+                onResize={pointerDeltaY => onResize(block, 'end', pointerDeltaY)}
+                onResizeEnd={onResizeEnd}
+              />
             </div>
-          </div>
+          ))}
         </div>
       </div>
-      <ScheduleTray
-        selectedBlock={selectedBlock}
-        onClearSelection={() => setSelectedBlock(null)}
-      />
-    </section>
+    </div>
   );
+}
+
+function FloatingAddBlock({
+  mode,
+  open,
+  onOpenChange,
+  onAddBlock,
+}: {
+  mode: ScheduleMode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddBlock: (type: GenericBlockType) => void;
+}) {
+  if (mode === 'actual') {
+    return <DraggableAddSessionButton onAdd={() => onAddBlock('session')} />;
+  }
+
+  return (
+    <div className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
+      <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
+        <div className={styles.floatingAddHint}>Click to place · drag to schedule</div>
+        {(['focus', 'break', 'meeting'] as const).map(type => (
+          <DraggableAddBlockOption
+            key={type}
+            type={type}
+            disabled={!open}
+            onAdd={() => {
+              onAddBlock(type);
+              onOpenChange(false);
+            }}
+          />
+        ))}
+      </div>
+      <button
+        className={styles.floatingAddButton}
+        type="button"
+        aria-label="Add event"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+      >
+        {open ? <CaretDownIcon size={20} weight="bold" /> : <PlusIcon size={20} weight="bold" />}
+        <span>{open ? 'Close' : 'Add event'}</span>
+      </button>
+    </div>
+  );
+}
+
+function DraggableAddSessionButton({ onAdd }: { onAdd: () => void }) {
+  const draggableButton = useDraggable({
+    id: 'generic:session',
+    data: { type: 'generic', blockType: 'session' },
+  });
+
+  return (
+    <div className={styles.floatingAddSessionBlock}>
+      <button
+        ref={draggableButton.setNodeRef}
+        className={styles.floatingAddButton}
+        type="button"
+        aria-label="Add session"
+        {...draggableButton.attributes}
+        {...draggableButton.listeners}
+        onClick={event => {
+          event.preventDefault();
+          onAdd();
+        }}
+      >
+        <PlusIcon size={20} weight="bold" />
+        <span>Add session</span>
+      </button>
+    </div>
+  );
+}
+
+function DraggableAddBlockOption({
+  type,
+  disabled,
+  onAdd,
+}: {
+  type: Exclude<GenericBlockType, 'session'>;
+  disabled: boolean;
+  onAdd: () => void;
+}) {
+  const draggableOption = useDraggable({
+    id: `generic:${type}`,
+    data: { type: 'generic', blockType: type },
+    disabled,
+  });
+  const Icon = getGenericBlockIcon(type);
+
+  return (
+    <button
+      ref={draggableOption.setNodeRef}
+      className={styles.floatingAddOption}
+      type="button"
+      disabled={disabled}
+      {...draggableOption.attributes}
+      {...draggableOption.listeners}
+      onClick={event => {
+        event.preventDefault();
+        onAdd();
+      }}
+    >
+      <Icon size={15} />
+      <span>{getGenericBlockTitle(type)}</span>
+    </button>
+  );
+}
+
+function DraggableScheduleBlock({
+  block,
+  layer,
+  selected,
+  onSelect,
+  onRename,
+}: {
+  block: ScheduleBlock;
+  layer: ScheduleMode;
+  selected: boolean;
+  onSelect: (block: SelectedScheduleBlock) => void;
+  onRename: (blockId: string, title: string) => void;
+}) {
+  const draggableBlock = useDraggable({
+    id: `block:${block.id}`,
+    data: { type: 'block', block },
+    disabled: Boolean(block.fixed),
+  });
+
+  return (
+    <div
+      ref={draggableBlock.setNodeRef}
+      className={styles.draggableBlock}
+      {...draggableBlock.attributes}
+      {...draggableBlock.listeners}
+    >
+      <ScheduleBlockCard
+        block={block}
+        layer={layer}
+        selected={selected}
+        compact
+        onSelect={onSelect}
+        onRename={onRename}
+      />
+    </div>
+  );
+}
+
+function ScheduleGhostBlock({ block, layer }: { block: ScheduleBlock; layer: ScheduleMode }) {
+  return (
+    <div className={styles.ghostBlock} data-event-type={block.type}>
+      <span className={styles.ghostIndicator} aria-label={`Show ${layer} comparison`} />
+      <div className={styles.ghostPreview}>
+        <div className={styles.ghostPreviewMetaRow}>
+          <div className={styles.ghostPreviewMeta}>{layer === 'actual' ? 'Session' : 'Plan'}</div>
+          {layer === 'plan' ? (
+            <div className={styles.ghostPreviewType}>{formatScheduleEventType(block.type)}</div>
+          ) : null}
+        </div>
+        <div className={styles.ghostPreviewTitle}>{block.title}</div>
+        <div className={styles.ghostPreviewTime}>{formatGhostBlockTime(block)}</div>
+      </div>
+    </div>
+  );
+}
+
+function formatGhostBlockTime(block: ScheduleBlock) {
+  if (block.startMin === undefined) {
+    return 'Unscheduled';
+  }
+
+  return `${formatTime(block.startMin)}–${formatTime(block.startMin + block.durationMin)}`;
+}
+
+function formatScheduleEventType(type: ScheduleBlock['type']) {
+  const labels: Record<ScheduleBlock['type'], string> = {
+    session: 'Session',
+    action: 'Action',
+    meeting: 'Meeting',
+    break: 'Break',
+    focus: 'Focus',
+    personal: 'Personal',
+    buffer: 'Buffer',
+    external: 'External',
+  };
+
+  return labels[type];
+}
+
+function ResizeHandle({
+  disabled,
+  edge,
+  onResizeStart,
+  onResize,
+  onResizeEnd,
+}: {
+  disabled: boolean;
+  edge: 'start' | 'end';
+  onResizeStart: () => void;
+  onResize: (pointerDeltaY: number) => void;
+  onResizeEnd: () => void;
+}) {
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (disabled) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const startY = event.clientY;
+    onResizeStart();
+
+    function handlePointerMove(moveEvent: PointerEvent) {
+      moveEvent.preventDefault();
+      moveEvent.stopPropagation();
+      onResize(moveEvent.clientY - startY);
+    }
+
+    function handlePointerUp(moveEvent: PointerEvent) {
+      moveEvent.preventDefault();
+      moveEvent.stopPropagation();
+      onResizeEnd();
+      window.removeEventListener('pointermove', handlePointerMove, true);
+      window.removeEventListener('pointerup', handlePointerUp, true);
+      window.removeEventListener('pointercancel', handlePointerUp, true);
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, true);
+    window.addEventListener('pointerup', handlePointerUp, true);
+    window.addEventListener('pointercancel', handlePointerUp, true);
+  }
+
+  return (
+    <div
+      className={[
+        disabled ? styles.resizeHandleDisabled : styles.resizeHandle,
+        edge === 'start' ? styles.resizeHandleTop : styles.resizeHandleBottom,
+      ].join(' ')}
+      aria-hidden="true"
+      onPointerDownCapture={handlePointerDown}
+    />
+  );
+}
+
+function getPointerMinutes(event: Event, canvas: HTMLDivElement) {
+  const pointerY = 'clientY' in event && typeof event.clientY === 'number' ? event.clientY : 0;
+  const rect = canvas.getBoundingClientRect();
+  return ((pointerY - rect.top) / HOUR_HEIGHT) * 60;
+}
+
+function getEventPointer(event: Event) {
+  return {
+    x: 'clientX' in event && typeof event.clientX === 'number' ? event.clientX : 0,
+    y: 'clientY' in event && typeof event.clientY === 'number' ? event.clientY : 0,
+  };
+}
+
+function getDragPointer(event: Event, deltaX: number, deltaY: number) {
+  const pointer = getEventPointer(event);
+
+  return {
+    x: pointer.x + deltaX,
+    y: pointer.y + deltaY,
+  };
+}
+
+function isPointerInsideElement(pointer: { x: number; y: number }, element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  return pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
+}
+
+function getEventStartMinutes(
+  pointer: { x: number; y: number },
+  canvas: HTMLDivElement,
+  dragOffsetMin: number
+) {
+  const rect = canvas.getBoundingClientRect();
+  return snapMinutes(((pointer.y - rect.top) / HOUR_HEIGHT) * 60 - dragOffsetMin);
 }
 
 function parseDateKey(date: string) {
@@ -185,16 +902,88 @@ function isWorkingHour(hour: number) {
   return hour >= 8 && hour < 18;
 }
 
+function getGenericBlockTitle(type: GenericBlockType) {
+  const titles: Record<GenericBlockType, string> = {
+    session: 'Session',
+    break: 'Break',
+    focus: 'Focus',
+    meeting: 'Meeting',
+  };
+
+  return titles[type];
+}
+
+function getGenericBlockDuration(_type: GenericBlockType) {
+  return 30;
+}
+
+function createGenericBlock(
+  type: GenericBlockType,
+  date: string,
+  mode: ScheduleMode,
+  startMin: number
+): ScheduleBlock {
+  return {
+    id: `${mode}-${type}-${date}-${Date.now()}`,
+    date,
+    title: getGenericBlockTitle(type),
+    type,
+    startMin,
+    durationMin: getGenericBlockDuration(type),
+  };
+}
+
+function getGenericBlockIcon(type: GenericBlockType) {
+  const icons: Record<GenericBlockType, typeof TargetIcon> = {
+    session: TargetIcon,
+    break: CoffeeIcon,
+    focus: TargetIcon,
+    meeting: CalendarBlankIcon,
+  };
+
+  return icons[type];
+}
+
+function getVisibleCenterStart(canvasShell: HTMLDivElement | null, durationMin: number) {
+  if (!canvasShell) {
+    return clampStart(DEFAULT_WORKDAY_START_HOUR * 60, durationMin);
+  }
+
+  const visibleCenterPx = canvasShell.scrollTop + canvasShell.clientHeight / 2;
+  const visibleCenterMin = (visibleCenterPx / HOUR_HEIGHT) * 60;
+
+  return clampStart(snapMinutes(visibleCenterMin - durationMin / 2), durationMin);
+}
+
+function snapMinutes(minutes: number) {
+  return Math.max(0, Math.round(minutes / SLOT_MINUTES) * SLOT_MINUTES);
+}
+
+function snapDeltaMinutes(minutes: number) {
+  return Math.round(minutes / SLOT_MINUTES) * SLOT_MINUTES;
+}
+
+function clampStart(startMin: number, durationMin: number) {
+  return Math.min(Math.max(0, startMin), 24 * 60 - durationMin);
+}
+
 function blockStyle(startMin: number, durationMin: number) {
   return {
-    top: `${(startMin / 60) * HOUR_HEIGHT}px`,
-    height: `${(durationMin / 60) * HOUR_HEIGHT}px`,
+    top: `calc(${(startMin / 60) * HOUR_HEIGHT}px + 2px)`,
+    height: `calc(${(durationMin / 60) * HOUR_HEIGHT}px - 4px)`,
   };
+}
+
+function contextBlockStyle(startMin: number, durationMin: number, column: number) {
+  return {
+    ...blockStyle(startMin, durationMin),
+    '--ghost-column': column,
+  } as React.CSSProperties;
 }
 
 function columnStyle(column: number, columnCount: number) {
   const gutter = 8;
-  const leftBase = 96;
+  const leftBase = 112;
   const rightPad = 16;
   const widthExpression = `calc((100% - ${leftBase + rightPad}px - ${(columnCount - 1) * gutter}px) / ${columnCount})`;
 
@@ -204,21 +993,38 @@ function columnStyle(column: number, columnCount: number) {
   };
 }
 
-function layoutScheduleBlocks(blocks: typeof plannedBlocks) {
+function layoutScheduleBlocks(blocks: ScheduleBlock[]) {
   const sortedBlocks = [...blocks].sort((left, right) => (left.startMin ?? 0) - (right.startMin ?? 0));
-  const activeColumns: number[] = [];
+  const groups: ScheduleBlock[][] = [];
 
-  return sortedBlocks.map(block => {
+  sortedBlocks.forEach(block => {
     const startMin = block.startMin ?? 0;
-    const column = activeColumns.findIndex(endMin => endMin <= startMin);
-    const nextColumn = column === -1 ? activeColumns.length : column;
+    const lastGroup = groups.at(-1);
+    const lastGroupEndMin = lastGroup
+      ? Math.max(...lastGroup.map(item => (item.startMin ?? 0) + item.durationMin))
+      : 0;
 
-    activeColumns[nextColumn] = startMin + block.durationMin;
+    if (!lastGroup || startMin >= lastGroupEndMin) {
+      groups.push([block]);
+      return;
+    }
 
-    return {
-      block,
-      column: nextColumn,
-      columnCount: Math.max(activeColumns.length, 1),
-    };
+    lastGroup.push(block);
+  });
+
+  return groups.flatMap(group => {
+    const columnEndTimes: number[] = [];
+    const layouts = group.map(block => {
+      const startMin = block.startMin ?? 0;
+      const reusableColumn = columnEndTimes.findIndex(endMin => endMin <= startMin);
+      const column = reusableColumn === -1 ? columnEndTimes.length : reusableColumn;
+
+      columnEndTimes[column] = startMin + block.durationMin;
+
+      return { block, column };
+    });
+    const columnCount = Math.max(columnEndTimes.length, 1);
+
+    return layouts.map(layout => ({ ...layout, columnCount }));
   });
 }

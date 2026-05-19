@@ -1,6 +1,6 @@
 export type ScheduleMode = 'plan' | 'actual';
 
-export type ScheduleEventType = 'action' | 'meeting' | 'break' | 'focus' | 'personal' | 'buffer' | 'external';
+export type ScheduleEventType = 'session' | 'action' | 'meeting' | 'break' | 'focus' | 'personal' | 'buffer' | 'external';
 
 export type ScheduleBlock = {
   id: string;
@@ -23,6 +23,7 @@ export type ScheduleAction = {
   id: string;
   title: string;
   sourceKey: string;
+  specTitle?: string;
   priority: 'Highest' | 'High' | 'Medium' | 'Low';
   estimateMin: number;
   completedMin: number;
@@ -54,14 +55,19 @@ export const plannedBlocks: ScheduleBlock[] = [
 ];
 
 export const actualBlocks: ScheduleBlock[] = [
-  { id: 's1', date: '2026-05-18', title: 'OAuth callback edge cases', type: 'action', startMin: 555, durationMin: 95, actionId: 'a1', sourceKey: 'STR-108' },
-  { id: 's2', date: '2026-05-18', title: 'Linear mapping fix', type: 'action', startMin: 810, durationMin: 35, actionId: 'a4', sourceKey: 'STR-233' },
-  { id: 's3', date: '2026-05-19', title: 'Backlog filter polish', type: 'action', startMin: 675, durationMin: 45, actionId: 'a2', sourceKey: 'FE-44' },
+  { id: 's1', date: '2026-05-18', title: 'OAuth callback edge cases', type: 'session', startMin: 555, durationMin: 95, actionId: 'a1', sourceKey: 'STR-108' },
+  { id: 's2', date: '2026-05-18', title: 'Linear mapping fix', type: 'session', startMin: 810, durationMin: 35, actionId: 'a4', sourceKey: 'STR-233' },
+  { id: 's3', date: '2026-05-19', title: 'Backlog filter polish', type: 'session', startMin: 675, durationMin: 45, actionId: 'a2', sourceKey: 'FE-44' },
+  { id: 's4', date: '2026-05-19', title: 'Source inbox triage', type: 'session', startMin: 720, durationMin: 30, actionId: 'a5', sourceKey: 'STR-112' },
+  { id: 's6', date: '2026-05-20', title: 'PR review window', type: 'session', startMin: 825, durationMin: 45 },
+  { id: 's7', date: '2026-05-20', title: 'Bug reproduction notes', type: 'session', startMin: 855, durationMin: 30, actionId: 'a6', sourceKey: 'FE-44' },
+  { id: 's8', date: '2026-05-21', title: 'Source status mapping notes', type: 'session', startMin: 585, durationMin: 60, actionId: 'a3', sourceKey: 'STR-91' },
+  { id: 's9', date: '2026-05-22', title: 'Planning review follow-up', type: 'session', startMin: 930, durationMin: 45 },
 ];
 
 export const trayActions: ScheduleAction[] = [
-  { id: 'a5', title: 'Add source drift conflict state', sourceKey: 'STR-112', priority: 'Highest', estimateMin: 80, completedMin: 0, futureScheduledMin: 0, description: 'Surface source-side changes that conflict with local progress.', createdAt: '2026-05-15', updatedAt: '2026-05-16' },
-  { id: 'a6', title: 'Wire empty-day state to Schedule', sourceKey: 'FE-44', priority: 'High', estimateMin: 45, completedMin: 0, futureScheduledMin: 0, createdAt: '2026-05-14', updatedAt: '2026-05-14' },
-  { id: 'a1', title: 'OAuth callback edge cases', sourceKey: 'STR-108', priority: 'High', estimateMin: 120, completedMin: 95, futureScheduledMin: 75, createdAt: '2026-05-10', updatedAt: '2026-05-15' },
-  { id: 'a3', title: 'Source status mapping notes', sourceKey: 'STR-91', priority: 'Medium', estimateMin: 90, completedMin: 30, futureScheduledMin: 45, createdAt: '2026-05-08', updatedAt: '2026-05-13' },
+  { id: 'a5', title: 'Add source drift conflict state', sourceKey: 'STR-112', specTitle: 'Source sync reliability', priority: 'Highest', estimateMin: 80, completedMin: 0, futureScheduledMin: 0, description: 'Surface source-side changes that conflict with local progress.', createdAt: '2026-05-15', updatedAt: '2026-05-16' },
+  { id: 'a6', title: 'Wire empty-day state to Schedule', sourceKey: 'FE-44', specTitle: 'Schedule empty states', priority: 'High', estimateMin: 45, completedMin: 0, futureScheduledMin: 0, createdAt: '2026-05-14', updatedAt: '2026-05-14' },
+  { id: 'a1', title: 'OAuth callback edge cases', sourceKey: 'STR-108', specTitle: 'Desktop auth integration', priority: 'High', estimateMin: 120, completedMin: 95, futureScheduledMin: 75, createdAt: '2026-05-10', updatedAt: '2026-05-15' },
+  { id: 'a3', title: 'Source status mapping notes', sourceKey: 'STR-91', specTitle: 'Source status mapping', priority: 'Medium', estimateMin: 90, completedMin: 30, futureScheduledMin: 45, createdAt: '2026-05-08', updatedAt: '2026-05-13' },
 ];

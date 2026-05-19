@@ -1,13 +1,18 @@
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .mainContent {
+  box-sizing: border-box;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: var(--space-4);
+  height: 100vh;
+  min-height: 0;
   min-width: 0;
   padding: var(--space-5) 0 var(--space-2) clamp(var(--space-5), 4vw, var(--space-8));
 }
@@ -22,11 +27,13 @@
 
 .layout {
   min-height: 0;
+  overflow: hidden;
   padding-right: var(--space-4);
 }
 
 .canvasShell {
   height: 100%;
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -40,9 +47,46 @@
 
 .hourRow,
 .hourRowOff {
+  position: relative;
   height: var(--hour-height);
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--space-2) var(--space-3);
+}
+
+.hourRow::before,
+.hourRowOff::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 112px;
+  height: 1px;
+  background: var(--color-border-strong);
+  content: '';
+}
+
+.hourRow::after,
+.hourRowOff::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 112px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc((var(--hour-height) / 4) - 1px),
+    color-mix(in oklch, var(--color-border) 52%, transparent) calc((var(--hour-height) / 4) - 1px),
+    color-mix(in oklch, var(--color-border) 52%, transparent) calc(var(--hour-height) / 4)
+  );
+  content: '';
+  pointer-events: none;
+}
+
+.hourLabel {
+  position: absolute;
+  top: 0;
+  left: var(--space-3);
+  width: 76px;
+  text-align: right;
+  transform: translateY(-50%);
 }
 
 .hourRowOff {
@@ -51,8 +95,9 @@
 
 .nowLine {
   position: absolute;
+  z-index: 20;
   right: var(--space-3);
-  left: 96px;
+  left: 112px;
   height: 2px;
   background: var(--color-danger);
   pointer-events: none;
@@ -70,33 +115,517 @@
 }
 
 .activeBlock,
-.contextBlock {
+.contextBlock,
+.dropPreview {
   position: absolute;
-  min-height: 36px;
 }
 
 .activeBlock {
-  display: grid;
-  grid-template-rows: 8px minmax(0, 1fr) 8px;
+  box-sizing: border-box;
+  display: block;
+  min-height: 0;
+}
+
+.draggableBlock {
+  width: 100%;
+  height: 100%;
+}
+
+.deleteBlockButton {
+  position: absolute;
+  z-index: 60;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid color-mix(in oklch, var(--color-danger) 36%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-attention-danger-bg) 72%, var(--color-surface-raised));
+  color: var(--color-attention-danger-text);
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: 0 8px 20px oklch(5% 0.02 260 / 26%);
+  transform: translateY(-2px) scale(0.96);
+  transition: opacity 120ms ease-out, transform 120ms ease-out, border-color 120ms ease-out,
+    background 120ms ease-out;
+}
+
+.deleteBlockButton:hover,
+.deleteBlockButton:focus-visible {
+  border-color: var(--color-danger);
+  background: var(--color-attention-danger-bg);
+  opacity: 1;
+  transform: translateY(-2px) scale(1);
+}
+
+.activeBlock:hover .deleteBlockButton,
+.activeBlock:focus-within .deleteBlockButton {
+  opacity: 1;
+}
+
+.activeBlockMicro .deleteBlockButton,
+.activeBlockTiny .deleteBlockButton {
+  top: 50%;
+  right: var(--space-1);
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%) scale(0.96);
+}
+
+.activeBlockMicro .deleteBlockButton:hover,
+.activeBlockMicro .deleteBlockButton:focus-visible,
+.activeBlockTiny .deleteBlockButton:hover,
+.activeBlockTiny .deleteBlockButton:focus-visible {
+  transform: translateY(-50%) scale(1);
+}
+
+.activeBlockMicro {
+  z-index: 3;
+}
+
+.activeBlockDragging {
+  opacity: 0.12;
+}
+
+.contextBlock,
+.dropPreview {
+  min-height: 36px;
 }
 
 .contextBlock {
-  left: 18%;
-  width: 46%;
-  opacity: 0.42;
+  z-index: 3;
+  right: var(--space-3);
+  left: 112px;
   pointer-events: none;
 }
 
-.resizeHandle {
-  border-radius: var(--radius-sm);
-  cursor: ns-resize;
-  background: var(--color-border-strong);
-  opacity: 0;
+.contextBlock:hover,
+.contextBlock:focus-within {
+  z-index: 5;
 }
 
-.activeBlock:hover .resizeHandle {
+.ghostBlock {
+  --ghost-bg: color-mix(in oklch, var(--color-shell) 88%, var(--ghost-color));
+  --ghost-color: var(--color-accent);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.ghostBlock[data-event-type='session'],
+.ghostBlock[data-event-type='action'] {
+  --ghost-color: var(--color-accent);
+}
+
+.ghostBlock[data-event-type='meeting'] {
+  --ghost-color: var(--color-attention-warn-text);
+}
+
+.ghostBlock[data-event-type='external'] {
+  --ghost-color: oklch(78% 0.08 220);
+}
+
+.ghostBlock[data-event-type='focus'] {
+  --ghost-color: var(--color-success);
+}
+
+.ghostBlock[data-event-type='break'] {
+  --ghost-color: oklch(79% 0.1 205);
+}
+
+.ghostBlock[data-event-type='personal'] {
+  --ghost-color: var(--color-text-muted);
+}
+
+.ghostBlock[data-event-type='buffer'] {
+  --ghost-color: var(--color-attention-danger-text);
+}
+
+.ghostIndicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: calc(-14px - (var(--ghost-column, 0) * 10px));
+  width: 5px;
+  min-height: 18px;
+  border-radius: 999px;
+  background: var(--ghost-color);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ghostIndicator::before {
+  display: none;
+}
+
+.ghostIndicator::after {
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  width: 18px;
+  height: calc(100% + 12px);
+  min-height: 30px;
+  content: '';
+  transform: translateY(-50%);
+}
+
+.ghostPreview {
+  position: absolute;
+  inset: -4px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-content: start;
+  gap: 4px;
+  min-height: 74px;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--ghost-color) 54%, var(--color-border));
+  border-radius: calc(var(--radius-md) + 3px);
+  background: var(--ghost-bg);
+  box-shadow: 0 14px 34px oklch(0% 0 0 / 34%);
+  opacity: 0;
+  padding: var(--space-2) var(--space-3);
+  transform: translateX(-4px);
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+  pointer-events: none;
+}
+
+.ghostPreviewMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ghostPreviewMeta {
+  color: var(--ghost-color);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ghostPreviewType {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--ghost-color) 58%, transparent);
+  border-radius: 999px;
+  color: var(--ghost-color);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  padding: 3px 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ghostPreviewTitle {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ghostPreviewTime {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 750;
+  line-height: 1;
+}
+
+.ghostBlock:hover .ghostPreview,
+.ghostBlock:focus-within .ghostPreview {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.ghostBlock:hover .ghostIndicator,
+.ghostBlock:focus-within .ghostIndicator {
+  width: 7px;
+}
+
+.activeBlock {
+  z-index: 2;
+}
+
+.activeBlock:hover,
+.activeBlock:focus-within {
+  z-index: 4;
+}
+
+.dropPreview {
+  z-index: 6;
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--color-accent-subtle) 42%, transparent);
+  padding: 0;
+  pointer-events: none;
+}
+
+.dropPreview > * {
+  opacity: 0.94;
+}
+
+.dragOverlayCard {
+  min-width: 320px;
+  min-height: 20px;
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--color-accent-subtle) 42%, transparent);
+  pointer-events: none;
+}
+
+.dragOverlayCard > * {
+  opacity: 0.94;
+}
+
+.floatingAddBlock,
+.floatingAddBlockOpen,
+.floatingAddSessionBlock {
+  position: fixed;
+  right: calc(360px + var(--space-5));
+  bottom: var(--space-5);
+  z-index: 100;
+  display: grid;
+  grid-template-rows: 0 42px;
+  justify-items: stretch;
+  width: 42px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  transition: width 160ms ease-out, border-radius 160ms ease-out, grid-template-rows 160ms ease-out,
+    border-color 120ms ease-out, background 120ms ease-out;
+}
+
+.floatingAddBlock:hover,
+.floatingAddBlock:focus-within {
+  width: 118px;
+}
+
+.floatingAddSessionBlock {
+  grid-template-rows: 42px;
+}
+
+.floatingAddSessionBlock:hover,
+.floatingAddSessionBlock:focus-within {
+  width: 136px;
+}
+
+.floatingAddBlockOpen {
+  grid-template-rows: 148px 42px;
+  width: 218px;
+  border-color: var(--color-accent);
+  border-radius: var(--radius-lg);
+}
+
+.floatingAddOptions {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-2) 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+.floatingAddBlockOpen .floatingAddOptions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.floatingAddHint {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 750;
+  padding: var(--space-1) var(--space-2);
+  white-space: nowrap;
+}
+
+.floatingAddOption,
+.floatingAddButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.floatingAddOption {
+  min-height: 30px;
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-2);
+  touch-action: none;
+}
+
+.floatingAddButton {
+  width: 100%;
+  min-height: 42px;
+  overflow: hidden;
+  gap: 0;
+  padding: 0;
+}
+
+.floatingAddButton span {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 140ms ease-out, opacity 120ms ease-out, margin-left 140ms ease-out;
+}
+
+.floatingAddBlock:hover .floatingAddButton span,
+.floatingAddBlock:focus-within .floatingAddButton span,
+.floatingAddBlockOpen .floatingAddButton span,
+.floatingAddSessionBlock:hover .floatingAddButton span,
+.floatingAddSessionBlock:focus-within .floatingAddButton span {
+  max-width: 92px;
+  margin-left: var(--space-2);
   opacity: 1;
 }
+
+.floatingAddBlockOpen,
+.floatingAddBlock:hover,
+.floatingAddBlock:focus-within,
+.floatingAddOption:hover,
+.floatingAddOption:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.trayDragOverlay,
+.genericDragOverlay {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: 0 14px 34px oklch(0% 0 0 / 34%);
+  padding: var(--space-2);
+  pointer-events: none;
+}
+
+.trayDragOverlay {
+  width: 300px;
+}
+
+.genericDragOverlay {
+  width: 96px;
+}
+
+.resizeHandle,
+.resizeHandleDisabled {
+  position: absolute;
+  z-index: 50;
+  left: 50%;
+  width: 56px;
+  height: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.resizeHandle::after,
+.resizeHandleDisabled::after {
+  position: absolute;
+  left: 50%;
+  width: 34px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-text-muted);
+  content: '';
+  transform: translateX(-50%);
+}
+
+.resizeHandleTop {
+  top: 0;
+}
+
+.resizeHandleTop::after {
+  top: 3px;
+}
+
+.resizeHandleBottom {
+  bottom: 0;
+}
+
+.resizeHandleBottom::after {
+  bottom: 3px;
+}
+
+.activeBlockMicro .resizeHandle,
+.activeBlockMicro .resizeHandleDisabled {
+  left: 50%;
+  width: 42px;
+  height: 8px;
+  transform: translateX(-50%);
+}
+
+.activeBlockMicro .resizeHandleTop {
+  top: -1px;
+}
+
+.activeBlockMicro .resizeHandleBottom {
+  bottom: -1px;
+}
+
+.activeBlockMicro .resizeHandle::after,
+.activeBlockMicro .resizeHandleDisabled::after {
+  width: 22px;
+  height: 2px;
+}
+
+.activeBlockMicro .resizeHandleTop::after {
+  top: 1px;
+}
+
+.activeBlockMicro .resizeHandleBottom::after {
+  bottom: 1px;
+}
+
+.resizeHandle {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.activeBlock:hover .resizeHandle,
+.activeBlock:focus-within .resizeHandle {
+  pointer-events: auto;
+}
+
+.resizeHandleDisabled {
+  cursor: default;
+}
+
+.resizeHandleDisabled::after {
+  display: none;
+}
+
+.activeBlock:hover .resizeHandle,
+.activeBlock:focus-within .resizeHandle {
+  opacity: 0.62;
+}
+
 
 @media (max-width: 1180px) {
   .page {
