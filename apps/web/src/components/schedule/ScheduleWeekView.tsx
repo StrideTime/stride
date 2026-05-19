@@ -27,11 +27,15 @@ import {
   type ScheduleAction,
   type ScheduleBlock,
   type ScheduleMode,
-  weekDays,
 } from './schedule.mock';
 import styles from './ScheduleWeekView.module.css';
 
-type WeekDay = (typeof weekDays)[number];
+type WeekDay = {
+  date: string;
+  label: string;
+  dayNumber: string;
+  capacity: string;
+};
 
 const TODAY_DATE = '2026-05-20';
 
@@ -43,7 +47,7 @@ type WeekDayColumnProps = {
   newBlockTitleFocusId: string | null;
   onNavigate: () => void;
   onSelectBlock: (block: SelectedScheduleBlock) => void;
-  onOpenDay: () => void;
+  onOpenDay: (block?: ScheduleBlock) => void;
 };
 
 export function ScheduleWeekView() {
@@ -53,8 +57,10 @@ export function ScheduleWeekView() {
   const [activeDrag, setActiveDrag] = useState<ScheduleAction | ScheduleBlock | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<SelectedScheduleBlock | null>(null);
   const [newBlockTitleFocusId, setNewBlockTitleFocusId] = useState<string | null>(null);
+  const [focusedDate, setFocusedDate] = useState('2026-05-18');
   const [plannedScheduleBlocks, setPlannedScheduleBlocks] = useState<ScheduleBlock[]>(plannedBlocks);
   const activeBlocks = mode === 'plan' ? plannedScheduleBlocks : actualBlocks;
+  const weekDays = getWeekDays(focusedDate);
 
   useEffect(() => {
     setSelectedBlock(null);
@@ -134,7 +140,21 @@ export function ScheduleWeekView() {
     >
       <section className={styles.page}>
         <div className={styles.mainContent}>
-          <ScheduleHeader title="Plan the week." mode={mode} onModeChange={setMode} />
+          <ScheduleHeader
+            title="Plan the week."
+            mode={mode}
+            onModeChange={setMode}
+            dateNavigator={{
+              label: formatWeekRangeLabel(focusedDate),
+              previousLabel: 'Previous week',
+              nextLabel: 'Next week',
+              selectedDate: focusedDate,
+              selectionMode: 'week',
+              onPrevious: () => setFocusedDate(date => toDateKey(addDays(parseDateKey(date), -7))),
+              onNext: () => setFocusedDate(date => toDateKey(addDays(parseDateKey(date), 7))),
+              onSelectDate: setFocusedDate,
+            }}
+          />
           <div className={styles.weekGrid}>
             {weekDays.map(day => {
               const dayBlocks = activeBlocks
@@ -165,7 +185,11 @@ export function ScheduleWeekView() {
                   newBlockTitleFocusId={newBlockTitleFocusId}
                   onNavigate={() => navigate({ to: '/schedule/day/$date', params: { date: day.date } })}
                   onSelectBlock={blockSelection => setSelectedBlock(blockSelection)}
-                  onOpenDay={() => navigate({ to: '/schedule/day/$date', params: { date: day.date } })}
+                  onOpenDay={block => navigate({
+                    to: '/schedule/day/$date',
+                    params: { date: day.date },
+                    search: block ? { blockId: block.id } : undefined,
+                  })}
                 />
               );
             })}
@@ -175,6 +199,11 @@ export function ScheduleWeekView() {
           mode={mode}
           selectedBlock={selectedBlock}
           onChangeRecurrence={handleChangeRecurrence}
+          onAdjustInSchedule={block => navigate({
+            to: '/schedule/day/$date',
+            params: { date: block.date },
+            search: { blockId: block.id },
+          })}
           onClearSelection={() => setSelectedBlock(null)}
         />
       </section>
@@ -230,11 +259,14 @@ function WeekDayColumn({
       </header>
       <div className={styles.blockList}>
         {dayBlocks.length ? dayBlocks.map(block => (
-          <div key={block.id} onDoubleClick={onOpenDay}>
+          <div key={block.id} onDoubleClick={() => onOpenDay(block)}>
             <ScheduleBlockCard
               block={block}
               layer={mode}
               selected={selectedBlock?.id === block.id}
+              compact
+              allowTiny={false}
+              timeFormat="start"
               draggable={mode === 'plan'}
               autoFocusTitle={newBlockTitleFocusId === block.id}
               onSelect={onSelectBlock}
@@ -246,4 +278,54 @@ function WeekDayColumn({
       </div>
     </div>
   );
+}
+
+function getWeekDays(focusedDate: string): WeekDay[] {
+  const weekStart = getWeekStart(parseDateKey(focusedDate));
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(weekStart, index);
+    const isWeekend = index === 0 || index === 6;
+
+    return {
+      date: toDateKey(date),
+      label: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      dayNumber: String(date.getDate()),
+      capacity: isWeekend ? 'Off hours' : 'Open capacity',
+    };
+  });
+}
+
+function getWeekStart(date: Date) {
+  return addDays(date, -date.getDay());
+}
+
+function parseDateKey(date: string) {
+  const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDays(date: Date, dayCount: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + dayCount);
+  return nextDate;
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatWeekRangeLabel(focusedDate: string) {
+  const weekStart = getWeekStart(parseDateKey(focusedDate));
+  const weekEnd = addDays(weekStart, 6);
+  const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+
+  if (sameMonth) {
+    return `${weekStart.toLocaleDateString('en-US', { month: 'short' })} ${weekStart.getDate()}–${weekEnd.getDate()}`;
+  }
+
+  return `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}–${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 }

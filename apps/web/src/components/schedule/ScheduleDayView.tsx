@@ -12,16 +12,18 @@ import {
   type DragEndEvent,
   type DragMoveEvent,
   type DragStartEvent,
+  type Modifier,
 } from '@dnd-kit/core';
 import {
   CalendarBlankIcon,
-  CaretDownIcon,
   CaretLeftIcon,
   CoffeeIcon,
   DotsSixVerticalIcon,
+  InfoIcon,
   PlusIcon,
   TargetIcon,
   TrashIcon,
+  TrayIcon,
 } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import { Button, Typography } from '@stride/ui';
@@ -30,6 +32,7 @@ import {
   formatTime,
   MiniWeekStrip,
   ModeToggle,
+  formatDuration,
   ScheduleBlockCard,
   ScheduleDateNavigator,
   ScheduleTray,
@@ -48,8 +51,27 @@ import styles from './ScheduleDayView.module.css';
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const HOUR_HEIGHT = 96;
 const DEFAULT_WORKDAY_START_HOUR = 8;
+const WORKDAY_END_HOUR = 18;
+const CURRENT_TIME_HOUR = 14.35;
 const SLOT_MINUTES = 15;
 const MIN_BLOCK_MINUTES = 15;
+
+const cursorCenteredDragOverlay: Modifier = ({
+  activatorEvent,
+  activeNodeRect,
+  overlayNodeRect,
+  transform,
+}) => {
+  if (!(activatorEvent instanceof PointerEvent) || !activeNodeRect || !overlayNodeRect) {
+    return transform;
+  }
+
+  return {
+    ...transform,
+    x: transform.x + activatorEvent.clientX - activeNodeRect.left - overlayNodeRect.width / 2,
+    y: transform.y + activatorEvent.clientY - activeNodeRect.top - overlayNodeRect.height / 2,
+  };
+};
 
 export function ScheduleDayView({
   date,
@@ -91,6 +113,19 @@ export function ScheduleDayView({
   );
   const activeBlockLayouts = layoutScheduleBlocks(activeBlocks);
   const contextBlockLayouts = layoutScheduleBlocks(contextBlocks);
+  const unscheduledBlocks = useMemo(
+    () => scheduleBlocks.filter(block => block.date === date && block.startMin === undefined),
+    [date, scheduleBlocks]
+  );
+  const plannedActionMinutes = useMemo(() => activeBlocks
+    .filter(block => block.actionId)
+    .reduce((total, block) => total + block.durationMin, 0), [activeBlocks]);
+  const sessionMinutes = useMemo(() => activeBlocks
+    .filter(block => block.type === 'session')
+    .reduce((total, block) => total + block.durationMin, 0), [activeBlocks]);
+  const availableWorkMinutes = useMemo(() => getAvailableWorkMinutes(
+    plannedScheduleBlocks.filter(block => block.date === date)
+  ), [date, plannedScheduleBlocks]);
 
   function handleDayChange(dayOffset: number) {
     navigate({
@@ -137,11 +172,20 @@ export function ScheduleDayView({
   }
 
   useEffect(() => {
-    canvasShellRef.current?.scrollTo({
-      top: DEFAULT_WORKDAY_START_HOUR * HOUR_HEIGHT - 12,
+    const canvasShell = canvasShellRef.current;
+
+    if (!canvasShell || selectedBlockId) {
+      return;
+    }
+
+    const currentTimeTop = CURRENT_TIME_HOUR * HOUR_HEIGHT;
+    const scrollTop = Math.max(currentTimeTop - canvasShell.clientHeight * 0.25, 0);
+
+    canvasShell.scrollTo({
+      top: scrollTop,
       behavior: 'instant',
     });
-  }, [date]);
+  }, [date, selectedBlockId]);
 
   useEffect(() => {
     setMode(view === 'sessions' ? 'actual' : 'plan');
@@ -152,12 +196,22 @@ export function ScheduleDayView({
       return;
     }
 
-    const block = activeBlocks.find(item => item.id === selectedBlockId);
+    const visibleBlock = activeBlocks.find(item => item.id === selectedBlockId);
 
-    if (block) {
-      setSelectedBlock({ ...block, layer: mode });
+    if (visibleBlock) {
+      setSelectedBlock({ ...visibleBlock, layer: mode });
+      scrollBlockIntoFocus(visibleBlock, canvasShellRef.current);
+      return;
     }
-  }, [activeBlocks, mode, selectedBlockId]);
+
+    const unscheduledBlock = scheduleBlocks.find(item => (
+      item.id === selectedBlockId && item.date === date && item.startMin === undefined
+    ));
+
+    if (unscheduledBlock) {
+      setSelectedBlock({ ...unscheduledBlock, layer: mode });
+    }
+  }, [activeBlocks, date, mode, scheduleBlocks, selectedBlockId]);
 
   useEffect(() => {
     if (!activeDrag && !activeGenericDrag) {
@@ -485,12 +539,26 @@ export function ScheduleDayView({
               label={formatDateSelectorLabel(date)}
               previousLabel="Previous day"
               nextLabel="Next day"
+              selectedDate={date}
               onPrevious={() => handleDayChange(-1)}
               onNext={() => handleDayChange(1)}
+              onSelectDate={nextDate => navigate({ to: '/schedule/day/$date', params: { date: nextDate } })}
             />
             <ModeToggle mode={mode} onModeChange={handleModeChange} />
           </div>
           <MiniWeekStrip selectedDate={date} />
+          <DayTotals
+            mode={mode}
+            plannedActionMinutes={plannedActionMinutes}
+            sessionMinutes={sessionMinutes}
+            availableWorkMinutes={availableWorkMinutes}
+          />
+          <UnscheduledDayBlocks
+            blocks={unscheduledBlocks}
+            mode={mode}
+            selectedBlock={selectedBlock}
+            onSelectBlock={handleSelectBlock}
+          />
           <DayCanvas
             mode={mode}
             canvasRef={canvasRef}
@@ -528,13 +596,24 @@ export function ScheduleDayView({
           onAddBlock={handleAddGenericBlock}
         />
       </section>
-      <DragOverlay zIndex={9999} dropAnimation={null}>
+      <DragOverlay zIndex={9999} dropAnimation={null} modifiers={[cursorCenteredDragOverlay]}>
         {activeDrag && 'estimateMin' in activeDrag ? (
           <div className={styles.trayDragOverlay}>
             <Typography size="sm" weight="semibold">{activeDrag.title}</Typography>
             <Typography size="xs" color="muted">
               {activeDrag.sourceKey} · {activeDrag.priority} · 1h block
             </Typography>
+          </div>
+        ) : null}
+        {activeDrag && !('estimateMin' in activeDrag) ? (
+          <div className={styles.blockDragOverlay}>
+            <ScheduleBlockCard
+              block={activeDrag}
+              layer={mode}
+              compact
+              allowTiny={false}
+              timeFormat="durationAware"
+            />
           </div>
         ) : null}
         {activeGenericDrag ? (
@@ -554,13 +633,91 @@ type DropPreview = {
   durationMin: number;
 };
 
+function DayTotals({
+  mode,
+  plannedActionMinutes,
+  sessionMinutes,
+  availableWorkMinutes,
+}: {
+  mode: ScheduleMode;
+  plannedActionMinutes: number;
+  sessionMinutes: number;
+  availableWorkMinutes: number;
+}) {
+  const totalMinutes = mode === 'plan' ? plannedActionMinutes : sessionMinutes;
+  const label = mode === 'plan' ? 'Actions planned' : 'Session total';
+  const description = mode === 'plan'
+    ? 'Scheduled action time divided by workable time, excluding blocked calendar time.'
+    : 'Logged session time divided by workable time, excluding blocked calendar time.';
+
+  return (
+    <div className={styles.dayTotals}>
+      <Typography size="xs" color="muted" weight="semibold">
+        {label}
+      </Typography>
+      <Typography size="sm" weight="bold">
+        {formatDuration(totalMinutes)} / {formatDuration(availableWorkMinutes)}
+      </Typography>
+      <span className={styles.dayTotalInfoWrap} data-tooltip={description}>
+        <span className={styles.dayTotalInfoButton} aria-label={description}>
+          <InfoIcon size={14} />
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function UnscheduledDayBlocks({
+  blocks,
+  mode,
+  selectedBlock,
+  onSelectBlock,
+}: {
+  blocks: ScheduleBlock[];
+  mode: ScheduleMode;
+  selectedBlock: SelectedScheduleBlock | null;
+  onSelectBlock: (block: SelectedScheduleBlock) => void;
+}) {
+  if (!blocks.length) {
+    return null;
+  }
+
+  return (
+    <section className={styles.unscheduledPanel} aria-label="Unscheduled blocks for this day">
+      <div className={styles.unscheduledHeader}>
+        <Typography size="xs" color="muted" weight="semibold">
+          Planned for this day
+        </Typography>
+        <Typography size="xs" color="muted">
+          Not placed on the timeline yet
+        </Typography>
+      </div>
+      <div className={styles.unscheduledList}>
+        {blocks.map(block => (
+          <ScheduleBlockCard
+            key={block.id}
+            block={block}
+            layer={mode}
+            selected={selectedBlock?.id === block.id}
+            compact
+            allowTiny={false}
+            timeFormat="durationAware"
+            draggable={mode === 'plan'}
+            onSelect={onSelectBlock}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 type ResizeState = {
   blockId: string;
   startMin: number;
   durationMin: number;
 };
 
-type GenericBlockType = 'session' | 'break' | 'focus' | 'meeting';
+type GenericBlockType = 'session' | 'break' | 'focus' | 'meeting' | 'buffer';
 
 type DayCanvasProps = {
   mode: ScheduleMode;
@@ -618,7 +775,7 @@ function DayCanvas({
               </div>
             </div>
           ))}
-          <div className={styles.nowLine} style={{ top: `${14.35 * HOUR_HEIGHT}px` }} />
+          <div className={styles.nowLine} style={{ top: `${CURRENT_TIME_HOUR * HOUR_HEIGHT}px` }} />
           {dropPreview ? (
             <div
               className={styles.dropPreview}
@@ -637,6 +794,8 @@ function DayCanvas({
                 }}
                 layer={mode}
                 compact
+                timeFormat="durationAware"
+                showDuration
               />
             </div>
           ) : null}
@@ -722,14 +881,31 @@ function FloatingAddBlock({
   onOpenChange: (open: boolean) => void;
   onAddBlock: (type: GenericBlockType) => void;
 }) {
+  const addBlockRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!addBlockRef.current?.contains(event.target as Node)) {
+        onOpenChange(false);
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [onOpenChange, open]);
+
   if (mode === 'actual') {
     return <DraggableAddSessionButton onAdd={() => onAddBlock('session')} />;
   }
 
   return (
-    <div className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
+    <div ref={addBlockRef} className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
       <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
-        {(['focus', 'break', 'meeting'] as const).map(type => (
+        {(['focus', 'buffer', 'break', 'meeting'] as const).map(type => (
           <DraggableAddBlockOption
             key={type}
             type={type}
@@ -741,16 +917,18 @@ function FloatingAddBlock({
           />
         ))}
       </div>
-      <button
-        className={styles.floatingAddButton}
-        type="button"
-        aria-label="Add event"
-        aria-expanded={open}
-        onClick={() => onOpenChange(!open)}
-      >
-        {open ? <CaretDownIcon size={20} weight="bold" /> : <PlusIcon size={20} weight="bold" />}
-        <span>{open ? 'Close' : 'Add event'}</span>
-      </button>
+      {!open ? (
+        <button
+          className={styles.floatingAddButton}
+          type="button"
+          aria-label="Add event"
+          aria-expanded={open}
+          onClick={() => onOpenChange(true)}
+        >
+          <PlusIcon size={20} weight="bold" />
+          <span>Add event</span>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -852,6 +1030,8 @@ function DraggableScheduleBlock({
         layer={layer}
         selected={selected}
         compact
+        timeFormat="durationAware"
+        showDuration
         autoFocusTitle={autoFocusTitle}
         onSelect={onSelect}
         onRename={onRename}
@@ -1024,12 +1204,38 @@ function isWorkingHour(hour: number) {
   return hour >= 8 && hour < 18;
 }
 
+function getAvailableWorkMinutes(blocks: ScheduleBlock[]) {
+  const blockedMinutes = blocks.reduce((total, block) => {
+    if (!doesBlockReduceAvailableWork(block)) {
+      return total;
+    }
+
+    return total + getWorkingMinutesForBlock(block);
+  }, 0);
+
+  return Math.max(WORKDAY_END_HOUR * 60 - DEFAULT_WORKDAY_START_HOUR * 60 - blockedMinutes, 0);
+}
+
+function doesBlockReduceAvailableWork(block: ScheduleBlock) {
+  return ['meeting', 'break', 'buffer', 'external', 'focus', 'personal'].includes(block.type);
+}
+
+function getWorkingMinutesForBlock(block: ScheduleBlock) {
+  const startMin = block.startMin ?? DEFAULT_WORKDAY_START_HOUR * 60;
+  const endMin = startMin + block.durationMin;
+  const workdayStart = DEFAULT_WORKDAY_START_HOUR * 60;
+  const workdayEnd = WORKDAY_END_HOUR * 60;
+
+  return Math.max(Math.min(endMin, workdayEnd) - Math.max(startMin, workdayStart), 0);
+}
+
 function getGenericBlockTitle(type: GenericBlockType) {
   const titles: Record<GenericBlockType, string> = {
     session: 'Session',
     break: 'Break',
     focus: 'Focus',
     meeting: 'Meeting',
+    buffer: 'Buffer',
   };
 
   return titles[type];
@@ -1061,9 +1267,21 @@ function getGenericBlockIcon(type: GenericBlockType) {
     break: CoffeeIcon,
     focus: TargetIcon,
     meeting: CalendarBlankIcon,
+    buffer: TrayIcon,
   };
 
   return icons[type];
+}
+
+function scrollBlockIntoFocus(block: ScheduleBlock, canvasShell: HTMLDivElement | null) {
+  if (!canvasShell || block.startMin === undefined) {
+    return;
+  }
+
+  const blockTop = (block.startMin / 60) * HOUR_HEIGHT;
+  const scrollTop = Math.max(blockTop - canvasShell.clientHeight * 0.25, 0);
+
+  canvasShell.scrollTo({ top: scrollTop, behavior: 'instant' });
 }
 
 function getVisibleCenterStart(canvasShell: HTMLDivElement | null, durationMin: number) {

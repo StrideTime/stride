@@ -13,7 +13,7 @@ import {
   TrashIcon,
   UsersIcon,
 } from '@phosphor-icons/react';
-import { Badge, Button, TextInput, Typography } from '@stride/ui';
+import { Badge, Button, Popover, TextInput, Typography } from '@stride/ui';
 
 import type { RecurrenceRule, ScheduleAction, ScheduleBlock, ScheduleMode } from './schedule.mock';
 import { trayActions } from './schedule.mock';
@@ -25,6 +25,7 @@ type HeaderProps = {
   title: string;
   mode: ScheduleMode;
   onModeChange: (mode: ScheduleMode) => void;
+  dateNavigator?: ScheduleDateNavigatorProps;
   children?: React.ReactNode;
 };
 
@@ -32,9 +33,12 @@ type ScheduleDateNavigatorProps = {
   label: string;
   previousLabel: string;
   nextLabel: string;
+  selectedDate?: string;
+  selectionMode?: 'day' | 'week';
   onPrevious?: () => void;
   onNext?: () => void;
   onToday?: () => void;
+  onSelectDate?: (date: string) => void;
 };
 
 type ScheduleTrayProps = {
@@ -44,6 +48,7 @@ type ScheduleTrayProps = {
   onRenameBlock?: (blockId: string, title: string) => void;
   onLinkAction?: (blockId: string, action: ScheduleAction | null) => void;
   onChangeRecurrence?: (blockId: string, recurrence: RecurrenceRule | null) => void;
+  onAdjustInSchedule?: (block: SelectedScheduleBlock) => void;
   onDeleteBlock?: (blockId: string) => void;
   onClearSelection?: () => void;
 };
@@ -53,13 +58,16 @@ type ScheduleBlockCardProps = {
   layer: ScheduleMode;
   selected?: boolean;
   compact?: boolean;
+  showDuration?: boolean;
   onSelect?: (block: SelectedScheduleBlock) => void;
   onRename?: (blockId: string, title: string) => void;
   draggable?: boolean;
   autoFocusTitle?: boolean;
+  allowTiny?: boolean;
+  timeFormat?: 'range' | 'start' | 'durationAware';
 };
 
-export function ScheduleHeader({ title, mode, onModeChange, children }: HeaderProps) {
+export function ScheduleHeader({ title, mode, onModeChange, dateNavigator, children }: HeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.titleArea}>
@@ -71,6 +79,7 @@ export function ScheduleHeader({ title, mode, onModeChange, children }: HeaderPr
         label="May 17–23"
         previousLabel="Previous week"
         nextLabel="Next week"
+        {...dateNavigator}
       />
       <div className={styles.headerActions}>
         <ModeToggle mode={mode} onModeChange={onModeChange} />
@@ -84,10 +93,37 @@ export function ScheduleDateNavigator({
   label,
   previousLabel,
   nextLabel,
+  selectedDate,
+  selectionMode = 'day',
   onPrevious,
   onNext,
   onToday,
+  onSelectDate,
 }: ScheduleDateNavigatorProps) {
+  const datePicker = selectedDate && onSelectDate ? (
+    <Popover
+      align="center"
+      popupClassName={styles.datePickerPopup}
+      triggerClassName={styles.datePickerTrigger}
+      trigger={(
+        <>
+          <CalendarBlankIcon size={15} />
+          {label}
+        </>
+      )}
+    >
+      <ScheduleDatePicker
+        selectedDate={selectedDate}
+        selectionMode={selectionMode}
+        onSelectDate={onSelectDate}
+      />
+    </Popover>
+  ) : (
+    <Button size="sm" variant="ghost" icon={<CalendarBlankIcon size={15} />}>
+      {label}
+    </Button>
+  );
+
   return (
     <div className={styles.navButtons} aria-label="Schedule navigation">
       <Button
@@ -97,9 +133,7 @@ export function ScheduleDateNavigator({
         icon={<CaretLeftIcon size={15} />}
         onClick={onPrevious}
       />
-      <Button size="sm" variant="ghost" icon={<CalendarBlankIcon size={15} />}>
-        {label}
-      </Button>
+      {datePicker}
       <Button
         size="sm"
         variant="ghost"
@@ -111,6 +145,217 @@ export function ScheduleDateNavigator({
         <Button size="sm" variant="ghost" onClick={onToday}>
           Today
         </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function ScheduleDatePicker({
+  selectedDate,
+  selectionMode,
+  onSelectDate,
+}: {
+  selectedDate: string;
+  selectionMode: 'day' | 'week';
+  onSelectDate: (date: string) => void;
+}) {
+  const selected = parseDateKey(selectedDate);
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(selected));
+  const [pickerMode, setPickerMode] = useState<'days' | 'months' | 'years'>('days');
+  const [yearRangeStart, setYearRangeStart] = useState(() => selected.getFullYear() - 5);
+  const monthDays = getCalendarMonthDays(visibleMonth);
+  const monthWeeks = chunkDaysByWeek(monthDays);
+  const today = new Date();
+  const todayKey = toDateKey(today);
+  const selectedYear = visibleMonth.getFullYear();
+  const isCurrentMonthVisible = today.getFullYear() === visibleMonth.getFullYear()
+    && today.getMonth() === visibleMonth.getMonth();
+  const years = Array.from({ length: 12 }, (_, index) => yearRangeStart + index);
+
+  function handleMonthChange(monthOffset: number) {
+    if (pickerMode === 'years') {
+      setYearRangeStart(start => start + monthOffset * 12);
+      return;
+    }
+
+    setVisibleMonth(month => new Date(month.getFullYear(), month.getMonth() + monthOffset, 1));
+  }
+
+  function handleYearChange(year: number) {
+    setVisibleMonth(month => new Date(year, month.getMonth(), 1));
+    setPickerMode('days');
+  }
+
+  function handleMonthChangeByIndex(monthIndex: number) {
+    setVisibleMonth(month => new Date(month.getFullYear(), monthIndex, 1));
+    setPickerMode('days');
+  }
+
+  function handleDateSelect(day: Date) {
+    setVisibleMonth(startOfMonth(day));
+    onSelectDate(toDateKey(day));
+  }
+
+  function handleTodaySelect() {
+    setVisibleMonth(startOfMonth(today));
+    setYearRangeStart(today.getFullYear() - 5);
+    setPickerMode('days');
+    onSelectDate(toDateKey(today));
+  }
+
+  function handleMonthPickerToggle() {
+    setPickerMode(mode => mode === 'months' ? 'days' : 'months');
+  }
+
+  function handleYearPickerToggle() {
+    setYearRangeStart(selectedYear - 5);
+    setPickerMode(mode => mode === 'years' ? 'days' : 'years');
+  }
+
+  return (
+    <div className={styles.datePicker}>
+      <div className={styles.datePickerHeader}>
+        {pickerMode === 'months' ? <span /> : (
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label={pickerMode === 'years' ? 'Previous years' : 'Previous month'}
+            icon={<CaretLeftIcon size={15} />}
+            onClick={() => handleMonthChange(-1)}
+          />
+        )}
+        <div className={styles.datePickerTitle}>
+          {pickerMode !== 'years' ? (
+            <button
+              className={styles.periodTrigger}
+              type="button"
+              aria-expanded={pickerMode === 'months'}
+              onClick={handleMonthPickerToggle}
+            >
+              {visibleMonth.toLocaleDateString('en-US', { month: 'long' })}
+            </button>
+          ) : null}
+          {pickerMode !== 'months' ? (
+            <button
+              className={styles.periodTrigger}
+              type="button"
+              aria-expanded={pickerMode === 'years'}
+              onClick={handleYearPickerToggle}
+            >
+              {selectedYear}
+            </button>
+          ) : null}
+        </div>
+        {pickerMode === 'months' ? <span /> : (
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label={pickerMode === 'years' ? 'Next years' : 'Next month'}
+            icon={<CaretRightIcon size={15} />}
+            onClick={() => handleMonthChange(1)}
+          />
+        )}
+      </div>
+      {pickerMode === 'years' ? (
+        <>
+          <div className={styles.periodRangeLabel}>
+            <Typography size="xs" color="muted" weight="semibold">
+              {yearRangeStart}–{yearRangeStart + 11}
+            </Typography>
+          </div>
+          <div className={styles.periodGrid}>
+            {years.map(year => (
+              <button
+                key={year}
+                className={year === selectedYear ? styles.periodCellActive : styles.periodCell}
+                type="button"
+                aria-pressed={year === selectedYear}
+                onClick={() => handleYearChange(year)}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : pickerMode === 'months' ? (
+        <div className={styles.periodGrid}>
+          {Array.from({ length: 12 }, (_, monthIndex) => {
+            const month = new Date(selectedYear, monthIndex, 1);
+            const isActive = monthIndex === visibleMonth.getMonth();
+
+            return (
+              <button
+                key={monthIndex}
+                className={isActive ? styles.periodCellActive : styles.periodCell}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => handleMonthChangeByIndex(monthIndex)}
+              >
+                {month.toLocaleDateString('en-US', { month: 'short' })}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <div className={styles.weekdayGrid} aria-hidden="true">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              <Typography key={day} size="xs" color="muted" weight="semibold">
+                {day}
+              </Typography>
+            ))}
+          </div>
+          <div className={styles.dateGrid}>
+            {monthWeeks.map(week => {
+              const weekStartKey = toDateKey(week[0] ?? visibleMonth);
+              const isSelectedWeek = selectionMode === 'week'
+                && week.some(day => toDateKey(day) === selectedDate);
+
+              return (
+                <div
+                  key={weekStartKey}
+                  className={[
+                    selectionMode === 'week' ? styles.dateWeekRowSelectable : styles.dateWeekRow,
+                    isSelectedWeek ? styles.dateWeekRowSelected : null,
+                  ].filter(Boolean).join(' ')}
+                >
+                  {week.map(day => {
+                    const dateKey = toDateKey(day);
+                    const isSelected = selectionMode === 'day' && dateKey === selectedDate;
+                    const isToday = dateKey === todayKey;
+                    const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
+
+                    return (
+                      <button
+                        key={dateKey}
+                        className={[
+                          styles.dateCell,
+                          isSelected ? styles.dateCellSelected : null,
+                          isToday ? styles.dateCellToday : null,
+                          !isCurrentMonth ? styles.dateCellOutside : null,
+                        ].filter(Boolean).join(' ')}
+                        type="button"
+                        aria-pressed={selectionMode === 'week' ? isSelectedWeek : isSelected}
+                        aria-current={isToday ? 'date' : undefined}
+                        aria-label={day.toLocaleDateString('en-US', { dateStyle: 'full' })}
+                        onClick={() => handleDateSelect(day)}
+                      >
+                        {day.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {!isCurrentMonthVisible ? (
+        <div className={styles.datePickerFooter}>
+          <Button size="sm" variant="secondary" onClick={handleTodaySelect}>
+            Go back to today
+          </Button>
+        </div>
       ) : null}
     </div>
   );
@@ -150,6 +395,7 @@ export function ScheduleTray({
   onRenameBlock,
   onLinkAction,
   onChangeRecurrence,
+  onAdjustInSchedule,
   onDeleteBlock,
   onClearSelection,
 }: ScheduleTrayProps) {
@@ -318,7 +564,12 @@ export function ScheduleTray({
           </div>
           <div className={styles.inspectorActions}>
             {showAdjustInSchedule ? (
-              <Button size="sm" variant="primary" icon={<CalendarBlankIcon size={15} />}>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={<CalendarBlankIcon size={15} />}
+                onClick={() => onAdjustInSchedule?.(selectedBlock)}
+              >
                 Adjust in schedule
               </Button>
             ) : null}
@@ -553,10 +804,13 @@ export function ScheduleBlockCard({
   layer,
   selected = false,
   compact = false,
+  showDuration = false,
   onSelect,
   onRename,
   draggable = false,
   autoFocusTitle = false,
+  allowTiny = true,
+  timeFormat = 'range',
 }: ScheduleBlockCardProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const draggableBlock = useDraggable({
@@ -588,8 +842,8 @@ export function ScheduleBlockCard({
     block.fixed ? styles.blockFixed : null,
     selected ? styles.blockSelected : null,
     compact ? styles.blockCompact : null,
-    compact && block.durationMin <= 30 ? styles.blockTiny : null,
-    compact && block.durationMin <= 15 ? styles.blockMicro : null,
+    compact && allowTiny && block.durationMin <= 30 ? styles.blockTiny : null,
+    compact && allowTiny && block.durationMin <= 15 ? styles.blockMicro : null,
   ]
     .filter(Boolean)
     .join(' ');
@@ -638,7 +892,10 @@ export function ScheduleBlockCard({
       )}
       <span className={styles.blockBottomRow}>
         <span className={block.startMin === undefined ? styles.blockTimeUnscheduled : styles.blockTimeRow}>
-          {formatBlockTime(block)}
+          <span>{formatBlockTimeLabel(block, timeFormat)}</span>
+          {showDuration && block.durationMin >= 45 ? (
+            <span className={styles.blockDuration}> · {formatDuration(block.durationMin)}</span>
+          ) : null}
         </span>
         <span className={styles.blockMarks}>
           {block.sourceKey ? (
@@ -695,6 +952,23 @@ function getDisplayWeekDays(selectedDate: string) {
       dayNumber: String(date.getDate()),
     };
   });
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getCalendarMonthDays(month: Date) {
+  const firstDay = startOfMonth(month);
+  const gridStart = addDays(firstDay, -firstDay.getDay());
+
+  return Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
+}
+
+function chunkDaysByWeek(days: Date[]) {
+  return Array.from({ length: Math.ceil(days.length / 7) }, (_, index) => (
+    days.slice(index * 7, index * 7 + 7)
+  ));
 }
 
 function parseDateKey(date: string) {
@@ -841,6 +1115,21 @@ function formatBlockTime(block: ScheduleBlock) {
   }
 
   return `${formatTime(block.startMin)}–${formatTime(block.startMin + block.durationMin)}`;
+}
+
+function formatBlockTimeLabel(
+  block: ScheduleBlock,
+  timeFormat: 'range' | 'start' | 'durationAware'
+) {
+  if (block.startMin === undefined) {
+    return 'Unscheduled';
+  }
+
+  if (timeFormat === 'start' || (timeFormat === 'durationAware' && block.durationMin < 45)) {
+    return formatTime(block.startMin);
+  }
+
+  return formatBlockTime(block);
 }
 
 export function formatTime(totalMin: number) {

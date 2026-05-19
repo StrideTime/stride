@@ -45,6 +45,218 @@
   padding: 2px;
 }
 
+.datePickerTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 750;
+  padding: 0 var(--space-2);
+  transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.datePickerTrigger:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.datePickerTrigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.datePickerPopup {
+  width: 292px;
+  border-color: color-mix(in oklch, var(--color-border) 80%, var(--color-accent));
+  background: var(--color-surface-raised);
+  padding: var(--space-3);
+  box-shadow: 0 18px 44px color-mix(in oklch, var(--color-bg) 72%, transparent);
+}
+
+.datePicker {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.datePickerHeader,
+.datePickerTitle,
+.weekdayGrid,
+.dateGrid {
+  display: grid;
+}
+
+.datePickerHeader {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.datePickerTitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.periodTrigger {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 750;
+  padding: 0 var(--space-2);
+  transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.periodTrigger:hover,
+.periodTrigger[aria-expanded='true'] {
+  border-color: color-mix(in oklch, var(--color-accent) 30%, transparent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.periodTrigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.weekdayGrid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.dateGrid {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dateWeekRow,
+.dateWeekRowSelectable,
+.dateWeekRowSelected {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 1px;
+  transition: background 120ms ease-out, border-color 120ms ease-out;
+}
+
+.dateWeekRowSelected {
+  border-color: color-mix(in oklch, var(--color-accent) 42%, transparent);
+  background: color-mix(in oklch, var(--color-accent-subtle) 54%, transparent);
+}
+
+.dateWeekRowSelectable:hover {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.dateWeekRowSelectable:hover .dateCell {
+  background: transparent;
+}
+
+.periodRangeLabel {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.periodGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.dateCell,
+.periodCell,
+.periodCellActive {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.periodCell,
+.periodCellActive {
+  min-height: 38px;
+}
+
+.dateCell:hover,
+.periodCell:hover {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.dateWeekRowSelectable .dateCell:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.dateCell:focus-visible,
+.periodCell:focus-visible,
+.periodCellActive:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.dateCellOutside {
+  color: var(--color-text-muted);
+  opacity: 0.52;
+}
+
+.dateCellToday {
+  border-color: color-mix(in oklch, var(--color-success) 48%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-success) 28%, transparent);
+}
+
+.dateCellSelected,
+.dateCellSelected:hover,
+.periodCellActive,
+.periodCellActive:hover {
+  border-color: color-mix(in oklch, var(--color-accent) 42%, transparent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.datePickerFooter {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--color-border);
+  margin: calc(var(--space-1) * -1) calc(var(--space-3) * -1) calc(var(--space-3) * -1);
+  padding: var(--space-2) var(--space-3);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .modeToggle {
   justify-self: start;
   width: fit-content;
@@ -91,6 +303,7 @@
 }
 
 .block {
+  position: relative;
   box-sizing: border-box;
   touch-action: none;
   display: grid;
@@ -157,8 +370,8 @@
   align-items: start;
   height: 100%;
   min-height: 0;
-  gap: 4px var(--space-2);
-  padding: var(--space-3) var(--space-3) var(--space-2);
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2);
   overflow: hidden;
 }
 
@@ -265,6 +478,10 @@
   white-space: nowrap;
 }
 
+.blockDuration {
+  color: color-mix(in oklch, var(--block-fg, var(--color-text-muted)) 58%, var(--color-text-muted));
+}
+
 .blockTimeUnscheduled {
   color: var(--color-warning);
 }
@@ -317,6 +534,10 @@
   color: var(--block-fg, var(--color-text-muted));
   padding: 0 4px;
   pointer-events: none;
+}
+
+.blockCompact .blockMarks {
+  display: none;
 }
 
 .blockTiny .blockIconRibbon {
@@ -401,9 +622,9 @@
 
 .blockBuffer,
 .block[data-event-type='buffer'] {
-  --block-border: var(--color-attention-danger-text);
-  --block-fg: var(--color-attention-danger-text);
-  --block-bg: var(--color-attention-danger-bg);
+  --block-border: oklch(70% 0.08 255);
+  --block-fg: oklch(76% 0.08 255);
+  --block-bg: color-mix(in oklch, oklch(70% 0.08 255) 14%, var(--color-surface-raised));
   background: var(--block-bg);
   color: var(--block-fg);
 }
