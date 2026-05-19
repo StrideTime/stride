@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useDraggable } from '@dnd-kit/core';
 import {
   CalendarBlankIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  CoffeeIcon,
   FlagIcon,
   RepeatIcon,
   SquaresFourIcon,
+  TargetIcon,
   TrashIcon,
+  UsersIcon,
 } from '@phosphor-icons/react';
 import { Badge, Button, TextInput, Typography } from '@stride/ui';
 
-import type { ScheduleAction, ScheduleBlock, ScheduleMode } from './schedule.mock';
+import type { RecurrenceRule, ScheduleAction, ScheduleBlock, ScheduleMode } from './schedule.mock';
 import { trayActions } from './schedule.mock';
 import styles from './ScheduleShared.module.css';
 
@@ -35,10 +38,12 @@ type ScheduleDateNavigatorProps = {
 };
 
 type ScheduleTrayProps = {
+  mode?: ScheduleMode;
   selectedBlock?: SelectedScheduleBlock | null;
   showAdjustInSchedule?: boolean;
   onRenameBlock?: (blockId: string, title: string) => void;
   onLinkAction?: (blockId: string, action: ScheduleAction | null) => void;
+  onChangeRecurrence?: (blockId: string, recurrence: RecurrenceRule | null) => void;
   onDeleteBlock?: (blockId: string) => void;
   onClearSelection?: () => void;
 };
@@ -51,6 +56,7 @@ type ScheduleBlockCardProps = {
   onSelect?: (block: SelectedScheduleBlock) => void;
   onRename?: (blockId: string, title: string) => void;
   draggable?: boolean;
+  autoFocusTitle?: boolean;
 };
 
 export function ScheduleHeader({ title, mode, onModeChange, children }: HeaderProps) {
@@ -138,10 +144,12 @@ export function ModeToggle({
 }
 
 export function ScheduleTray({
+  mode = 'plan',
   selectedBlock,
   showAdjustInSchedule = true,
   onRenameBlock,
   onLinkAction,
+  onChangeRecurrence,
   onDeleteBlock,
   onClearSelection,
 }: ScheduleTrayProps) {
@@ -210,7 +218,10 @@ export function ScheduleTray({
             ) : null}
             <div className={styles.scheduleSection}>
               <div className={styles.detailGrid}>
-                <Detail label="Scheduled" value={formatBlockTime(selectedBlock)} />
+                <Detail
+                  label={selectedBlock.type === 'session' ? 'Session time' : 'Scheduled'}
+                  value={formatBlockTime(selectedBlock)}
+                />
                 {selectedBlock.type === 'action' ? (
                   <>
                     <Detail
@@ -296,7 +307,12 @@ export function ScheduleTray({
                   <Detail label="Linked action" value={selectedBlock.sourceKey} />
                 ) : null}
                 {selectedBlock.source ? <Detail label="Source" value={selectedBlock.source} /> : null}
-                {selectedBlock.recurring ? <Detail label="Repeats" value="Yes" /> : null}
+                {selectedBlock.type !== 'session' && !selectedBlock.fixed ? (
+                  <RecurrenceEditor
+                    recurrence={selectedBlock.recurrence}
+                    onChange={recurrence => onChangeRecurrence?.(selectedBlock.id, recurrence)}
+                  />
+                ) : null}
               </div>
             </div>
           </div>
@@ -327,22 +343,37 @@ export function ScheduleTray({
     );
   }
 
+  const isSessionMode = mode === 'actual';
+  const filterLabels: Record<typeof workFilter, string> = isSessionMode
+    ? {
+        neverStarted: 'Not logged',
+        inProgress: 'Partially logged',
+        highestPriority: 'Priority',
+      }
+    : {
+        neverStarted: 'Never started',
+        inProgress: 'In progress',
+        highestPriority: 'Highest priority',
+      };
+
   return (
     <ScheduleSideTray
-      title="Plan work"
-      description="Drag items onto a day."
+      title={isSessionMode ? 'Log sessions' : 'Plan work'}
+      description={isSessionMode
+        ? 'Drag actions onto the calendar to backfill sessions, or add an unlinked session.'
+        : 'Drag items onto a day.'}
     >
       <div className={styles.trayControls}>
         <div className={styles.searchSortRow}>
           <TextInput
-            aria-label="Search work to place"
-            placeholder="Search work"
+            aria-label={isSessionMode ? 'Search actions to log' : 'Search work to place'}
+            placeholder={isSessionMode ? 'Search actions to log' : 'Search work'}
             value={query}
             onChange={event => setQuery(event.target.value)}
           />
           <select
             className={styles.sortSelect}
-            aria-label="Sort work"
+            aria-label={isSessionMode ? 'Sort actions' : 'Sort work'}
             value={sortBy}
             onChange={event => setSortBy(event.target.value as typeof sortBy)}
           >
@@ -351,26 +382,22 @@ export function ScheduleTray({
             <option value="oldest">Oldest</option>
           </select>
         </div>
-        <div className={styles.filterChips} aria-label="Filter work">
-          {([
-            ['neverStarted', 'Never started'],
-            ['inProgress', 'In progress'],
-            ['highestPriority', 'Highest priority'],
-          ] as const).map(([filter, label]) => (
+        <div className={styles.filterChips} aria-label={isSessionMode ? 'Filter actions to log' : 'Filter work'}>
+          {(['neverStarted', 'inProgress', 'highestPriority'] as const).map(filter => (
             <button
               key={filter}
               className={workFilter === filter ? styles.filterChipActive : styles.filterChip}
               type="button"
               onClick={() => setWorkFilter(filter)}
             >
-              {label}
+              {filterLabels[filter]}
             </button>
           ))}
         </div>
       </div>
       <div className={styles.trayList}>
         <Typography size="xs" weight="semibold" color="muted">
-          Work
+          {isSessionMode ? 'Actions to log' : 'Work'}
         </Typography>
         {filteredActions.map(action => (
           <TrayAction key={action.id} action={action} />
@@ -378,6 +405,95 @@ export function ScheduleTray({
       </div>
     </ScheduleSideTray>
   );
+}
+
+function RecurrenceEditor({
+  recurrence,
+  onChange,
+}: {
+  recurrence?: RecurrenceRule;
+  onChange: (recurrence: RecurrenceRule | null) => void;
+}) {
+  const rule = recurrence ?? { frequency: 'weekly', interval: 1, ends: 'never' as const };
+
+  return (
+    <div className={recurrence ? styles.recurrenceEditorOpen : styles.recurrenceEditor}>
+      <label className={styles.recurrenceHeader}>
+        <input
+          type="checkbox"
+          checked={Boolean(recurrence)}
+          onChange={event => onChange(event.target.checked ? rule : null)}
+        />
+        <span>
+          <Typography size="sm" weight="semibold">Repeats</Typography>
+          {recurrence ? (
+            <Typography size="xs" color="muted">{formatRecurrence(rule)}</Typography>
+          ) : null}
+        </span>
+      </label>
+      {recurrence ? (
+        <div className={styles.recurrenceFields}>
+          <label>
+            <span>Every</span>
+            <input
+              type="number"
+              min={1}
+              value={rule.interval}
+              onChange={event => onChange({ ...rule, interval: Number(event.target.value) || 1 })}
+            />
+          </label>
+          <label>
+            <span>Frequency</span>
+            <select
+              value={rule.frequency}
+              onChange={event => onChange({
+                ...rule,
+                frequency: event.target.value as RecurrenceRule['frequency'],
+              })}
+            >
+              <option value="daily">Days</option>
+              <option value="weekly">Weeks</option>
+              <option value="monthly">Months</option>
+            </select>
+          </label>
+          <label>
+            <span>Ends</span>
+            <select
+              value={rule.ends}
+              onChange={event => onChange({
+                ...rule,
+                ends: event.target.value as RecurrenceRule['ends'],
+              })}
+            >
+              <option value="never">Never</option>
+              <option value="onDate">On date</option>
+            </select>
+          </label>
+          {rule.ends === 'onDate' ? (
+            <label>
+              <span>End date</span>
+              <input
+                type="date"
+                value={rule.endDate ?? ''}
+                onChange={event => onChange({ ...rule, endDate: event.target.value })}
+              />
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function formatRecurrence(rule: RecurrenceRule) {
+  const unit = rule.frequency === 'daily'
+    ? 'day'
+    : rule.frequency === 'weekly'
+      ? 'week'
+      : 'month';
+  const cadence = rule.interval === 1 ? `Every ${unit}` : `Every ${rule.interval} ${unit}s`;
+
+  return rule.ends === 'onDate' && rule.endDate ? `${cadence} until ${rule.endDate}` : cadence;
 }
 
 function ScheduleSideTray({
@@ -440,12 +556,32 @@ export function ScheduleBlockCard({
   onSelect,
   onRename,
   draggable = false,
+  autoFocusTitle = false,
 }: ScheduleBlockCardProps) {
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const draggableBlock = useDraggable({
     id: `block:${block.id}`,
     data: { type: 'block', block },
     disabled: !draggable,
   });
+  useEffect(() => {
+    if (!autoFocusTitle) {
+      return;
+    }
+
+    const focusTitle = () => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    };
+    const animationFrame = window.requestAnimationFrame(focusTitle);
+    const timeout = window.setTimeout(focusTitle, 0);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(timeout);
+    };
+  }, [autoFocusTitle, block.id]);
+
   const classNames = [
     styles.block,
     styles[getBlockTypeClassName(block.type)],
@@ -473,15 +609,21 @@ export function ScheduleBlockCard({
       }}
     >
       {block.fixed && block.source ? (
-        <span className={styles.externalSourceBadge} title={`Imported from ${block.source}; drag is disabled`}>
+        <span className={styles.blockIconRibbon} title={`Imported from ${block.source}; drag is disabled`}>
+          {block.recurring ? <RepeatIcon size={12} /> : null}
           <CalendarBlankIcon size={12} />
-          <span>{block.source}</span>
+        </span>
+      ) : getBlockTypeIcon(block.type) ? (
+        <span className={styles.blockIconRibbon} title={formatEventType(block.type)}>
+          {block.sourceKey ? null : block.recurring ? <RepeatIcon size={12} /> : null}
+          {getBlockTypeIcon(block.type)}
         </span>
       ) : null}
       {selected && !block.fixed ? (
         <span className={styles.blockTitleEditor} title={block.title}>
           <span className={styles.blockTitleSizer}>{block.title || formatEventType(block.type)}</span>
           <input
+            ref={titleInputRef}
             className={styles.blockTitleInput}
             aria-label="Scheduled event title"
             title={block.title}
@@ -499,13 +641,18 @@ export function ScheduleBlockCard({
           {formatBlockTime(block)}
         </span>
         <span className={styles.blockMarks}>
-          {block.sourceKey ? <span className={styles.sourceKey}>{block.sourceKey}</span> : null}
+          {block.sourceKey ? (
+            <span className={styles.sourceKey}>
+              {block.recurring ? <RepeatIcon size={12} /> : null}
+              <span>{block.sourceKey}</span>
+            </span>
+          ) : null}
           {block.source ? (
-            <span className={styles.sourceMark} aria-label={`From ${block.source}`} title={block.source}>
+            <span className={block.fixed ? styles.externalSourceMark : styles.sourceMark} aria-label={`From ${block.source}`} title={`${block.source}${block.fixed ? ' · read-only' : ''}`}>
               <CalendarBlankIcon size={12} />
             </span>
           ) : null}
-          {block.recurring ? (
+          {block.recurring && !block.sourceKey ? (
             <span className={styles.sourceMark} aria-label="Repeating event" title="Repeating event">
               <RepeatIcon size={12} />
             </span>
@@ -527,8 +674,8 @@ export function MiniWeekStrip({ selectedDate }: { selectedDate: string }) {
           className={day.date === selectedDate ? styles.miniDayActive : styles.miniDay}
           href={`/schedule/day/${day.date}`}
         >
-          <Typography size="xs" color="muted">{day.label}</Typography>
-          <Typography size="sm" weight="bold">{day.dayNumber}</Typography>
+          <Typography size="sm" color="muted">{day.label}</Typography>
+          <Typography size="base" weight="bold">{day.dayNumber}</Typography>
         </a>
       ))}
     </div>
@@ -622,6 +769,19 @@ function Detail({ label, value }: { label: string; value: string }) {
       <Typography size="sm" weight="semibold">{value}</Typography>
     </div>
   );
+}
+
+function getBlockTypeIcon(type: ScheduleBlock['type']) {
+  switch (type) {
+    case 'break':
+      return <CoffeeIcon size={12} />;
+    case 'meeting':
+      return <UsersIcon size={12} />;
+    case 'focus':
+      return <TargetIcon size={12} />;
+    default:
+      return null;
+  }
 }
 
 function getBlockTypeClassName(type: ScheduleBlock['type']) {

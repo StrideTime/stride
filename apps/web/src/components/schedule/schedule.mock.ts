@@ -2,6 +2,15 @@ export type ScheduleMode = 'plan' | 'actual';
 
 export type ScheduleEventType = 'session' | 'action' | 'meeting' | 'break' | 'focus' | 'personal' | 'buffer' | 'external';
 
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
+
+export type RecurrenceRule = {
+  frequency: RecurrenceFrequency;
+  interval: number;
+  ends: 'never' | 'onDate';
+  endDate?: string;
+};
+
 export type ScheduleBlock = {
   id: string;
   date: string;
@@ -14,6 +23,7 @@ export type ScheduleBlock = {
   source?: string;
   fixed?: boolean;
   recurring?: boolean;
+  recurrence?: RecurrenceRule;
   description?: string;
   plannedMin?: number;
   actualMin?: number;
@@ -46,7 +56,7 @@ export const weekDays = [
 export const plannedBlocks: ScheduleBlock[] = [
   { id: 'p1', date: '2026-05-18', title: 'OAuth callback edge cases', type: 'action', startMin: 540, durationMin: 75, actionId: 'a1', sourceKey: 'STR-108', description: 'Finish desktop callback handling and source-token edge cases.', plannedMin: 75, actualMin: 95 },
   { id: 'p2', date: '2026-05-18', title: 'Lunch', type: 'break', startMin: 720, durationMin: 45 },
-  { id: 'p3', date: '2026-05-19', title: 'Weekly team sync', type: 'external', startMin: 600, durationMin: 30, source: 'Google Calendar', fixed: true, recurring: true, description: 'Imported busy event from Google Calendar.' },
+  { id: 'p3', date: '2026-05-19', title: 'Weekly team sync', type: 'external', startMin: 600, durationMin: 30, source: 'Google Calendar', fixed: true, recurring: true, recurrence: { frequency: 'weekly', interval: 1, ends: 'never' }, description: 'Imported busy event from Google Calendar.' },
   { id: 'p4', date: '2026-05-19', title: 'Backlog filter polish', type: 'action', startMin: 660, durationMin: 60, actionId: 'a2', sourceKey: 'FE-44', description: 'Tighten filter defaults and empty state copy.', plannedMin: 60, actualMin: 45 },
   { id: 'p5', date: '2026-05-20', title: 'PR review window', type: 'focus', startMin: 810, durationMin: 60 },
   { id: 'p6', date: '2026-05-21', title: 'Source status mapping notes', type: 'action', startMin: 570, durationMin: 45, actionId: 'a3', sourceKey: 'STR-91', description: 'Capture mapping decisions before implementation.', plannedMin: 45, actualMin: 30 },

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   DndContext,
@@ -18,6 +18,7 @@ import {
   CaretDownIcon,
   CaretLeftIcon,
   CoffeeIcon,
+  DotsSixVerticalIcon,
   PlusIcon,
   TargetIcon,
   TrashIcon,
@@ -50,8 +51,16 @@ const DEFAULT_WORKDAY_START_HOUR = 8;
 const SLOT_MINUTES = 15;
 const MIN_BLOCK_MINUTES = 15;
 
-export function ScheduleDayView({ date }: { date: string }) {
-  const [mode, setMode] = useState<ScheduleMode>('plan');
+export function ScheduleDayView({
+  date,
+  selectedBlockId,
+  view,
+}: {
+  date: string;
+  selectedBlockId?: string;
+  view: 'schedule' | 'sessions';
+}) {
+  const [mode, setMode] = useState<ScheduleMode>(view === 'sessions' ? 'actual' : 'plan');
   const navigate = useNavigate();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const canvasShellRef = useRef<HTMLDivElement>(null);
@@ -66,13 +75,20 @@ export function ScheduleDayView({ date }: { date: string }) {
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<SelectedScheduleBlock | null>(null);
+  const [newBlockTitleFocusId, setNewBlockTitleFocusId] = useState<string | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [plannedScheduleBlocks, setPlannedScheduleBlocks] = useState(plannedBlocks);
   const [actualScheduleBlocks, setActualScheduleBlocks] = useState(actualBlocks);
   const scheduleBlocks = mode === 'plan' ? plannedScheduleBlocks : actualScheduleBlocks;
   const contextScheduleBlocks = mode === 'plan' ? actualScheduleBlocks : plannedScheduleBlocks;
-  const activeBlocks = scheduleBlocks.filter(block => block.date === date && block.startMin !== undefined);
-  const contextBlocks = contextScheduleBlocks.filter(block => block.date === date && block.startMin !== undefined);
+  const activeBlocks = useMemo(
+    () => scheduleBlocks.filter(block => block.date === date && block.startMin !== undefined),
+    [date, scheduleBlocks]
+  );
+  const contextBlocks = useMemo(
+    () => contextScheduleBlocks.filter(block => block.date === date && block.startMin !== undefined),
+    [contextScheduleBlocks, date]
+  );
   const activeBlockLayouts = layoutScheduleBlocks(activeBlocks);
   const contextBlockLayouts = layoutScheduleBlocks(contextBlocks);
 
@@ -80,6 +96,43 @@ export function ScheduleDayView({ date }: { date: string }) {
     navigate({
       to: '/schedule/day/$date',
       params: { date: toDateKey(addDays(parseDateKey(date), dayOffset)) },
+      search: { view: mode === 'actual' ? 'sessions' : 'schedule' },
+    });
+  }
+
+  function handleModeChange(nextMode: ScheduleMode) {
+    setMode(nextMode);
+    setSelectedBlock(null);
+    setNewBlockTitleFocusId(null);
+    navigate({
+      to: '/schedule/day/$date',
+      params: { date },
+      search: { view: nextMode === 'actual' ? 'sessions' : 'schedule' },
+      replace: true,
+    });
+  }
+
+  function handleSelectBlock(block: SelectedScheduleBlock) {
+    setSelectedBlock(block);
+    navigate({
+      to: '/schedule/day/$date',
+      params: { date },
+      search: {
+        view: mode === 'actual' ? 'sessions' : 'schedule',
+        blockId: block.id,
+      },
+      replace: true,
+    });
+  }
+
+  function handleClearSelection() {
+    setSelectedBlock(null);
+    setNewBlockTitleFocusId(null);
+    navigate({
+      to: '/schedule/day/$date',
+      params: { date },
+      search: { view: mode === 'actual' ? 'sessions' : 'schedule' },
+      replace: true,
     });
   }
 
@@ -89,6 +142,22 @@ export function ScheduleDayView({ date }: { date: string }) {
       behavior: 'instant',
     });
   }, [date]);
+
+  useEffect(() => {
+    setMode(view === 'sessions' ? 'actual' : 'plan');
+  }, [view]);
+
+  useEffect(() => {
+    if (!selectedBlockId) {
+      return;
+    }
+
+    const block = activeBlocks.find(item => item.id === selectedBlockId);
+
+    if (block) {
+      setSelectedBlock({ ...block, layer: mode });
+    }
+  }, [activeBlocks, mode, selectedBlockId]);
 
   useEffect(() => {
     if (!activeDrag && !activeGenericDrag) {
@@ -223,15 +292,16 @@ export function ScheduleDayView({ date }: { date: string }) {
 
       dragOffsetMinRef.current = 0;
       lastSchedulePointerRef.current = null;
-      updateScheduleBlocks(blocks => [
-        ...blocks,
-        {
-          ...block,
-          id: `${mode}-${block.id}-${startMin}`,
-          startMin,
-          durationMin,
-        },
-      ]);
+      const newBlock = {
+        ...block,
+        id: `${mode}-${block.id}-${startMin}`,
+        startMin,
+        durationMin,
+      };
+
+      updateScheduleBlocks(blocks => [...blocks, newBlock]);
+      handleSelectBlock({ ...newBlock, layer: mode });
+      setNewBlockTitleFocusId(newBlock.id);
       return;
     }
 
@@ -246,7 +316,8 @@ export function ScheduleDayView({ date }: { date: string }) {
       dragOffsetMinRef.current = 0;
       lastSchedulePointerRef.current = null;
       updateScheduleBlocks(blocks => [...blocks, block]);
-      setSelectedBlock({ ...block, layer: mode });
+      handleSelectBlock({ ...block, layer: mode });
+      setNewBlockTitleFocusId(block.id);
       setAddMenuOpen(false);
       return;
     }
@@ -262,6 +333,10 @@ export function ScheduleDayView({ date }: { date: string }) {
 
       dragOffsetMinRef.current = 0;
       lastSchedulePointerRef.current = null;
+      if (block.recurring) {
+        confirmRecurringEdit('move');
+      }
+
       updateScheduleBlocks(blocks => blocks.map(item => (
         item.id === block.id ? { ...item, date, startMin } : item
       )));
@@ -293,6 +368,10 @@ export function ScheduleDayView({ date }: { date: string }) {
     const durationMin = Math.max(MIN_BLOCK_MINUTES, nextEndMin - nextStartMin);
     const clampedStart = clampStart(nextStartMin, durationMin);
 
+    if (block.recurring) {
+      confirmRecurringEdit('resize');
+    }
+
     updateScheduleBlocks(blocks => blocks.map(item => (
       item.id === block.id ? { ...item, startMin: clampedStart, durationMin } : item
     )));
@@ -304,10 +383,19 @@ export function ScheduleDayView({ date }: { date: string }) {
     const block = createGenericBlock(type, date, mode, startMin);
 
     updateScheduleBlocks(blocks => [...blocks, block]);
-    setSelectedBlock({ ...block, layer: mode });
+    handleSelectBlock({ ...block, layer: mode });
+    setNewBlockTitleFocusId(block.id);
   }
 
   function handleRenameBlock(blockId: string, title: string) {
+    const selectedRecurringBlock = selectedBlock?.id === blockId && selectedBlock.recurring
+      ? selectedBlock
+      : null;
+
+    if (selectedRecurringBlock) {
+      confirmRecurringEdit('rename');
+    }
+
     updateScheduleBlocks(blocks => blocks.map(block => (
       block.id === blockId ? { ...block, title } : block
     )));
@@ -325,9 +413,33 @@ export function ScheduleDayView({ date }: { date: string }) {
     setSelectedBlock(block => (block?.id === blockId ? { ...block, ...linkedFields } : block));
   }
 
+  function handleChangeRecurrence(
+    blockId: string,
+    recurrence: ScheduleBlock['recurrence'] | null
+  ) {
+    const recurrenceFields = recurrence
+      ? { recurring: true, recurrence }
+      : { recurring: false, recurrence: undefined };
+
+    updateScheduleBlocks(blocks => blocks.map(block => (
+      block.id === blockId ? { ...block, ...recurrenceFields } : block
+    )));
+    setSelectedBlock(block => (block?.id === blockId ? { ...block, ...recurrenceFields } : block));
+  }
+
   function handleDeleteBlock(blockId: string) {
+    if (selectedBlock?.id === blockId && selectedBlock.recurring) {
+      confirmRecurringEdit('delete');
+    }
+
     updateScheduleBlocks(blocks => blocks.filter(block => block.id !== blockId));
     setSelectedBlock(null);
+  }
+
+  function confirmRecurringEdit(action: 'rename' | 'resize' | 'delete' | 'move') {
+    window.confirm(
+      `This is a recurring scheduled event. Apply this ${action} to future events too?`
+    );
   }
 
   function updateScheduleBlocks(updater: (blocks: ScheduleBlock[]) => ScheduleBlock[]) {
@@ -376,7 +488,7 @@ export function ScheduleDayView({ date }: { date: string }) {
               onPrevious={() => handleDayChange(-1)}
               onNext={() => handleDayChange(1)}
             />
-            <ModeToggle mode={mode} onModeChange={setMode} />
+            <ModeToggle mode={mode} onModeChange={handleModeChange} />
           </div>
           <MiniWeekStrip selectedDate={date} />
           <DayCanvas
@@ -386,10 +498,11 @@ export function ScheduleDayView({ date }: { date: string }) {
             activeBlockLayouts={activeBlockLayouts}
             contextBlockLayouts={contextBlockLayouts}
             selectedBlock={selectedBlock}
+            newBlockTitleFocusId={newBlockTitleFocusId}
             draggingBlockId={draggingBlockId}
             dropPreview={dropPreview}
-            onSelectBlock={block => setSelectedBlock(block)}
-            onClearSelection={() => setSelectedBlock(null)}
+            onSelectBlock={handleSelectBlock}
+            onClearSelection={handleClearSelection}
             onRenameBlock={handleRenameBlock}
             onDeleteBlock={handleDeleteBlock}
             onResize={handleResize}
@@ -399,12 +512,14 @@ export function ScheduleDayView({ date }: { date: string }) {
           />
         </div>
         <ScheduleTray
+          mode={mode}
           selectedBlock={selectedBlock}
           showAdjustInSchedule={false}
           onRenameBlock={handleRenameBlock}
           onLinkAction={handleLinkAction}
+          onChangeRecurrence={handleChangeRecurrence}
           onDeleteBlock={handleDeleteBlock}
-          onClearSelection={() => setSelectedBlock(null)}
+          onClearSelection={handleClearSelection}
         />
         <FloatingAddBlock
           mode={mode}
@@ -454,6 +569,7 @@ type DayCanvasProps = {
   activeBlockLayouts: ReturnType<typeof layoutScheduleBlocks>;
   contextBlockLayouts: ReturnType<typeof layoutScheduleBlocks>;
   selectedBlock: SelectedScheduleBlock | null;
+  newBlockTitleFocusId: string | null;
   draggingBlockId: string | null;
   dropPreview: DropPreview | null;
   onSelectBlock: (block: SelectedScheduleBlock) => void;
@@ -471,6 +587,7 @@ function DayCanvas({
   activeBlockLayouts,
   contextBlockLayouts,
   selectedBlock,
+  newBlockTitleFocusId,
   draggingBlockId,
   dropPreview,
   onSelectBlock,
@@ -575,6 +692,7 @@ function DayCanvas({
                 block={block}
                 layer={mode}
                 selected={selectedBlock?.id === block.id}
+                autoFocusTitle={newBlockTitleFocusId === block.id}
                 onSelect={onSelectBlock}
                 onRename={onRenameBlock}
               />
@@ -611,7 +729,6 @@ function FloatingAddBlock({
   return (
     <div className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
       <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
-        <div className={styles.floatingAddHint}>Click to place · drag to schedule</div>
         {(['focus', 'break', 'meeting'] as const).map(type => (
           <DraggableAddBlockOption
             key={type}
@@ -685,6 +802,7 @@ function DraggableAddBlockOption({
     <button
       ref={draggableOption.setNodeRef}
       className={styles.floatingAddOption}
+      data-event-type={type}
       type="button"
       disabled={disabled}
       {...draggableOption.attributes}
@@ -696,6 +814,7 @@ function DraggableAddBlockOption({
     >
       <Icon size={15} />
       <span>{getGenericBlockTitle(type)}</span>
+      <DotsSixVerticalIcon className={styles.floatingAddDragIcon} size={15} weight="bold" />
     </button>
   );
 }
@@ -705,12 +824,14 @@ function DraggableScheduleBlock({
   layer,
   selected,
   onSelect,
+  autoFocusTitle = false,
   onRename,
 }: {
   block: ScheduleBlock;
   layer: ScheduleMode;
   selected: boolean;
   onSelect: (block: SelectedScheduleBlock) => void;
+  autoFocusTitle?: boolean;
   onRename: (blockId: string, title: string) => void;
 }) {
   const draggableBlock = useDraggable({
@@ -731,6 +852,7 @@ function DraggableScheduleBlock({
         layer={layer}
         selected={selected}
         compact
+        autoFocusTitle={autoFocusTitle}
         onSelect={onSelect}
         onRename={onRename}
       />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   DndContext,
@@ -40,6 +40,7 @@ type WeekDayColumnProps = {
   dayBlocks: ScheduleBlock[];
   mode: ScheduleMode;
   selectedBlock: SelectedScheduleBlock | null;
+  newBlockTitleFocusId: string | null;
   onNavigate: () => void;
   onSelectBlock: (block: SelectedScheduleBlock) => void;
   onOpenDay: () => void;
@@ -51,12 +52,32 @@ export function ScheduleWeekView() {
   const [mode, setMode] = useState<ScheduleMode>('plan');
   const [activeDrag, setActiveDrag] = useState<ScheduleAction | ScheduleBlock | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<SelectedScheduleBlock | null>(null);
+  const [newBlockTitleFocusId, setNewBlockTitleFocusId] = useState<string | null>(null);
   const [plannedScheduleBlocks, setPlannedScheduleBlocks] = useState<ScheduleBlock[]>(plannedBlocks);
   const activeBlocks = mode === 'plan' ? plannedScheduleBlocks : actualBlocks;
+
+  useEffect(() => {
+    setSelectedBlock(null);
+    setNewBlockTitleFocusId(null);
+  }, [mode]);
 
   function handleDragStart(event: DragStartEvent) {
     const data = event.active.data.current;
     setActiveDrag((data?.action ?? data?.block ?? null) as ScheduleAction | ScheduleBlock | null);
+  }
+
+  function handleChangeRecurrence(
+    blockId: string,
+    recurrence: ScheduleBlock['recurrence'] | null
+  ) {
+    const recurrenceFields = recurrence
+      ? { recurring: true, recurrence }
+      : { recurring: false, recurrence: undefined };
+
+    setPlannedScheduleBlocks(blocks => blocks.map(block => (
+      block.id === blockId ? { ...block, ...recurrenceFields } : block
+    )));
+    setSelectedBlock(block => (block?.id === blockId ? { ...block, ...recurrenceFields } : block));
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -71,13 +92,18 @@ export function ScheduleWeekView() {
     if (data.type === 'action') {
       const action = data.action as ScheduleAction;
 
-      setPlannedScheduleBlocks(blocks => [
-        ...blocks,
-        {
+      setPlannedScheduleBlocks(blocks => {
+        const newBlock = {
           ...toScheduleBlock(action, date),
+          id: `week-${action.id}-${date}-${Date.now()}`,
           startMin: 540 + blocks.filter(block => block.date === date).length * 75,
-        },
-      ]);
+        };
+
+        setSelectedBlock({ ...newBlock, layer: mode });
+        setNewBlockTitleFocusId(newBlock.id);
+
+        return [...blocks, newBlock];
+      });
       return;
     }
 
@@ -86,6 +112,10 @@ export function ScheduleWeekView() {
       setPlannedScheduleBlocks(blocks => blocks.map(item => {
         if (item.id !== block.id) {
           return item;
+        }
+
+        if (item.recurring) {
+          window.confirm('This is a recurring scheduled event. Apply this move to future events too?');
         }
 
         return item.type === 'action'
@@ -132,6 +162,7 @@ export function ScheduleWeekView() {
                   dayBlocks={dayBlocks}
                   mode={mode}
                   selectedBlock={selectedBlock}
+                  newBlockTitleFocusId={newBlockTitleFocusId}
                   onNavigate={() => navigate({ to: '/schedule/day/$date', params: { date: day.date } })}
                   onSelectBlock={blockSelection => setSelectedBlock(blockSelection)}
                   onOpenDay={() => navigate({ to: '/schedule/day/$date', params: { date: day.date } })}
@@ -141,7 +172,9 @@ export function ScheduleWeekView() {
           </div>
         </div>
         <ScheduleTray
+          mode={mode}
           selectedBlock={selectedBlock}
+          onChangeRecurrence={handleChangeRecurrence}
           onClearSelection={() => setSelectedBlock(null)}
         />
       </section>
@@ -168,6 +201,7 @@ function WeekDayColumn({
   dayBlocks,
   mode,
   selectedBlock,
+  newBlockTitleFocusId,
   onNavigate,
   onSelectBlock,
   onOpenDay,
@@ -202,6 +236,7 @@ function WeekDayColumn({
               layer={mode}
               selected={selectedBlock?.id === block.id}
               draggable={mode === 'plan'}
+              autoFocusTitle={newBlockTitleFocusId === block.id}
               onSelect={onSelectBlock}
             />
           </div>

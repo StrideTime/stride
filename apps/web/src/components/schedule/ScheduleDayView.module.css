@@ -204,7 +204,7 @@
 
 .contextBlock:hover,
 .contextBlock:focus-within {
-  z-index: 5;
+  z-index: 30;
 }
 
 .ghostBlock {
@@ -343,6 +343,7 @@
 
 .ghostBlock:hover .ghostPreview,
 .ghostBlock:focus-within .ghostPreview {
+  z-index: 31;
   opacity: 1;
   transform: translateX(0);
 }
@@ -422,10 +423,10 @@
 }
 
 .floatingAddBlockOpen {
-  grid-template-rows: 148px 42px;
+  grid-template-rows: 116px 42px;
   width: 218px;
-  border-color: var(--color-accent);
   border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
 }
 
 .floatingAddOptions {
@@ -445,14 +446,6 @@
   pointer-events: auto;
 }
 
-.floatingAddHint {
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 750;
-  padding: var(--space-1) var(--space-2);
-  white-space: nowrap;
-}
-
 .floatingAddOption,
 .floatingAddButton {
   display: inline-flex;
@@ -469,12 +462,44 @@
 }
 
 .floatingAddOption {
+  --add-option-border: var(--color-border);
+  --add-option-bg: var(--color-bg);
+  --add-option-fg: var(--color-text);
   min-height: 30px;
   width: 100%;
   justify-content: flex-start;
+  border: 1px solid var(--add-option-border);
   border-radius: var(--radius-md);
+  background: var(--add-option-bg);
+  color: var(--add-option-fg);
   padding: 0 var(--space-2);
   touch-action: none;
+}
+
+.floatingAddOption span {
+  flex: 1;
+}
+
+.floatingAddDragIcon {
+  color: color-mix(in oklch, var(--add-option-fg) 72%, var(--color-text-muted));
+}
+
+.floatingAddOption[data-event-type='focus'] {
+  --add-option-border: var(--color-success);
+  --add-option-bg: color-mix(in oklch, var(--color-success) 18%, var(--color-surface-raised));
+  --add-option-fg: var(--color-success);
+}
+
+.floatingAddOption[data-event-type='break'] {
+  --add-option-border: oklch(74% 0.11 205);
+  --add-option-bg: color-mix(in oklch, oklch(74% 0.11 205) 16%, var(--color-surface-raised));
+  --add-option-fg: oklch(79% 0.1 205);
+}
+
+.floatingAddOption[data-event-type='meeting'] {
+  --add-option-border: var(--color-attention-warn-text);
+  --add-option-bg: var(--color-attention-warn-bg);
+  --add-option-fg: var(--color-attention-warn-text);
 }
 
 .floatingAddButton {
@@ -503,13 +528,21 @@
   opacity: 1;
 }
 
-.floatingAddBlockOpen,
 .floatingAddBlock:hover,
-.floatingAddBlock:focus-within,
-.floatingAddOption:hover,
-.floatingAddOption:focus-visible {
+.floatingAddBlock:focus-within {
   border-color: var(--color-accent);
   background: var(--color-accent-subtle);
+}
+
+.floatingAddBlockOpen {
+  border-color: var(--color-border);
+}
+
+.floatingAddOption:hover,
+.floatingAddOption:focus-visible {
+  border-color: var(--add-option-border);
+  background: color-mix(in oklch, var(--add-option-bg) 84%, var(--color-bg));
+  outline: none;
 }
 
 .trayDragOverlay,
