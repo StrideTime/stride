@@ -646,16 +646,17 @@ function DayTotals({
 }) {
   const totalMinutes = mode === 'plan' ? plannedActionMinutes : sessionMinutes;
   const label = mode === 'plan' ? 'Actions planned' : 'Session total';
+  const status = getWorkloadStatus(totalMinutes, availableWorkMinutes);
   const description = mode === 'plan'
     ? 'Scheduled action time divided by workable time, excluding blocked calendar time.'
     : 'Logged session time divided by workable time, excluding blocked calendar time.';
 
   return (
-    <div className={styles.dayTotals}>
-      <Typography size="xs" color="muted" weight="semibold">
+    <div className={styles.dayTotals} data-status={status}>
+      <Typography className={styles.dayTotalLabel} size="xs" color="muted" weight="semibold">
         {label}
       </Typography>
-      <Typography size="sm" weight="bold">
+      <Typography className={styles.dayTotalValue} size="sm" weight="bold">
         {formatDuration(totalMinutes)} / {formatDuration(availableWorkMinutes)}
       </Typography>
       <span className={styles.dayTotalInfoWrap} data-tooltip={description}>
@@ -665,6 +666,22 @@ function DayTotals({
       </span>
     </div>
   );
+}
+
+function getWorkloadStatus(totalMinutes: number, availableWorkMinutes: number) {
+  if (totalMinutes > availableWorkMinutes) {
+    return 'overplanned';
+  }
+
+  if (totalMinutes === availableWorkMinutes) {
+    return 'complete';
+  }
+
+  if (availableWorkMinutes - totalMinutes <= 60) {
+    return 'near';
+  }
+
+  return 'open';
 }
 
 function UnscheduledDayBlocks({
