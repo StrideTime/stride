@@ -366,6 +366,13 @@
   background: var(--color-surface);
 }
 
+.panelHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .panelTitle {
   margin: 0;
   color: var(--color-text-muted);
@@ -373,6 +380,79 @@
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.panelMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.budgetList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budgetItem {
+  --budget-tone: var(--color-accent);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.budgetItem[data-status='onTrack'] {
+  --budget-tone: var(--color-success);
+}
+
+.budgetItem[data-status='near'],
+.budgetItem[data-status='over'],
+.budgetItem[data-status='behind'] {
+  --budget-tone: var(--color-attention-warn-text);
+}
+
+.budgetItemHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.budgetName {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 750;
+}
+
+.budgetValue {
+  color: var(--budget-tone);
+  font-size: var(--text-xs);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.budgetTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+
+.budgetFill {
+  display: block;
+  width: var(--progress);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--budget-tone);
+}
+
+.budgetHint {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
 }
 
 .patterns {

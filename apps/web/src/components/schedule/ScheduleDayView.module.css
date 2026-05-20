@@ -9,7 +9,7 @@
 .mainContent {
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
   gap: var(--space-4);
   height: 100vh;
   min-height: 0;
@@ -23,108 +23,6 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding-right: var(--space-4);
-}
-
-.dayTotals {
-  --day-total-border: var(--color-border);
-  --day-total-bg: var(--color-bg);
-  --day-total-fg: var(--color-text);
-  --day-total-muted: var(--color-text-muted);
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-right: var(--space-4);
-  border: 1px solid var(--day-total-border);
-  border-radius: 999px;
-  background: var(--day-total-bg);
-  color: var(--day-total-fg);
-  padding: var(--space-1) var(--space-2);
-}
-
-.dayTotals[data-status='near'] {
-  --day-total-border: var(--color-attention-warn-text);
-  --day-total-bg: color-mix(in oklch, var(--color-attention-warn-bg) 78%, var(--color-bg));
-  --day-total-fg: var(--color-attention-warn-text);
-  --day-total-muted: var(--day-total-border);
-}
-
-.dayTotals[data-status='complete'] {
-  --day-total-border: var(--color-success);
-  --day-total-bg: color-mix(in oklch, var(--color-success) 14%, var(--color-bg));
-  --day-total-fg: var(--color-success);
-  --day-total-muted: var(--day-total-border);
-}
-
-.dayTotals[data-status='overplanned'] {
-  --day-total-border: oklch(68% 0.16 305);
-  --day-total-bg: color-mix(in oklch, oklch(68% 0.16 305) 16%, var(--color-bg));
-  --day-total-fg: var(--day-total-border);
-  --day-total-muted: var(--day-total-border);
-}
-
-.dayTotals[data-status='near'],
-.dayTotals[data-status='complete'] {
-  --day-total-fg: var(--day-total-border);
-}
-
-.dayTotalInfoWrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.dayTotalInfoWrap::after {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + var(--space-2));
-  z-index: 20;
-  width: 240px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
-  color: var(--color-text-muted);
-  content: attr(data-tooltip);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  line-height: 1.4;
-  opacity: 0;
-  padding: var(--space-2);
-  pointer-events: none;
-  transform: translateY(2px);
-  transition: opacity 120ms ease-out, transform 120ms ease-out;
-}
-
-.dayTotalInfoWrap:hover::after {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.dayTotalLabel {
-  color: var(--day-total-muted);
-}
-
-.dayTotalValue {
-  color: var(--day-total-fg);
-}
-
-.dayTotalInfoButton {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--day-total-muted);
-}
-
-.dayTotalInfoWrap:hover .dayTotalInfoButton {
-  border-color: var(--color-border);
-  color: var(--color-text);
 }
 
 .unscheduledPanel {

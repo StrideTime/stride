@@ -1,6 +1,6 @@
 ---
 title: Data model (conceptual)
-updated: 2026-05-16
+updated: 2026-05-19
 status: draft
 owner: jaren
 ---
@@ -18,7 +18,9 @@ Workspace (tenant — solo or team; RLS-isolated)
   │           └── Spec      synced from the source system; never Stride-native
   │                 └── Action   Stride-native; 1+ per Spec
   │                       └── Session   actual timed work on an Action
+  ├── ScheduledEventType    category for planned/actual calendar time; seeded defaults + user custom types
   ├── ScheduledEvent        planned time block; may point to an Action or be generic/external
+  ├── TimeBudget            optional duration goals for selected ScheduledEventTypes
   └── ActionDayAssignment   untimed intent to work on an Action on a specific day
 
 Standalone Action — no parent Spec; a personal task (title + estimate only)
@@ -65,10 +67,22 @@ Actual timed work against an Action. Sessions are execution/history, not plannin
 - on end: `feeling` (icons: frown / neutral / smile / target), `note` (optional free text), `markDone` (whether it also closed the Action)
 - the variance nudge surfaces only when `elapsedMin` ≳ 1.5–2× `action.estimateMin`
 
+### ScheduledEventType
+A category for schedule blocks and time insights. Accounts are seeded with default types, and users can add or modify the types they use.
+- `name`
+- `color`, `icon`
+- `systemKey?` — required/system types such as `actions`; these cannot be fully deleted
+- `archivedAt?` — deletion is archive/hide-from-future-use, not destructive removal
+
+Rules:
+- Historical ScheduledEvents and Sessions retain their original type for reporting integrity.
+- Required/system types remain available even if users customize the rest of their type list.
+- Custom examples include Research or Learning; the model should not assume only the seeded defaults exist.
+
 ### ScheduledEvent
 A planned time block on the Schedule. ScheduledEvents are the planning layer; Sessions are the actual layer. A ScheduledEvent may point to an Action, or be a generic block.
-- `type` — `action | meeting | break | focus | personal | buffer | external`
-- `actionId?` (and via it, `specId`) — set only for `type: action`
+- `typeId` — points to ScheduledEventType; seeded examples include actions, meeting, break, focus, personal, buffer, external
+- `actionId?` (and via it, `specId`) — set only for action-linked blocks
 - `title`
 - `startAt`, `endAt`, `durationMin`
 - `source` / `sourceEventId?` — set for imported external calendar events
@@ -82,6 +96,23 @@ Rules:
 - External events are source-owned and fixed in Stride. They can be locally classified. For recurring external events, applying a classification to the series means this and future occurrences only.
 - A single Action may have multiple ScheduledEvents.
 - ScheduledEvent duration does not mutate `Action.estimateMin`.
+
+### TimeBudget
+An optional goal for how much time a user wants to spend in selected ScheduledEventTypes. Budgets are planning/insight targets, not blockers.
+- `period` — `daily | weekly`; a user has one active budget mode at a time
+- `targets[]` — `{ typeId, durationMin, direction, tolerance? }` for only the types the user chooses to budget
+- `direction` — `atMost | atLeast | target`; caps, floors, and intended allocations need different feedback
+- `effectiveFrom`, `effectiveTo?` — backend can preserve budget history even if the first frontend mostly shows current/future impact
+
+Rules:
+- Targets are duration-based, not percentage-based inputs.
+- Budget targets are always private and visible only to the individual user. They do not appear in Team/Org insights, even aggregated, for now.
+- Unbudgeted types still appear in insights as unbudgeted planned/actual time.
+- Switching daily ↔ weekly may auto-convert values, but the exact UX is deferred.
+- `target` budgets use a tolerance band for on-track status, defaulting around ±10% unless configured otherwise later.
+- `atMost` and `atLeast` budgets can use quiet warning thresholds before a limit is missed; weekly budgets use elapsed-period pacing for soft feedback.
+- Budget reporting uses the same planned-vs-actual source-of-truth behavior as the user's time-accounting mode and the active Schedule view.
+- If a referenced ScheduledEventType is archived, historical budget records keep the reference, but active budget editing hides/removes that target going forward.
 
 ### ActionDayAssignment
 Untimed intent to work on an Action on a specific day. This is used by the week planning overview and scheduling tray before exact time placement.
@@ -124,6 +155,12 @@ Schedule has two layers:
 - **Actual** — Sessions.
 
 Plan and Actual can be compared visually, but they remain distinct model concepts. In Plan mode, ScheduledEvents are active/editable and Sessions may be shown as click-through context. In Actual mode, Sessions are active/editable and ScheduledEvents may be shown as click-through context.
+
+Time accounting is a team-default preference with optional individual override if the team allows it:
+- **Planned-time / YOLO mode** — when the user plans blocks and the day plays out, planned schedule time automatically counts toward time spent.
+- **Explicit sessions mode** — the schedule is a guide; recorded Sessions are the source of truth for actual time.
+
+Budgets and insights follow the selected accounting mode. The `actions` schedule type is budgeted/accounted for like any other type; action-linked details do not create a separate budget rule.
 
 Remaining time for the scheduling tray:
 

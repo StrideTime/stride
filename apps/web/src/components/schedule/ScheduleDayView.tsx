@@ -19,7 +19,6 @@ import {
   CaretLeftIcon,
   CoffeeIcon,
   DotsSixVerticalIcon,
-  InfoIcon,
   PlusIcon,
   TargetIcon,
   TrashIcon,
@@ -28,11 +27,11 @@ import {
 import { useNavigate } from '@tanstack/react-router';
 import { Button, Typography } from '@stride/ui';
 
+import { ScheduleBudgetSummary } from './ScheduleBudgetSummary';
 import {
   formatTime,
   MiniWeekStrip,
   ModeToggle,
-  formatDuration,
   ScheduleBlockCard,
   ScheduleDateNavigator,
   ScheduleTray,
@@ -51,7 +50,6 @@ import styles from './ScheduleDayView.module.css';
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const HOUR_HEIGHT = 96;
 const DEFAULT_WORKDAY_START_HOUR = 8;
-const WORKDAY_END_HOUR = 18;
 const CURRENT_TIME_HOUR = 14.35;
 const SLOT_MINUTES = 15;
 const MIN_BLOCK_MINUTES = 15;
@@ -117,15 +115,7 @@ export function ScheduleDayView({
     () => scheduleBlocks.filter(block => block.date === date && block.startMin === undefined),
     [date, scheduleBlocks]
   );
-  const plannedActionMinutes = useMemo(() => activeBlocks
-    .filter(block => block.actionId)
-    .reduce((total, block) => total + block.durationMin, 0), [activeBlocks]);
-  const sessionMinutes = useMemo(() => activeBlocks
-    .filter(block => block.type === 'session')
-    .reduce((total, block) => total + block.durationMin, 0), [activeBlocks]);
-  const availableWorkMinutes = useMemo(() => getAvailableWorkMinutes(
-    plannedScheduleBlocks.filter(block => block.date === date)
-  ), [date, plannedScheduleBlocks]);
+  const budgetPeriod = useMemo(() => getWeekPeriod(date), [date]);
 
   function handleDayChange(dayOffset: number) {
     navigate({
@@ -547,11 +537,14 @@ export function ScheduleDayView({
             <ModeToggle mode={mode} onModeChange={handleModeChange} />
           </div>
           <MiniWeekStrip selectedDate={date} />
-          <DayTotals
+          <ScheduleBudgetSummary
             mode={mode}
-            plannedActionMinutes={plannedActionMinutes}
-            sessionMinutes={sessionMinutes}
-            availableWorkMinutes={availableWorkMinutes}
+            plannedBlocks={plannedScheduleBlocks}
+            actualBlocks={actualScheduleBlocks}
+            periodStart={budgetPeriod.start}
+            periodEnd={budgetPeriod.end}
+            visibleDate={date}
+            compact
           />
           <UnscheduledDayBlocks
             blocks={unscheduledBlocks}
@@ -633,57 +626,6 @@ type DropPreview = {
   durationMin: number;
 };
 
-function DayTotals({
-  mode,
-  plannedActionMinutes,
-  sessionMinutes,
-  availableWorkMinutes,
-}: {
-  mode: ScheduleMode;
-  plannedActionMinutes: number;
-  sessionMinutes: number;
-  availableWorkMinutes: number;
-}) {
-  const totalMinutes = mode === 'plan' ? plannedActionMinutes : sessionMinutes;
-  const label = mode === 'plan' ? 'Actions planned' : 'Session total';
-  const status = getWorkloadStatus(totalMinutes, availableWorkMinutes);
-  const description = mode === 'plan'
-    ? 'Scheduled action time divided by workable time, excluding blocked calendar time.'
-    : 'Logged session time divided by workable time, excluding blocked calendar time.';
-
-  return (
-    <div className={styles.dayTotals} data-status={status}>
-      <Typography className={styles.dayTotalLabel} size="xs" color="muted" weight="semibold">
-        {label}
-      </Typography>
-      <Typography className={styles.dayTotalValue} size="sm" weight="bold">
-        {formatDuration(totalMinutes)} / {formatDuration(availableWorkMinutes)}
-      </Typography>
-      <span className={styles.dayTotalInfoWrap} data-tooltip={description}>
-        <span className={styles.dayTotalInfoButton} aria-label={description}>
-          <InfoIcon size={14} />
-        </span>
-      </span>
-    </div>
-  );
-}
-
-function getWorkloadStatus(totalMinutes: number, availableWorkMinutes: number) {
-  if (totalMinutes > availableWorkMinutes) {
-    return 'overplanned';
-  }
-
-  if (totalMinutes === availableWorkMinutes) {
-    return 'complete';
-  }
-
-  if (availableWorkMinutes - totalMinutes <= 60) {
-    return 'near';
-  }
-
-  return 'open';
-}
-
 function UnscheduledDayBlocks({
   blocks,
   mode,
@@ -734,7 +676,7 @@ type ResizeState = {
   durationMin: number;
 };
 
-type GenericBlockType = 'session' | 'break' | 'focus' | 'meeting' | 'buffer';
+type GenericBlockType = 'session' | 'break' | 'focus' | 'meeting' | 'buffer' | 'research' | 'learning' | 'personal';
 
 type DayCanvasProps = {
   mode: ScheduleMode;
@@ -922,7 +864,7 @@ function FloatingAddBlock({
   return (
     <div ref={addBlockRef} className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
       <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
-        {(['focus', 'buffer', 'break', 'meeting'] as const).map(type => (
+        {(['focus', 'research', 'learning', 'buffer', 'break', 'meeting', 'personal'] as const).map(type => (
           <DraggableAddBlockOption
             key={type}
             type={type}
@@ -1093,6 +1035,8 @@ function formatScheduleEventType(type: ScheduleBlock['type']) {
     personal: 'Personal',
     buffer: 'Buffer',
     external: 'External',
+    research: 'Research',
+    learning: 'Learning',
   };
 
   return labels[type];
@@ -1209,6 +1153,14 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function getWeekPeriod(date: string) {
+  const selected = parseDateKey(date);
+  const start = addDays(selected, -selected.getDay());
+  const end = addDays(start, 6);
+
+  return { start: toDateKey(start), end: toDateKey(end) };
+}
+
 function formatDateSelectorLabel(date: string) {
   return parseDateKey(date).toLocaleDateString('en-US', {
     weekday: 'short',
@@ -1221,31 +1173,6 @@ function isWorkingHour(hour: number) {
   return hour >= 8 && hour < 18;
 }
 
-function getAvailableWorkMinutes(blocks: ScheduleBlock[]) {
-  const blockedMinutes = blocks.reduce((total, block) => {
-    if (!doesBlockReduceAvailableWork(block)) {
-      return total;
-    }
-
-    return total + getWorkingMinutesForBlock(block);
-  }, 0);
-
-  return Math.max(WORKDAY_END_HOUR * 60 - DEFAULT_WORKDAY_START_HOUR * 60 - blockedMinutes, 0);
-}
-
-function doesBlockReduceAvailableWork(block: ScheduleBlock) {
-  return ['meeting', 'break', 'buffer', 'external', 'focus', 'personal'].includes(block.type);
-}
-
-function getWorkingMinutesForBlock(block: ScheduleBlock) {
-  const startMin = block.startMin ?? DEFAULT_WORKDAY_START_HOUR * 60;
-  const endMin = startMin + block.durationMin;
-  const workdayStart = DEFAULT_WORKDAY_START_HOUR * 60;
-  const workdayEnd = WORKDAY_END_HOUR * 60;
-
-  return Math.max(Math.min(endMin, workdayEnd) - Math.max(startMin, workdayStart), 0);
-}
-
 function getGenericBlockTitle(type: GenericBlockType) {
   const titles: Record<GenericBlockType, string> = {
     session: 'Session',
@@ -1253,6 +1180,9 @@ function getGenericBlockTitle(type: GenericBlockType) {
     focus: 'Focus',
     meeting: 'Meeting',
     buffer: 'Buffer',
+    research: 'Research',
+    learning: 'Learning',
+    personal: 'Personal',
   };
 
   return titles[type];
@@ -1285,6 +1215,9 @@ function getGenericBlockIcon(type: GenericBlockType) {
     focus: TargetIcon,
     meeting: CalendarBlankIcon,
     buffer: TrayIcon,
+    research: TargetIcon,
+    learning: CoffeeIcon,
+    personal: CalendarBlankIcon,
   };
 
   return icons[type];

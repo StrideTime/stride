@@ -1,6 +1,43 @@
 export type ScheduleMode = 'plan' | 'actual';
 
-export type ScheduleEventType = 'session' | 'action' | 'meeting' | 'break' | 'focus' | 'personal' | 'buffer' | 'external';
+export type ScheduleEventType = 'session' | 'action' | 'meeting' | 'break' | 'focus' | 'personal' | 'buffer' | 'external' | 'research' | 'learning';
+
+export type BudgetDirection = 'atMost' | 'atLeast' | 'target';
+
+export type ScheduleEventTypeConfig = {
+  id: ScheduleEventType;
+  label: string;
+  color: string;
+  required?: boolean;
+  archived?: boolean;
+};
+
+export type TimeBudgetTarget = {
+  typeId: ScheduleEventType;
+  targetMin: number;
+  direction: BudgetDirection;
+  tolerance?: number;
+};
+
+export type TimeBudget = {
+  id: string;
+  name: string;
+  period: 'daily' | 'weekly';
+  enabled: boolean;
+  totalMin: number;
+  targets: TimeBudgetTarget[];
+};
+
+export type TimeBudgetAllocation = BudgetProgressItem & {
+  percentOfTotal: number;
+};
+
+export type TimeBudgetSummary = {
+  totalMin: number;
+  usedMin: number;
+  ratio: number;
+  allocations: TimeBudgetAllocation[];
+};
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
 
@@ -53,12 +90,44 @@ export const weekDays = [
   { date: '2026-05-23', label: 'Sat', dayNumber: '23', capacity: 'Off hours' },
 ];
 
+export const scheduleEventTypes: ScheduleEventTypeConfig[] = [
+  { id: 'action', label: 'Actions', color: 'var(--color-accent)', required: true },
+  { id: 'meeting', label: 'Meetings', color: 'var(--color-attention-warn-text)' },
+  { id: 'focus', label: 'Focus', color: 'var(--color-success)' },
+  { id: 'research', label: 'Research', color: 'oklch(76% 0.09 255)' },
+  { id: 'learning', label: 'Learning', color: 'oklch(79% 0.1 205)' },
+  { id: 'break', label: 'Breaks', color: 'var(--color-text-muted)' },
+  { id: 'buffer', label: 'Buffers', color: 'oklch(70% 0.08 255)' },
+  { id: 'personal', label: 'Personal', color: 'var(--color-text-muted)' },
+  { id: 'external', label: 'Unclassified external', color: 'var(--color-text-muted)', archived: true },
+  { id: 'session', label: 'Sessions', color: 'var(--color-accent)', archived: true },
+];
+
+export const activeTimeBudget: TimeBudget = {
+  id: 'normal-week',
+  name: 'Normal week',
+  period: 'weekly',
+  enabled: true,
+  totalMin: 40 * 60,
+  targets: [
+    { typeId: 'meeting', targetMin: 8 * 60, direction: 'atMost' },
+    { typeId: 'action', targetMin: 22 * 60, direction: 'target', tolerance: 0.1 },
+    { typeId: 'research', targetMin: 8 * 60, direction: 'atLeast' },
+    { typeId: 'learning', targetMin: 2 * 60, direction: 'atLeast' },
+    { typeId: 'focus', targetMin: 6 * 60, direction: 'atLeast' },
+    { typeId: 'buffer', targetMin: 3 * 60, direction: 'atMost' },
+  ],
+};
+
 export const plannedBlocks: ScheduleBlock[] = [
   { id: 'p1', date: '2026-05-18', title: 'OAuth callback edge cases', type: 'action', startMin: 540, durationMin: 75, actionId: 'a1', sourceKey: 'STR-108', description: 'Finish desktop callback handling and source-token edge cases.', plannedMin: 75, actualMin: 95 },
   { id: 'p2', date: '2026-05-18', title: 'Lunch', type: 'break', startMin: 720, durationMin: 45 },
-  { id: 'p3', date: '2026-05-19', title: 'Weekly team sync', type: 'external', startMin: 600, durationMin: 30, source: 'Google Calendar', fixed: true, recurring: true, recurrence: { frequency: 'weekly', interval: 1, ends: 'never' }, description: 'Imported busy event from Google Calendar.' },
+  { id: 'p3', date: '2026-05-19', title: 'Weekly team sync', type: 'meeting', startMin: 600, durationMin: 30, source: 'Google Calendar', fixed: true, recurring: true, recurrence: { frequency: 'weekly', interval: 1, ends: 'never' }, description: 'Imported busy event from Google Calendar.' },
   { id: 'p4', date: '2026-05-19', title: 'Backlog filter polish', type: 'action', startMin: 660, durationMin: 60, actionId: 'a2', sourceKey: 'FE-44', description: 'Tighten filter defaults and empty state copy.', plannedMin: 60, actualMin: 45 },
   { id: 'p5', date: '2026-05-20', title: 'PR review window', type: 'focus', startMin: 810, durationMin: 60 },
+  { id: 'p9', date: '2026-05-20', title: 'Calendar budget research', type: 'research', startMin: 900, durationMin: 60, description: 'Shape the first pass for category budgets.' },
+  { id: 'p10', date: '2026-05-20', title: 'TanStack form notes', type: 'learning', startMin: 990, durationMin: 45 },
+  { id: 'p11', date: '2026-05-20', title: 'Slack catch-up buffer', type: 'buffer', startMin: 1050, durationMin: 30 },
   { id: 'p6', date: '2026-05-21', title: 'Source status mapping notes', type: 'action', startMin: 570, durationMin: 45, actionId: 'a3', sourceKey: 'STR-91', description: 'Capture mapping decisions before implementation.', plannedMin: 45, actualMin: 30 },
   { id: 'p7', date: '2026-05-22', title: 'Buffer before planning review', type: 'buffer', startMin: 960, durationMin: 30 },
   { id: 'p8', date: '2026-05-22', title: 'Refine schedule empty state', type: 'action', durationMin: 45, actionId: 'a6', sourceKey: 'FE-44', description: 'Make day-only assignments clear in week view.', plannedMin: 45, actualMin: 0 },
@@ -69,11 +138,106 @@ export const actualBlocks: ScheduleBlock[] = [
   { id: 's2', date: '2026-05-18', title: 'Linear mapping fix', type: 'session', startMin: 810, durationMin: 35, actionId: 'a4', sourceKey: 'STR-233' },
   { id: 's3', date: '2026-05-19', title: 'Backlog filter polish', type: 'session', startMin: 675, durationMin: 45, actionId: 'a2', sourceKey: 'FE-44' },
   { id: 's4', date: '2026-05-19', title: 'Source inbox triage', type: 'session', startMin: 720, durationMin: 30, actionId: 'a5', sourceKey: 'STR-112' },
-  { id: 's6', date: '2026-05-20', title: 'PR review window', type: 'session', startMin: 825, durationMin: 45 },
+  { id: 's6', date: '2026-05-20', title: 'PR review window', type: 'focus', startMin: 825, durationMin: 45 },
+  { id: 's10', date: '2026-05-20', title: 'Calendar budget research', type: 'research', startMin: 900, durationMin: 60 },
+  { id: 's11', date: '2026-05-20', title: 'TanStack form notes', type: 'learning', startMin: 990, durationMin: 30 },
   { id: 's7', date: '2026-05-20', title: 'Bug reproduction notes', type: 'session', startMin: 855, durationMin: 30, actionId: 'a6', sourceKey: 'FE-44' },
   { id: 's8', date: '2026-05-21', title: 'Source status mapping notes', type: 'session', startMin: 585, durationMin: 60, actionId: 'a3', sourceKey: 'STR-91' },
   { id: 's9', date: '2026-05-22', title: 'Planning review follow-up', type: 'session', startMin: 930, durationMin: 45 },
 ];
+
+export type BudgetProgressItem = TimeBudgetTarget & {
+  label: string;
+  color: string;
+  usedMin: number;
+  ratio: number;
+  relevant: boolean;
+  status: 'under' | 'near' | 'onTrack' | 'over' | 'behind';
+};
+
+type BudgetProgressInput = {
+  budget: TimeBudget;
+  blocks: ScheduleBlock[];
+  periodStart: string;
+  periodEnd: string;
+  visibleDate?: string;
+};
+
+export function getBudgetSummary(input: BudgetProgressInput): TimeBudgetSummary {
+  const allocations = getBudgetProgress(input).map(item => ({
+    ...item,
+    percentOfTotal: input.budget.totalMin > 0 ? item.targetMin / input.budget.totalMin : 0,
+  }));
+  const usedMin = allocations.reduce((total, item) => total + item.usedMin, 0);
+
+  return {
+    totalMin: input.budget.totalMin,
+    usedMin,
+    ratio: input.budget.totalMin > 0 ? usedMin / input.budget.totalMin : 0,
+    allocations,
+  };
+}
+
+export function getBudgetProgress({
+  budget,
+  blocks,
+  periodStart,
+  periodEnd,
+  visibleDate,
+}: BudgetProgressInput): BudgetProgressItem[] {
+  if (!budget.enabled) {
+    return [];
+  }
+
+  const periodBlocks = blocks.filter(block => (
+    block.date >= periodStart
+    && block.date <= periodEnd
+    && block.type !== 'external'
+    && block.type !== 'session'
+  ));
+  const visibleTypes = new Set(periodBlocks
+    .filter(block => !visibleDate || block.date === visibleDate)
+    .map(block => block.type));
+
+  return budget.targets.map(target => {
+    const type = scheduleEventTypes.find(item => item.id === target.typeId);
+    const usedMin = periodBlocks
+      .filter(block => block.type === target.typeId)
+      .reduce((total, block) => total + block.durationMin, 0);
+    const ratio = target.targetMin > 0 ? usedMin / target.targetMin : 0;
+
+    return {
+      ...target,
+      label: type?.label ?? target.typeId,
+      color: type?.color ?? 'var(--color-accent)',
+      usedMin,
+      ratio,
+      relevant: usedMin > 0 && (!visibleDate || visibleTypes.has(target.typeId)),
+      status: getBudgetStatus(target, ratio),
+    };
+  });
+}
+
+function getBudgetStatus(target: TimeBudgetTarget, ratio: number): BudgetProgressItem['status'] {
+  if (target.direction === 'atMost') {
+    return ratio > 1 ? 'over' : ratio >= 0.8 ? 'near' : 'under';
+  }
+
+  if (target.direction === 'atLeast') {
+    return ratio >= 1 ? 'onTrack' : 'behind';
+  }
+
+  const tolerance = target.tolerance ?? 0.1;
+  if (ratio > 1 + tolerance) {
+    return 'over';
+  }
+
+  if (ratio < 1 - tolerance) {
+    return 'behind';
+  }
+
+  return 'onTrack';
+}
 
 export const trayActions: ScheduleAction[] = [
   { id: 'a5', title: 'Add source drift conflict state', sourceKey: 'STR-112', specTitle: 'Source sync reliability', priority: 'Highest', estimateMin: 80, completedMin: 0, futureScheduledMin: 0, description: 'Surface source-side changes that conflict with local progress.', createdAt: '2026-05-15', updatedAt: '2026-05-16' },
