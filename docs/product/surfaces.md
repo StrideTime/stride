@@ -27,14 +27,14 @@ __root.tsx                     providers (QueryClient, i18n, theme)
     ├── schedule.tsx        /schedule      week planning overview: chronological day columns + right scheduling tray
     ├── schedule.day.$date.tsx /schedule/day/$date dedicated 24-hour day planning canvas
     ├── insights.tsx        /insights      v1: Performance view only. Post-v1: + Team / Goals / Burnout / Focus Time as tabs (?tab=…), with the solo/lead persona switch as a mode
-    ├── settings/…          /settings/*    workspace, source/calendar connections, … — sub-pages TBD (open-questions Q12)
+    ├── settings.tsx        /settings      settings shell with deep-linkable sections (?section=…) for Personal, My workspace, Workspace admin, and Team admin settings
     ├── specs.$specId.tsx   /specs/$specId the dedicated spec view — a real, deep-linkable route. Renders as an overlay over the page you were on when opened from inside the app; standalone when cold-loaded (deep links, "Open in Stride", "review this incoming spec")
     └── tray.tsx            /tray          the desktop tray window — compact layout, loaded by the Tauri tray window. NOT a left-rail nav item
 ```
 
 Plus, **not a route — client state**: an **ad-hoc spec modal** (`openSpecId`). Pop it anywhere for a quick peek at a spec (a blocker row, an Info Hub widget, a mention) without changing the URL; it carries a "view full spec →" affordance that navigates to `/specs/$specId`. So the `/specs/$specId` route is the canonical, shareable, back-button view; the client-state modal is the ephemeral in-context quick-look.
 
-Assumptions baked in (flag if wrong): routes are flat under `_auth.tsx`; the prototype's "Tray demo" nav entry was a demo affordance — gone in the real web nav; Backlog's Specs/Actions/Blockers and Insights' tabs are in-page state (search params), not routes. Schedule has a real day-planning child route because precise drag/resize editing needs a dedicated canvas. Round-2 items still to pin (open-questions Q11–Q12): the ⌥Space capture window's route (`/tray/capture` vs `/capture` vs not-a-route), the `/settings/*` sub-pages, and the `/onboarding`·`/login`·`/signup` shape.
+Assumptions baked in (flag if wrong): routes are flat under `_auth.tsx`; the prototype's "Tray demo" nav entry was a demo affordance — gone in the real web nav; Backlog's Specs/Actions/Blockers and Insights' tabs are in-page state (search params), not routes. Schedule has a real day-planning child route because precise drag/resize editing needs a dedicated canvas. Round-2 items still to pin (open-questions Q11): the ⌥Space capture window's route (`/tray/capture` vs `/capture` vs not-a-route), and the `/onboarding`·`/login`·`/signup` shape.
 
 ## Navigation
 
@@ -139,6 +139,6 @@ Content (the same in both presentations):
 ## Not standalone surfaces (handled elsewhere)
 
 - **Onboarding** — placeholder route `/onboarding` (connect Jira/Linear → pick projects → first sync → land on Today). Whether it's a gated route before the app shell or a step inside it is open ([`open-questions.md`](open-questions.md) Q11); v1 is invite-only (no public self-serve signup).
-- **Settings** — a `/settings/*` section reached via the ⚙ gear at the bottom of the left rail. Sub-pages (workspace; source + calendar connections; team + member management; notifications + privacy [deferred placeholders]) are TBD ([`open-questions.md`](open-questions.md) Q12).
+- **Settings** — a `/settings` section reached via the ⚙ gear at the bottom of the left rail. The global app rail stays visible and Settings adds a secondary settings sidebar. First implementation uses `?section=…` deep links rather than nested routes. Sections are organized by ownership scope: **My workspace settings** (default), **Personal** account-wide settings, **Workspace admin** settings, and **Team admin** settings nested under the selected workspace/team context. Admin-only sections are hidden when the user lacks access. Source connections are workspace-pooled; team admins can add a source connection to that pool from team settings without broad workspace-admin access. Each Stride Team has exactly one primary source mapping, and each external Jira board / Linear Team / GitHub repo maps to only one Stride Team per workspace. Calendar connections are personal and opted into per workspace.
 - **"Needs attention"** — surfaced inline in Backlog, not its own page.
 - **Performance metrics dashboard / "Activity"** — folded into Insights and the Spec view's History tab; not a separate page.

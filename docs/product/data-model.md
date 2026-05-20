@@ -131,8 +131,18 @@ Rules:
 ### User / membership
 Not modeled in the prototype (it keys everything on a display name and maps names → avatar colors). The real model needs: User, and a Membership joining User × Workspace (and User × Team) with a `role` (Member / Team Admin / Workspace Admin — additive). Auth is Better Auth; tenant isolation is Postgres RLS via session context.
 
+Personal settings split by scope:
+- Account-wide settings: identity, appearance, global notification defaults, personal OAuth accounts, privacy preferences.
+- Per-workspace personal settings: calendar opt-in, workspace notification overrides, tracking preferences, and working hours.
+
+Default working hours are seeded from the Team when a member joins a team, but the member ultimately has one personal working-hours setting per Workspace. If a member joins multiple teams in one Workspace, the calendar/capacity surface uses the member's workspace-level hours, not separate team-level hours.
+
 ### Source connection
-Not modeled in the prototype. The real model needs a Connection per (Workspace, source) holding: credentials/tokens, which Jira Spaces/boards or Linear Teams or GitHub Repos are mapped to which Stride Teams, the status/priority mapping chosen at connection time, and webhook/cron sync state. (GitHub may later send PRs in addition to issues — configured here.)
+Not modeled in the prototype. The real model needs a workspace-owned connection pool per source account. A Workspace Admin can manage all connections in the pool. A Team Admin can add a source connection from Team settings without broad workspace-admin access; that connection still becomes visible in the Workspace's connection pool.
+
+Credentials/tokens live on the pooled Workspace connection. A Team has exactly one primary source mapping in v1, selected from a pooled connection's available external units: a Jira board, Linear Team, or GitHub repository. Each external source unit can map to only one Stride Team per Workspace. Status and priority mappings belong to the Team ↔ external unit mapping, not to the pooled connection, because workflows can differ by board/team/repo. If all external units available through a connection are already claimed, the settings UI should say there are no unmapped units left.
+
+Calendar connections are personal, not workspace-pooled. A user may authorize a calendar account once and opt into using it per Workspace, choosing which calendar applies during workspace onboarding or later in My workspace settings.
 
 ### Infrastructure tables (from `db-patterns.mdc`)
 - `processed_mutations` — `{ id (client UUID from the mutation command), result (JSON), processedAt }`. The offline mutation queue checks this before re-executing a command; no soft delete; pruned by age via a CF Cron job.

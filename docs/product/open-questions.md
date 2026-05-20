@@ -33,7 +33,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 ## Routing — round-2 details
 
 11. **Auth & first-run routing.** Invite-only is decided for v1 (no public self-serve signup, no billing). Still open: the `/login` / `/onboarding` route shape — is onboarding a gated route *before* the app shell, or a step *inside* it? Does `/signup` exist at all in v1 (invites may create accounts directly)?
-12. **Tray sub-routes & `/settings/*` sub-pages.** The ⌥Space capture window — a route (`/tray/capture` vs a top-level `/capture`) or rendered another way (a separate Tauri window, not router-driven)? And what are the `/settings/*` sub-pages (workspace, source connections, calendar connection, team/member management; notifications [deferred], privacy [deferred])?
+12. **Tray sub-routes & Settings route details.** The ⌥Space capture window — a route (`/tray/capture` vs a top-level `/capture`) or rendered another way (a separate Tauri window, not router-driven)? ~~And what are the `/settings/*` sub-pages?~~ — **[settings resolved 2026-05-19]** Settings starts as `/settings?section=…`, organized by ownership scope: My workspace settings, Personal, Workspace admin, Team admin.
 
 ## Architecture — desktop integration
 
@@ -51,6 +51,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Changelog
 
+- **2026-05-19 — Settings scope model decided.** Settings uses `/settings?section=…` inside the app shell with a secondary settings sidebar. Sections are organized by ownership scope; admin-only sections are hidden without access. Source connections are workspace-pooled, Team Admins can add pooled connections from team settings, each Team has exactly one primary source mapping, source units are unique per Workspace, calendars are personal and opt-in per Workspace, and Team default working hours seed each member's per-Workspace hours.
 - **2026-05-13 — Q13 resolved.** `apps/server` renamed to `apps/api`. Aligns the directory with the conventions (which already said `apps/api`); contents unchanged — the CF Workers rewrite is Phase 3.
 - **2026-05-12 — Desktop / TanStack Start integration approach documented** in [`.cursor/rules/architecture.mdc`](../../.cursor/rules/architecture.mdc): the desktop app is `apps/web`'s SPA build (`BUILD_TARGET=desktop`) wrapped by a Tauri 2 shell (two windows; one shared native SQLite; the mutation drainer Rust-side); data access via `packages/api-client` (configurable base URL), not server functions; the Query cache persisted for offline reads; desktop auth via bearer-token-in-keychain. Auth-transport / OAuth-callback / drainer-location specifics → Q18–Q20. Refines the 2026-05-04 decision; an ADR refinement is pending.
 - **2026-05-12 — v1 scope decided** (the scope-lever Q&A). v1 = the full product as designed minus the go-to-market layer: the four deep surfaces + the full desktop tray; Jira + Linear; the full team layer with roles; all at prototype fidelity; with public self-serve signup, billing, and marketing onboarding deferred. Recorded in [`mvp.md`](mvp.md).
