@@ -33,7 +33,7 @@ export const ROLE_OPTIONS: RoleOption[] = [
 export const SCOPE_META: ScopeMeta[] = [
   { scope: 'me', label: 'Me', subtitle: 'Your week and momentum', minRoleRank: 0 },
   { scope: 'projects', label: 'Projects', subtitle: 'Progress of your projects', minRoleRank: 0 },
-  { scope: 'team', label: 'Team', subtitle: 'Aggregate team flow', minRoleRank: 1 },
+  { scope: 'team', label: 'Team', subtitle: 'Aggregate team flow', minRoleRank: 0 },
   { scope: 'org', label: 'Org', subtitle: 'Initiative portfolio', minRoleRank: 2 },
 ];
 
@@ -369,4 +369,374 @@ export const HEALTH_META: Record<ProjectHealth, { label: string }> = {
   'at-risk': { label: 'At risk' },
   watch: { label: 'Watch' },
   'on-track': { label: 'On track' },
+};
+
+// --- Team scope -------------------------------------------------------------
+//
+// Every team field is aggregate — by pipeline stage, by area, or by spec. No
+// field is keyed to a person, so the same data is safe for a Member and a Team
+// Admin. Role only adds the planning/coverage lanes (`coverage`,
+// `planningQuality`, `suggestions`) that a Member cannot act on.
+//
+// `direction` means "positive movement", not "the number went up": a variance
+// of 1.1x improving from 1.5x is `up`, because tighter estimates are better.
+
+export type TeamVariant = 'flow' | 'pulse' | 'brief';
+
+export type TeamVariantMeta = {
+  variant: TeamVariant;
+  label: string;
+  blurb: string;
+};
+
+export const TEAM_VARIANTS: TeamVariantMeta[] = [
+  { variant: 'flow', label: 'Flow', blurb: 'Pipeline and where work stalls' },
+  { variant: 'pulse', label: 'Pulse', blurb: 'Rhythm and momentum' },
+  { variant: 'brief', label: 'Brief', blurb: 'A written weekly readout' },
+];
+
+export type TeamStat = {
+  label: string;
+  value: string;
+  delta: string;
+  direction: DeltaDirection;
+};
+
+export type TeamPipelineStage = {
+  label: string;
+  count: number;
+  delta: string;
+  direction: DeltaDirection;
+};
+
+export type TeamArea = {
+  name: string;
+  specsClosed: number;
+  focusHours: number;
+};
+
+export type TeamStall = {
+  sourceKey: string;
+  title: string;
+  idleDays: number;
+  reason: string;
+};
+
+export type TeamQuietArea = {
+  name: string;
+  detail: string;
+};
+
+export type TeamCoverage = {
+  area: string;
+  plannedHours: number;
+  capacityHours: number;
+};
+
+export type TeamSuggestion = {
+  title: string;
+  detail: string;
+  action: string;
+};
+
+export type TeamInsight = {
+  weekLabel: string;
+  // Variant-specific opening lines.
+  flowTakeaway: string;
+  pulseTakeaway: string;
+  brief: string;
+  pipeline: TeamPipelineStage[];
+  stats: TeamStat[];
+  // Trailing 8-week series, labelled by PROJECT_TREND_WEEKS.
+  closureTrend: number[];
+  focusTrend: number[];
+  areas: TeamArea[];
+  stalls: TeamStall[];
+  quiet: TeamQuietArea[];
+  patterns: MePattern[];
+  // Team Admin only — the planning lanes.
+  coverage: TeamCoverage[];
+  planningQuality: TeamStat[];
+  suggestions: TeamSuggestion[];
+};
+
+export const teamInsight: TeamInsight = {
+  weekLabel: 'Week of May 11',
+  flowTakeaway:
+    'Engineering shipped 12 specs across 5 areas. Flow is steady; two stalled specs in Sync and Insights are the only drag on the pipeline.',
+  pulseTakeaway:
+    'A steady, focused week. The team’s strongest window has been mornings before standup, and Billing is shipping at its highest pace of the quarter.',
+  brief:
+    'The team closed 12 specs this week across Billing, Scheduling, Insights, Onboarding, and Sync — a steady pace, up 3 from last week. Two specs have been idle for over a week, both waiting on outside review. Mornings before standup remain the strongest shipping window.',
+  pipeline: [
+    { label: 'Inbox', count: 7, delta: '+2 vs last wk', direction: 'flat' },
+    { label: 'Ready', count: 14, delta: '−3 vs last wk', direction: 'flat' },
+    { label: 'In flight', count: 9, delta: 'same', direction: 'flat' },
+    { label: 'Closed', count: 12, delta: '+4 vs last wk', direction: 'up' },
+  ],
+  stats: [
+    { label: 'Focus time', value: '148h', delta: '+18h vs 4-wk avg', direction: 'up' },
+    { label: 'Specs closed', value: '12', delta: '+3 vs last week', direction: 'up' },
+    { label: 'Actions completed', value: '87', delta: '+14 vs last week', direction: 'up' },
+    { label: 'Estimate variance', value: '1.1×', delta: 'tightening from 1.5×', direction: 'up' },
+  ],
+  closureTrend: [6, 8, 7, 9, 8, 11, 8, 12],
+  focusTrend: [96, 108, 102, 120, 116, 134, 130, 148],
+  areas: [
+    { name: 'Billing & Payments', specsClosed: 4, focusHours: 44 },
+    { name: 'Scheduling', specsClosed: 3, focusHours: 38 },
+    { name: 'Insights & Reporting', specsClosed: 2, focusHours: 28 },
+    { name: 'Onboarding', specsClosed: 2, focusHours: 20 },
+    { name: 'Source Sync', specsClosed: 1, focusHours: 18 },
+  ],
+  stalls: [
+    {
+      sourceKey: 'SYNC-22',
+      title: 'Linear webhook backfill',
+      idleDays: 9,
+      reason: 'Waiting on review.',
+    },
+    {
+      sourceKey: 'INS-31',
+      title: 'Org rollup query',
+      idleDays: 6,
+      reason: 'Blocked on a schema change.',
+    },
+  ],
+  quiet: [
+    {
+      name: 'Mobile Shell',
+      detail:
+        'No specs closed in 3 weeks. Fine if intentional, worth a check if not.',
+    },
+  ],
+  patterns: [
+    {
+      title: 'Mornings before standup are the team’s strongest window',
+      detail: 'Sessions started before 11am land closest to their estimate.',
+    },
+    {
+      title: 'Closing pace is highest in Billing this month',
+      detail: 'Billing has closed about 4 specs a week for three weeks running.',
+    },
+    {
+      title: 'Two specs have stalled past a week',
+      detail: 'SYNC-22 and INS-31 have not moved in 6+ days, both waiting on others.',
+    },
+  ],
+  coverage: [
+    { area: 'Billing & Payments', plannedHours: 22, capacityHours: 30 },
+    { area: 'Scheduling', plannedHours: 28, capacityHours: 30 },
+    { area: 'Source Sync', plannedHours: 12, capacityHours: 25 },
+    { area: 'Insights & Reporting', plannedHours: 9, capacityHours: 20 },
+    { area: 'Onboarding', plannedHours: 14, capacityHours: 22 },
+  ],
+  planningQuality: [
+    { label: 'Estimate variance', value: '1.1×', delta: 'down from 1.5×', direction: 'up' },
+    { label: 'Breakdown coverage', value: '78%', delta: '+6% vs last week', direction: 'up' },
+    { label: 'Ready & unplanned', value: '7 specs', delta: '+2 vs last week', direction: 'flat' },
+  ],
+  suggestions: [
+    {
+      title: 'Coverage looks thin in Source Sync',
+      detail: '7 ready specs are unscheduled; Sync and Onboarding have the most.',
+      action: 'Open Schedule',
+    },
+    {
+      title: 'Source Sync estimates run ~3× actuals',
+      detail: 'A short breakdown session would tighten next sprint’s plan.',
+      action: 'Open SYNC',
+    },
+    {
+      title: 'SYNC-22 has been idle 9 days',
+      detail: 'It is waiting on review — a nudge could clear it.',
+      action: 'Nudge reviewer',
+    },
+  ],
+};
+
+// --- Org scope --------------------------------------------------------------
+//
+// Org insights are workspace-wide and visible to Workspace Admins only. Every
+// field is initiative- or stage-level; nothing is keyed to a team or a person,
+// so the surface never ranks teams or individuals. Three variants read the
+// same quarter differently: Portfolio (what initiatives exist and their
+// state), Forecast (whether committed work will land, and when), and Flow
+// (whether delivery is healthy as a system).
+
+export type OrgVariant = 'portfolio' | 'forecast' | 'flow';
+
+export type OrgVariantMeta = {
+  variant: OrgVariant;
+  label: string;
+  blurb: string;
+};
+
+export const ORG_VARIANTS: OrgVariantMeta[] = [
+  { variant: 'portfolio', label: 'Portfolio', blurb: 'Initiatives and their state' },
+  { variant: 'forecast', label: 'Forecast', blurb: 'Will committed work land' },
+  { variant: 'flow', label: 'Flow health', blurb: 'Delivery as a system' },
+];
+
+export type OrgInitiative = {
+  id: string;
+  name: string;
+  health: ProjectHealth;
+  specsClosed: number;
+  specsTotal: number;
+  cycleTimeDays: number;
+  forecastDate: string;
+  note: string;
+};
+
+export type OrgStageLoad = {
+  stage: string;
+  count: number;
+};
+
+export type OrgAgingItem = {
+  sourceKey: string;
+  title: string;
+  openDays: number;
+  stage: string;
+};
+
+export type OrgInsight = {
+  periodLabel: string;
+  portfolioTakeaway: string;
+  forecastTakeaway: string;
+  flowTakeaway: string;
+  // Each variant leads with its own four-stat block.
+  portfolioStats: TeamStat[];
+  forecastStats: TeamStat[];
+  flowStats: TeamStat[];
+  initiatives: OrgInitiative[];
+  // Trailing 8-week series, labelled by PROJECT_TREND_WEEKS.
+  closureBurnup: number[];
+  cycleTrend: number[];
+  stageLoad: OrgStageLoad[];
+  agingWork: OrgAgingItem[];
+  patterns: MePattern[];
+};
+
+export const orgInsight: OrgInsight = {
+  periodLabel: 'Quarter to date',
+  portfolioTakeaway:
+    'Five initiatives are active. Three are on pace; Insights & Reporting and Mobile carry the risk and the longest cycle times.',
+  forecastTakeaway:
+    'At the current pace the workspace lands its committed work in early August — about two weeks past the quarter, driven by Mobile and Insights.',
+  flowTakeaway:
+    'Delivery is getting faster — median cycle time is down to 6.4 days — but Ready work is piling up faster than it is pulled into flight.',
+  portfolioStats: [
+    { label: 'Active initiatives', value: '5', delta: '+1 this quarter', direction: 'flat' },
+    { label: 'Specs closed', value: '99', delta: '+18 vs last quarter', direction: 'up' },
+    { label: 'Median cycle time', value: '6.4d', delta: 'down from 8.1d', direction: 'up' },
+    { label: 'At-risk initiatives', value: '2', delta: 'same as last month', direction: 'flat' },
+  ],
+  forecastStats: [
+    { label: 'Committed work', value: '168 specs', delta: '+18 since quarter start', direction: 'flat' },
+    { label: 'Completed', value: '99 specs', delta: '59% of committed', direction: 'up' },
+    { label: 'Projected finish', value: 'Aug 4', delta: '~2 weeks past quarter', direction: 'flat' },
+    { label: 'Forecast confidence', value: 'Moderate', delta: 'scope grew twice', direction: 'flat' },
+  ],
+  flowStats: [
+    { label: 'Median cycle time', value: '6.4d', delta: 'down from 8.1d', direction: 'up' },
+    { label: 'Throughput', value: '12 / wk', delta: '+3 vs 8-wk avg', direction: 'up' },
+    { label: 'Work in progress', value: '45 specs', delta: 'Ready + In flight', direction: 'flat' },
+    { label: 'Aging past 14d', value: '5 specs', delta: '+1 vs last week', direction: 'flat' },
+  ],
+  initiatives: [
+    {
+      id: 'init-payments',
+      name: 'Payments platform',
+      health: 'on-track',
+      specsClosed: 34,
+      specsTotal: 41,
+      cycleTimeDays: 4.2,
+      forecastDate: 'May 30',
+      note: 'Closing faster than it takes work on; no blocked specs.',
+    },
+    {
+      id: 'init-scheduling',
+      name: 'Scheduling & planning',
+      health: 'on-track',
+      specsClosed: 28,
+      specsTotal: 38,
+      cycleTimeDays: 5.1,
+      forecastDate: 'Jun 13',
+      note: 'Steady pace, cycle time holding flat.',
+    },
+    {
+      id: 'init-integrations',
+      name: 'Source integrations',
+      health: 'watch',
+      specsClosed: 19,
+      specsTotal: 34,
+      cycleTimeDays: 7.8,
+      forecastDate: 'Jun 27',
+      note: 'Cycle time up 40% this month — worth a check.',
+    },
+    {
+      id: 'init-insights',
+      name: 'Insights & Reporting',
+      health: 'at-risk',
+      specsClosed: 11,
+      specsTotal: 29,
+      cycleTimeDays: 11.4,
+      forecastDate: 'Jul 18',
+      note: 'Scope grew twice this quarter; closure lags the plan.',
+    },
+    {
+      id: 'init-mobile',
+      name: 'Mobile experience',
+      health: 'at-risk',
+      specsClosed: 7,
+      specsTotal: 26,
+      cycleTimeDays: 13.0,
+      forecastDate: 'Aug 4',
+      note: 'Estimates run ~2× actuals; closure stalled three weeks.',
+    },
+  ],
+  closureBurnup: [12, 28, 41, 55, 68, 79, 90, 99],
+  cycleTrend: [8.1, 7.6, 7.9, 7.0, 6.8, 6.5, 6.6, 6.4],
+  stageLoad: [
+    { stage: 'Inbox', count: 18 },
+    { stage: 'Ready', count: 47 },
+    { stage: 'In flight', count: 31 },
+    { stage: 'In review', count: 14 },
+  ],
+  agingWork: [
+    {
+      sourceKey: 'INS-31',
+      title: 'Org rollup query',
+      openDays: 24,
+      stage: 'In review',
+    },
+    {
+      sourceKey: 'MOB-5',
+      title: 'Expo navigation shell',
+      openDays: 19,
+      stage: 'In flight',
+    },
+    {
+      sourceKey: 'SYNC-22',
+      title: 'Linear webhook backfill',
+      openDays: 16,
+      stage: 'Blocked',
+    },
+  ],
+  patterns: [
+    {
+      title: 'Cycle time is improving org-wide',
+      detail: 'Median time from start to close fell from 8.1 to 6.4 days over the quarter.',
+    },
+    {
+      title: 'Risk is concentrated, not spread',
+      detail: 'Insights & Reporting and Mobile hold most of the open work on at-risk initiatives.',
+    },
+    {
+      title: 'Ready work is outpacing pull into flight',
+      detail: '47 specs are Ready but only ~12 enter flight each week — the queue ahead of execution is growing.',
+    },
+  ],
 };
