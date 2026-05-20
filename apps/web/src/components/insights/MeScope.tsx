@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   ArrowRightIcon,
@@ -29,8 +29,9 @@ const DAY_FULL: Record<Weekday, string> = {
   Fri: 'Friday',
 };
 
-// A day is always selected; default to today, falling back to Friday on a
-// weekend so the current week opens on its most recent workday.
+// No day is selected by default: the stat band reads as the week total. On a
+// weekday, today is the natural fallback for "what does today look like" when
+// a day is selected; on weekends, the most recent workday stands in.
 function todayWeekday(): Weekday {
   const byIndex: Record<number, Weekday> = {
     1: 'Mon',
@@ -91,12 +92,13 @@ function dayStats(
   ];
 }
 
-// The Me scope. The current week shows a per-day timeline whose dots narrow
-// the stat band to a single day; past weeks are aggregate totals only, so the
-// timeline collapses into a week picker and the day selector disappears.
+// The Me scope. The current week opens on its weekly totals; clicking a day
+// in the timeline narrows the stat band to that day, and clicking the same
+// day again toggles back to the week. Past weeks are aggregate totals only,
+// so the timeline collapses into a week picker and the day selector disappears.
 export function MeScope() {
   const [weekIndex, setWeekIndex] = useState(0);
-  const [selectedDay, setSelectedDay] = useState<Weekday>(todayWeekday);
+  const [selectedDay, setSelectedDay] = useState<Weekday | null>(null);
 
   const week = meWeeks[weekIndex]!;
 
@@ -144,11 +146,28 @@ export function MeScope() {
 
 type CurrentWeekProps = {
   week: MeWeek;
-  selectedDay: Weekday;
-  onSelectDay: (day: Weekday) => void;
+  selectedDay: Weekday | null;
+  onSelectDay: (day: Weekday | null) => void;
 };
 
 function CurrentWeek({ week, selectedDay, onSelectDay }: CurrentWeekProps) {
+  // Clicking anywhere outside the timeline clears the day selection so the
+  // stat band returns to the week total. The listener only attaches while a
+  // day is actually selected to avoid running on every page interaction.
+  const timelineRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!selectedDay) return;
+    function handleOutside(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (target && !timelineRef.current?.contains(target)) {
+        onSelectDay(null);
+      }
+    }
+    document.addEventListener('pointerdown', handleOutside);
+    return () => document.removeEventListener('pointerdown', handleOutside);
+  }, [selectedDay, onSelectDay]);
+
   const finished = week.finished ?? [];
 
   const weekMinutes = WEEKDAYS.reduce(
@@ -174,21 +193,29 @@ function CurrentWeek({ week, selectedDay, onSelectDay }: CurrentWeekProps) {
     };
   });
 
-  const stats = dayStats(finished, selectedDay, weekMinutes);
+  const stats = selectedDay
+    ? dayStats(finished, selectedDay, weekMinutes)
+    : week.stats;
 
   return (
     <>
       <div className={styles.summaryBlock}>
         <div className={styles.summaryHead}>
-          <span className={styles.summaryScope}>{DAY_FULL[selectedDay]}</span>
-          {selectedDay === today ? (
+          <span className={styles.summaryScope}>
+            {selectedDay ? DAY_FULL[selectedDay] : 'This week'}
+          </span>
+          {selectedDay && selectedDay === today ? (
             <span className={styles.todayChip}>Today</span>
           ) : null}
         </div>
         <StatBand stats={stats} />
       </div>
 
-      <section className={styles.timeline} aria-label="Completed work by day">
+      <section
+        ref={timelineRef}
+        className={styles.timeline}
+        aria-label="Completed work by day"
+      >
         {days.map(day => {
           const isSelected = day.day === selectedDay;
           const markerClass = isSelected
@@ -211,9 +238,15 @@ function CurrentWeek({ week, selectedDay, onSelectDay }: CurrentWeekProps) {
                   type="button"
                   className={styles.dayDot}
                   aria-pressed={isSelected}
-                  aria-label={`Show ${DAY_FULL[day.day]} stats`}
+                  aria-label={
+                    isSelected
+                      ? `Hide ${DAY_FULL[day.day]} stats, show the week`
+                      : `Show ${DAY_FULL[day.day]} stats`
+                  }
                   disabled={day.isFuture}
-                  onClick={() => onSelectDay(day.day)}
+                  onClick={() =>
+                    onSelectDay(day.day === selectedDay ? null : day.day)
+                  }
                 >
                   <span className={markerClass} aria-hidden="true" />
                 </button>

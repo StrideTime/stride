@@ -9,7 +9,9 @@ import {
 import { Typography } from '@stride/ui';
 
 import { MeScope } from './MeScope';
+import { OrgScope } from './OrgScope';
 import { ProjectsScope } from './ProjectsScope';
+import { TeamScope } from './TeamScope';
 import {
   ROLE_OPTIONS,
   ROLE_RANK,
@@ -59,8 +61,10 @@ export function InsightsView() {
         <MeScope />
       ) : activeScope.scope === 'projects' ? (
         <ProjectsScope />
+      ) : activeScope.scope === 'team' ? (
+        <TeamScope role={role} />
       ) : (
-        <ScopePlaceholder meta={activeScope} />
+        <OrgScope />
       )}
     </section>
   );
@@ -122,25 +126,3 @@ function ScopeMode({ meta, active, onSelect }: ScopeModeProps) {
   );
 }
 
-function ScopePlaceholder({ meta }: { meta: ScopeMeta }) {
-  const Icon = SCOPE_ICONS[meta.scope];
-
-  return (
-    <div className={styles.placeholder}>
-      <span className={styles.placeholderIcon}>
-        <Icon size={22} weight="bold" />
-      </span>
-      <Typography as="p" size="base" weight="bold">
-        {meta.label} insights
-      </Typography>
-      <Typography
-        as="p"
-        size="sm"
-        color="muted"
-        className={styles.placeholderDetail}
-      >
-        This scope gets its own layout next. The Me scope shows the direction.
-      </Typography>
-    </div>
-  );
-}
