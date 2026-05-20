@@ -9,7 +9,7 @@ import {
   Tray,
   TrendUp,
 } from '@phosphor-icons/react';
-import { Link, Outlet } from '@tanstack/react-router';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 
 import { Popover, Typography } from '../../atoms';
 import styles from './AppShell.module.css';
@@ -51,9 +51,13 @@ const statusOptions: StatusOption[] = [
 ];
 
 export function AppShell() {
+  const pathname = useRouterState({ select: state => state.location.pathname });
+  const isSettings = pathname === '/settings';
+
   return (
     <div className={styles.shell}>
-      <aside className={styles.rail}>
+      {!isSettings ? (
+        <aside className={styles.rail}>
         <Popover
           trigger={(
             <>
@@ -184,7 +188,8 @@ export function AppShell() {
             <Gear size={18} weight="bold" aria-hidden="true" />
           </Link>
         </div>
-      </aside>
+        </aside>
+      ) : null}
 
       <main className={styles.main}>
         <Outlet />
