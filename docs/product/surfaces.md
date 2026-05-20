@@ -1,6 +1,6 @@
 ---
 title: Surfaces (screens & routes)
-updated: 2026-05-16
+updated: 2026-05-19
 status: current
 owner: jaren
 ---
@@ -69,7 +69,7 @@ Plan the week by distributing work across days. The page is a planning surface, 
 
 - **Week columns** — one column per day, inspired by compact chronological day cards. Columns show timed blocks in chronological order with lightweight time labels. Clicking a day navigates to `/schedule/day/$date` for precise planning.
 - **Plan / Actual toggle** — the week overview shows one layer at a time. **Plan** shows ScheduledEvents and external events. **Actual** shows Sessions and external events. The layout stays stable across the toggle, but styling distinguishes planned blocks, actual sessions, and immutable external events.
-- **Capacity summary** — each day shows compact planned-work vs available-working-hours capacity. Capacity is based on configured working hours. External busy events, meetings, breaks, personal blocks, and buffers reduce available capacity. Action-linked scheduled events and generic focus blocks count as planned work. Off-hours can be scheduled but do not inflate normal capacity.
+- **Capacity + budget summary** — each day shows compact planned-work vs available-working-hours capacity, plus optional time-budget progress for budgeted schedule types. Capacity is based on configured working hours. External busy events, meetings, breaks, personal blocks, and buffers reduce available capacity. Action-linked scheduled events and generic focus blocks count as planned work. Off-hours can be scheduled but do not inflate normal capacity. Budgets are soft planning/insight targets, not scheduling blockers.
 - **Scheduling tray** — a collapsible right drawer, default open. The tray is an explainable planning queue for distributing Actions through the week. Its primary signal is remaining time needed: `estimate - completed actual session time - future scheduled Action-event time`, clamped at zero. Highest-priority unscheduled and underplanned Actions rise to the top; overplanned is quiet context, not an error.
 - **Week drag interactions** — dragging an Action from the tray onto a day creates an untimed day assignment, not a timed ScheduledEvent. Day columns remain clean after drop, but show a temporary target state like "Plan for Tuesday" while dragging. Dragging an Action-linked timed block to another day converts it to an untimed assignment for that day. Dragging a generic Stride-owned block between days preserves its time. External events are fixed.
 - **No plus buttons in week columns** — generic event creation happens in the day planning route.
@@ -86,8 +86,9 @@ A dedicated 24-hour canvas for precise drag, resize, overlap, and actual-correct
 - **Drag and resize** — snap to 15-minute increments. Drag a block body to move it. Drag top/bottom handles to resize. After drag or resize ends, select the changed block and open its inspector.
 - **Overlap behavior** — overlapping blocks are allowed without warnings. Same-layer overlaps are laid out side by side with width adjusted as needed. Planned and actual layers calculate collision layout separately; cross-layer overlap is comparison context, not collision. External events participate in collision layout with the active layer but remain immutable.
 - **Action scheduling** — dragging an Action from the tray creates an Action-linked ScheduledEvent using the Action estimate as default duration, or 30 minutes if no estimate exists. Resizing the event changes only that ScheduledEvent duration; it never changes the Action estimate. A single Action may have multiple ScheduledEvents.
-- **Generic event creation** — click-drag empty time to create a `focus` block by default, with immediate ability to change type. Provide an Add block fallback for keyboard access, exact entry, and recurrence setup.
+- **Generic event creation** — click-drag empty time to create a default block type, with immediate ability to change type. Provide an Add block fallback for keyboard access, exact entry, and recurrence setup. Block types come from the user's available ScheduledEventTypes: seeded account defaults plus custom active types; archived types remain on historical blocks but are hidden from new-block creation.
 - **Actual editing** — Actual mode allows creating and editing Sessions directly. Manual Session creation requires linking to an Action. The picker defaults to ranked tray candidates and supports broader Action search.
+- **Time-accounting preference** — calendar insights support both planned-time / YOLO behavior, where planned blocks count as time spent as the day plays out, and explicit-session behavior, where Sessions are the actual-time source of truth. Budget progress uses the same accounting behavior as the rest of time tracking.
 - **Inspector** — single-click selects a block and opens the right-drawer inspector. No double-click shortcuts in v1. Action-linked ScheduledEvent inspection emphasizes event details first, with Action context and explicit links to dedicated Action/Spec routes. Week overview uses the same inspector pattern in a limited form, with explicit actions to open the day route for precise edits.
 - **Keyboard access** — blocks are focusable/selectable and inspector forms support exact start/end/duration edits. Advanced arrow-key move/resize can wait.
 - **Mobile** — keep the right drawer pattern on desktop; provide a mobile-friendly alternative such as a bottom sheet/collapsible panel.
@@ -95,6 +96,8 @@ A dedicated 24-hour canvas for precise drag, resize, overlap, and actual-correct
 ## Insights — analytics · `/insights`
 
 Insights is a focused query surface, not a dashboard wall. The user picks a scope, then sees a short readout, formatted top-down with minimal chrome: a one-line takeaway, a single metrics block (four stats as a divided strip with deltas, feeding one interactive area chart for the selected stat), then two borderless lanes — a patterns or status list, and a computed "suggested next steps" list.
+
+Time-budget insights compare desired time against planned/actual time by schedule type, depending on the user's active time-accounting mode. Users can budget selected types only; unbudgeted types can still appear as context. A user has one active budget basis at a time — daily or weekly — so category goals stay consistent.
 
 Scopes are **role-gated** (roles are additive — Member ⊂ Team Admin ⊂ Workspace Admin); the scope tabs only show what the viewer's role can see:
 
