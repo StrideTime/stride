@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -8,6 +9,12 @@ import {
 } from '@phosphor-icons/react';
 import { Button } from '@stride/ui';
 
+import {
+  activeTimeBudget,
+  getBudgetProgress,
+  plannedBlocks,
+} from '../schedule/schedule.mock';
+import { formatDuration } from '../schedule/ScheduleShared';
 import { meWeeks, type FinishedItem, type MeWeek } from './insights.mock';
 import styles from './MeScope.module.css';
 
@@ -276,6 +283,7 @@ function CurrentWeek({ week, selectedDay, onSelectDay }: CurrentWeekProps) {
       </section>
 
       <div className={styles.lower}>
+        <BudgetPanel />
         <PatternsPanel week={week} />
         <section className={styles.panel}>
           <h3 className={styles.panelTitle}>Worth doing next</h3>
@@ -305,6 +313,55 @@ function CurrentWeek({ week, selectedDay, onSelectDay }: CurrentWeekProps) {
       </div>
     </>
   );
+}
+
+function BudgetPanel() {
+  const budgetItems = getBudgetProgress({
+    budget: activeTimeBudget,
+    blocks: plannedBlocks,
+    periodStart: '2026-05-17',
+    periodEnd: '2026-05-23',
+  });
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeaderRow}>
+        <h3 className={styles.panelTitle}>Time budget</h3>
+        <span className={styles.panelMeta}>Private · Planned</span>
+      </div>
+      <ul className={styles.budgetList}>
+        {budgetItems.map(item => (
+          <li key={item.typeId} className={styles.budgetItem} data-status={item.status}>
+            <span className={styles.budgetItemHead}>
+              <span className={styles.budgetName}>{item.label}</span>
+              <span className={styles.budgetValue}>
+                {formatDuration(item.usedMin)} / {formatDuration(item.targetMin)}
+              </span>
+            </span>
+            <span className={styles.budgetTrack} aria-hidden="true">
+              <span
+                className={styles.budgetFill}
+                style={{ '--progress': `${Math.min(item.ratio, 1) * 100}%` } as CSSProperties}
+              />
+            </span>
+            <span className={styles.budgetHint}>{getBudgetHint(item.status)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function getBudgetHint(status: ReturnType<typeof getBudgetProgress>[number]['status']) {
+  const hints = {
+    under: 'Plenty of room left.',
+    near: 'Close to the cap.',
+    onTrack: 'On track.',
+    over: 'Over target.',
+    behind: 'Needs time planned.',
+  };
+
+  return hints[status];
 }
 
 function PastWeek({ week }: { week: MeWeek }) {

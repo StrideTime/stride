@@ -1076,6 +1076,10 @@ function getBlockTypeClassName(type: ScheduleBlock['type']) {
       return styles.blockBuffer ?? '';
     case 'external':
       return styles.blockExternal ?? '';
+    case 'research':
+      return styles.blockFocus ?? '';
+    case 'learning':
+      return styles.blockBreak ?? '';
   }
 }
 
@@ -1089,6 +1093,8 @@ function getEventTypeBadgeVariant(type: ScheduleBlock['type']) {
     personal: 'neutral',
     buffer: 'danger',
     external: 'warning',
+    research: 'accent',
+    learning: 'success',
   };
 
   return variants[type];
@@ -1104,6 +1110,8 @@ function formatEventType(type: ScheduleBlock['type']) {
     personal: 'Personal',
     buffer: 'Buffer',
     external: 'External',
+    research: 'Research',
+    learning: 'Learning',
   };
 
   return labels[type];

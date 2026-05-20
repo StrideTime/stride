@@ -14,6 +14,7 @@ import {
 import { useNavigate } from '@tanstack/react-router';
 import { Typography } from '@stride/ui';
 
+import { ScheduleBudgetSummary } from './ScheduleBudgetSummary';
 import {
   ScheduleBlockCard,
   ScheduleHeader,
@@ -61,6 +62,8 @@ export function ScheduleWeekView() {
   const [plannedScheduleBlocks, setPlannedScheduleBlocks] = useState<ScheduleBlock[]>(plannedBlocks);
   const activeBlocks = mode === 'plan' ? plannedScheduleBlocks : actualBlocks;
   const weekDays = getWeekDays(focusedDate);
+  const periodStart = weekDays[0]?.date ?? focusedDate;
+  const periodEnd = weekDays.at(-1)?.date ?? focusedDate;
 
   useEffect(() => {
     setSelectedBlock(null);
@@ -154,6 +157,13 @@ export function ScheduleWeekView() {
               onNext: () => setFocusedDate(date => toDateKey(addDays(parseDateKey(date), 7))),
               onSelectDate: setFocusedDate,
             }}
+          />
+          <ScheduleBudgetSummary
+            mode={mode}
+            plannedBlocks={plannedScheduleBlocks}
+            actualBlocks={actualBlocks}
+            periodStart={periodStart}
+            periodEnd={periodEnd}
           />
           <div className={styles.weekGrid}>
             {weekDays.map(day => {

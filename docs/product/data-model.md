@@ -100,14 +100,21 @@ Rules:
 ### TimeBudget
 An optional goal for how much time a user wants to spend in selected ScheduledEventTypes. Budgets are planning/insight targets, not blockers.
 - `period` — `daily | weekly`; a user has one active budget mode at a time
-- `targets[]` — `{ typeId, durationMin }` for only the types the user chooses to budget
+- `totalMin` — optional total time commitment for the active period, e.g. 8h/day or 40h/week
+- `targets[]` — `{ typeId, durationMin, direction, tolerance? }` for only the types the user chooses to budget
+- `direction` — `atMost | atLeast | target`; caps, floors, and intended allocations need different feedback
 - `effectiveFrom`, `effectiveTo?` — backend can preserve budget history even if the first frontend mostly shows current/future impact
 
 Rules:
 - Targets are duration-based, not percentage-based inputs.
+- Budget targets are always private and visible only to the individual user. They do not appear in Team/Org insights, even aggregated, for now.
 - Unbudgeted types still appear in insights as unbudgeted planned/actual time.
 - Switching daily ↔ weekly may auto-convert values, but the exact UX is deferred.
-- Budget reporting uses the same planned-vs-actual source-of-truth behavior as the user's time-accounting mode.
+- Category targets may also be represented as percentages of `totalMin`; persisted targets should retain duration for aggregation, while UI may display percentage allocation.
+- `target` budgets use a tolerance band for on-track status, defaulting around ±10% unless configured otherwise later.
+- `atMost` and `atLeast` budgets can use quiet warning thresholds before a limit is missed; weekly budgets use elapsed-period pacing for soft feedback.
+- Budget reporting uses the same planned-vs-actual source-of-truth behavior as the user's time-accounting mode and the active Schedule view.
+- If a referenced ScheduledEventType is archived, historical budget records keep the reference, but active budget editing hides/removes that target going forward.
 
 ### ActionDayAssignment
 Untimed intent to work on an Action on a specific day. This is used by the week planning overview and scheduling tray before exact time placement.
@@ -151,7 +158,7 @@ Schedule has two layers:
 
 Plan and Actual can be compared visually, but they remain distinct model concepts. In Plan mode, ScheduledEvents are active/editable and Sessions may be shown as click-through context. In Actual mode, Sessions are active/editable and ScheduledEvents may be shown as click-through context.
 
-Time accounting is a user/team preference:
+Time accounting is a team-default preference with optional individual override if the team allows it:
 - **Planned-time / YOLO mode** — when the user plans blocks and the day plays out, planned schedule time automatically counts toward time spent.
 - **Explicit sessions mode** — the schedule is a guide; recorded Sessions are the source of truth for actual time.
 
