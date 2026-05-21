@@ -15,6 +15,8 @@ owner: jaren
 - **2026-03-19 — `DES::` epic prefix** for Design work (distinct from `DE::` = Desktop/Tauri). Full prefix set: BE, FE, DE, DES, INF.
 - **2026-03-19 — `.cursor/rules/` is the single convention source** — shared by Cursor and Claude Code; `CLAUDE.md` is a pointer, conventions are never duplicated.
 - **2026-05-04 — Full stack definition** — CF-native, TanStack Start, server-authoritative offline. Locks the stack table, the build-target split, the Tauri two-window architecture, the offline mutation queue, source integration, and the core data model. Lists what's *explicitly rejected* (PowerSync, Supabase, TanStack DB in production now, ElectricSQL, separate Tauri React app, separate tray binary, Stride-native Specs, Sessions tied directly to Specs) — do not reintroduce any of those without a new entry.
+- **2026-05-12 — Desktop integration refinements** — `packages/api-client` as the data boundary, Rust-side mutation drainer, bearer-token desktop auth, persisted Query cache. Builds on 2026-05-04.
+- **2026-05-21 — Privacy-as-data-integrity + architectural commitments** behind the v1 re-cut: asymmetric aggregate access, honest (hard) deletion of user data, source-native storage, the cross-cutting attachment-point junction table, API-as-product, provenance-readiness, individual-favouring privacy defaults. The v1 *scope* re-cut itself is a product decision — recorded in [`../product/mvp.md`](../product/mvp.md), not the ADR log.
 
 ## Adding a decision
 

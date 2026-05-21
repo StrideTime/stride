@@ -44,6 +44,15 @@ Left rail (~200px, dark; from `Shell.jsx`): a workspace+team switcher at the top
 
 ## Today — the dashboard · `/`
 
+> **v1 note (2026-05-21).** Today currently does four jobs at once — what am I doing now,
+> the shape of my day, what changed since yesterday, what's interrupting me — and that is
+> why it feels busy. **v1 Today commits to one dominant question: "what's next"** — one
+> Action and one Start affordance — with a *secondary* compact schedule list and a
+> *tertiary* changed-since-yesterday count linking elsewhere. The configurable Info Hub
+> with its full widget set is deferred. Schedule-first users get a different Today: their
+> Today *is* the day view with the current block highlighted (see [`overview.md`](overview.md)
+> → User modes). The full design below is the post-MVP target.
+
 The at-a-glance "what now / what's next" screen. Three zones in the main column, a configurable widget rail on the right.
 
 - **Now hero** — start-a-session button when idle; a live-session banner with timer + an estimate-variance bar when running.
@@ -64,6 +73,15 @@ The workspace's spec list. Find, break down, schedule.
 - **Blockers/Waiting lens** — "Waiting on others" + a ranked "Chokepoints" list (specs of yours that the most teammates are blocked on). Not a peer top-level tab beside Specs and Actions.
 
 ## Schedule — week planning overview · `/schedule`
+
+> **v1 note (2026-05-21).** Schedule **stays in v1** — both dogfood users need it, and it
+> carries the schedule-first user mode ([`overview.md`](overview.md)). But it ships
+> **simplified**: a minimal fixed set of block types, no TimeBudgets, no custom
+> ScheduledEventTypes, no ActionDayAssignment layer. The current implementation also
+> violates this spec in known ways (the day canvas doesn't open at working hours,
+> off-hours lack a distinct treatment, the week view clips at common laptop widths) — fix
+> those before the elaborate drag/resize/overlap work, which is itself post-MVP. The full
+> design below is the eventual target, not the v1 cut.
 
 Plan the week by distributing work across days. The page is a planning surface, not a passive calendar clone.
 
@@ -95,6 +113,14 @@ A dedicated 24-hour canvas for precise drag, resize, overlap, and actual-correct
 
 ## Insights — analytics · `/insights`
 
+> **v1 note (2026-05-21).** The entire Insights surface is **deferred from v1** — there is
+> no signal to reflect on until Sessions are real, and a decorative analytics screen
+> erodes trust rather than building it. Signal *capture* still happens in v1 (the backend
+> records the full execution signal from day one). Insights returns post-MVP: operational
+> insights inline first (inside Today / Tray / Spec view, where they change a decision in
+> the moment), a reflective surface later, when real users say what they want to see. The
+> design below is the spec for when it returns. See [`mvp.md`](mvp.md).
+
 Insights is a focused query surface, not a dashboard wall. The user picks a scope, then sees a short readout, formatted top-down with minimal chrome: a one-line takeaway, a single metrics block (four stats as a divided strip with deltas, feeding one interactive area chart for the selected stat), then two borderless lanes — a patterns or status list, and a computed "suggested next steps" list.
 
 Time-budget insights compare desired time against planned/actual time by schedule type, depending on the user's active time-accounting mode. Users can budget selected types only; unbudgeted types can still appear as context. A user has one active budget basis at a time — daily or weekly — so category goals stay consistent. Budget targets are always private and shown only in Me scope.
@@ -113,6 +139,15 @@ The "suggested next steps" lane is **rule-derived** from the metrics, not LLM-ge
 ## Tray — the desktop cockpit · `/tray`
 
 The always-available menu-bar window. Same web build, route `/tray`, smaller dimensions, system-tray-anchored. Not in the web left-rail nav — it's loaded by the Tauri tray window.
+
+> **Design principle — the Tray is glanced at, not read.** Because it's always visible it
+> must be **silent by default and informative on demand**. Anything that requires the user
+> to *read* the Tray is wrong; reading happens in the main window. The choreography:
+> *idle* — silent, no numbers; *pre-session click* — the context summoner (recent files,
+> the parent Spec, prior Sessions on similar work); *live* — a subtle timer / ArcDial;
+> *mid-session interrupt* — end-session + jot note; *post-session* — the feeling check-in
+> (the one mandatory friction point, and it earns its keep). Notifications belong to the
+> OS, not the Tray. **v1 ships the idle + live-session states**; the rest trails.
 
 - **States** — `idle` (a spacious "Up next" hero with an inline "pick something else" picker) · `live session` (a circular **ArcDial** with the timer in the center, minimal chrome, End / Pause, an over-estimate indicator) · `break` (a soft countdown) · `review` (handoff).
 - **Overlays** — a separate **capture window** (⌥Space — Insight vs Next; attaches to a running session, else drops to backlog) — its routing is a round-2 item; a **meeting-join flow** ("Jump into meeting" vs "Keep working" with a snooze-duration picker); start-session and end-session flows.

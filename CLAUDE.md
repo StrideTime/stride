@@ -2,6 +2,14 @@
 
 **Start with [`docs/INDEX.md`](docs/INDEX.md).** It is the map of content for everything that isn't a coding convention: what Stride is, the data model, the screens, the plan, and reference material. Read it before searching the repo — it routes you to the one file you need.
 
+## What Stride is for — read before designing anything
+
+Stride exists to give a person **momentum and a clear view of their own growth**. It captures signal to serve the person who produced it; it surfaces patterns to a team only in aggregate. It is **never** a tool for ranking, comparing, or monitoring individuals — that would corrupt the very data the product depends on (trust → honest input → accurate data → product value).
+
+**The test for any feature, default, schema field, or line of copy:** *does this make the user more certain the data is theirs, or less?* Less = don't ship it.
+
+The full reasoning and the enforced commitments are in [`docs/product/principles.md`](docs/product/principles.md). Read it before designing or changing any surface.
+
 ## Coding conventions & architecture: `.cursor/rules/*.mdc`
 
 Conventions are **not** duplicated into this file or the `docs/` vault. `.cursor/rules/*.mdc` is the single source of truth (decision 2026-03-19). Cursor auto-attaches the relevant ones by glob; in Claude Code, read them directly:

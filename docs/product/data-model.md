@@ -50,14 +50,24 @@ A ticket synced from a source.
 - relations: `actions[]`, `comments[]`, `sourceActivity[]` (source-side event feed), `audit[]` (ownership history with time logged per owner), `linked[]` (rel = Blocks / Blocked by / Related / Implements), and the chokepoint data `blocks[]` (teammates waiting on this) / `blockedOn[]` (what this waits on, with nudge fields)
 
 ### Action
-A Stride-native unit of work, 1+ per Spec (or standalone).
+A Stride-native **execution step** — a unit of focused work that serves Sessions, 1+ per
+Spec (or standalone).
 - `specId` — parent Spec, **nullable** (null = standalone personal task)
 - `title`
 - `estimateMin`
 - `actualMin` — accumulated from Sessions
-- `done` — boolean
-- `assignee` — a user
+- `done` — boolean (internally open / done; not source-mapped)
 - Note: Action IDs are not globally unique in the prototype — match by `(specId, actionId)`. The real schema should give Actions their own UUID primary key.
+
+**An Action is an execution step, not a sub-ticket.** It exists to make the *execution* of
+work captureable — title, estimate, done-state, relationship to time. It deliberately has
+**no** project-management apparatus: no status workflow (open/done internally, never
+source-mapped), no assignee (the Session-runner is the implicit owner), no priority of its
+own (it inherits the Spec's priority at display time only), no comments. Project
+management lives in Jira; Stride's job is execution. This is *why* "is an Action ever 1:1
+with a source issue?" dissolves as a question — Actions are a function of how work
+*decomposes*, not how source tickets are *shaped*. A 1:1 Spec→Action is fine for trivial
+work; a complex Spec decomposes into several. (Resolves open question Q3.)
 
 ### Session
 Actual timed work against an Action. Sessions are execution/history, not planning objects. Exactly one runs at a time per user. Ephemeral while running, then archived.
@@ -66,6 +76,12 @@ Actual timed work against an Action. Sessions are execution/history, not plannin
 - `notes` + `jots[]` — quick mid-session notes `{ at, text, kind }`
 - on end: `feeling` (icons: frown / neutral / smile / target), `note` (optional free text), `markDone` (whether it also closed the Action)
 - the variance nudge surfaces only when `elapsedMin` ≳ 1.5–2× `action.estimateMin`
+
+> **v1 scope note.** The next three entities — **ScheduledEventType** (customization),
+> **TimeBudget**, and **ActionDayAssignment** — are the elaborate planning/budgeting model
+> and are **deferred from MVP** ([`mvp.md`](mvp.md)). v1 Schedule uses a minimal fixed set
+> of block types and no budgets. The conceptual model below stays here as the spec for
+> when this layer returns post-MVP.
 
 ### ScheduledEventType
 A category for schedule blocks and time insights. Accounts are seeded with default types, and users can add or modify the types they use.
@@ -189,6 +205,35 @@ Daily capacity:
 - Action-linked ScheduledEvents and focus blocks count as planned work.
 - External events marked free/available by the source do not reduce capacity unless locally classified otherwise.
 
+## Source-native storage
+
+Source-specific fields — Jira's Sprint, Linear's Cycle, GitHub's Milestone, and any
+source-specific custom fields — are stored **source-native** (in source-specific columns
+or JSON blobs), not normalized into a unified Stride schema. Stride does **not** have its
+own Project/Sprint entity that flattens the three sources together.
+
+Normalization happens at the **display layer, not the data layer**: the UI has a unified
+slot for "the source's grouping concept" that renders "Sprint 24" or "Cycle 12" depending
+on what the source called it. A Spec is "a source item the user is actively engaging
+with"; the hierarchy above it is *displayed* but not *modeled* as Stride entities.
+
+The cost is harder cross-source queries — deferred, and cheap to add later if real demand
+appears. The gain is adaptability to each source's vocabulary without configurability, and
+no schema churn when a fourth source is added.
+
+## Cross-cutting entity attachment point (forward-looking)
+
+A future **Concept** entity — features, modules, customer segments, recurring problem
+patterns — may need to attach to *any* Stride entity (a Spec, an Action, a Session, a
+Capture). To preserve that option without building it now, v1 includes a single empty
+**junction table** in which any entity can participate (`entity_type` + `entity_id` ↔
+`concept_id`).
+
+Not populated in v1, not surfaced anywhere. It exists only so the future-state option
+(cross-cutting concepts, and eventually corpus integration) stays open at near-zero cost.
+Adding the table now is trivial; retrofitting cross-cutting attachment onto a mature
+schema is not.
+
 ## Open model questions
 
-Tracked in [`open-questions.md`](open-questions.md): is an Action ever genuinely 1:1 with a source issue (or always strictly smaller)? Do "Later" / "Snoozed" / "Archive" collapse to fewer states? How are labels/tags grouped ("feature within a project")? Default teammate visibility (load-only vs full Today)? Final DB representation for ScheduledEvent recurrence/exceptions and ActionDayAssignment still needs schema design.
+Tracked in [`open-questions.md`](open-questions.md): Do "Later" / "Snoozed" / "Archive" collapse to fewer states? How are labels/tags grouped ("feature within a project")? Default teammate visibility (load-only vs full Today)? What signal does Stride capture about *what* the developer is doing inside a Session (git correlation)? Final DB representation for ScheduledEvent recurrence/exceptions and ActionDayAssignment still needs schema design. *(Q3 — "is an Action ever 1:1 with a source issue" — resolved 2026-05-21: see the Action entity above.)*

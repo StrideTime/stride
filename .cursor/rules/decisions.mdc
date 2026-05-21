@@ -119,3 +119,39 @@ Builds on the 2026-05-04 entry; fills in specifics that were left implicit. None
 - **The TanStack Query cache is persisted** (`@tanstack/query-persist-client` — OPFS on web, a file on desktop) so a cold start while offline shows last-fetched data, with the optimistic outbox layered over it.
 
 To confirm when `apps/desktop` exists: bearer-vs-cookie (leaning bearer), desktop OAuth-callback handling (`tauri-plugin-deep-link` vs localhost loopback), final confirmation of the Rust-side drainer.
+
+## 2026-05-21: Privacy-as-data-integrity, and architectural commitments behind the v1 re-cut
+
+The v1 *scope* re-cut (thin execution loop; see `docs/product/mvp.md`) is a product
+decision recorded there — not in this log. What is recorded here are its **architectural
+consequences**, which are decisions that constrain the schema and API from the first line
+of code and would be expensive or impossible to retrofit.
+
+Context: Stride's value depends on honest user data, and a person only keeps their data
+honest if they trust it won't be used against them (trust → honest input → accurate data →
+product value). So privacy is a *data-integrity requirement*, not a values statement. Full
+reasoning and the enforced commitments are in `docs/product/principles.md`.
+
+Locked architectural commitments — honor them from the first endpoint/table:
+
+- **Asymmetric access.** Per-person signal lives in the DB, but the API surface for
+  aggregates **cannot return individual rows** — individual decomposition is not
+  expressible, not merely filtered out after the fact.
+- **Honest deletion.** User-data deletion is a **hard delete** that triggers aggregate
+  recomputation without the deleted data — distinct from the operational soft-delete
+  (`deleted` flag) used for sync/offline correctness in `db-patterns.mdc`.
+- **Source-native storage.** Source-specific fields (Jira Sprint, Linear Cycle, GitHub
+  Milestone, custom fields) are stored source-native; normalization happens at the
+  display layer. Stride has no unified Project/Sprint entity. (Reinforces the existing
+  "no Stride-native Specs" rule.)
+- **Cross-cutting attachment point.** A single empty junction table ships in v1 so a
+  future "Concept" entity can attach to any Stride entity. Not populated, not surfaced.
+- **API as product.** The internal API is designed as if external systems will consume it
+  (typed responses, stable paths, documented schemas, permission scopes). MCP server,
+  webhooks, REST endpoints, SQL views are all *future adapters* on this internal API.
+- **Provenance-ready.** When the first derived value ships (post-v1, with Insights) it
+  carries lineage metadata from day one. Not built in v1, but not designed out of.
+- **Privacy defaults** favour the individual — presence / focus-status indicators default
+  **off** in the schema, opt-in only.
+
+Does not contradict the 2026-05-04 or 2026-05-12 entries; the locked stack stands.

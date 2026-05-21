@@ -13,22 +13,23 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 1. **Workspace + team switcher behavior.** Is it one combined selector? Does it communicate the user's admin status per row? The current `Shell.jsx` switcher is a static stub ("Stride · Acme · Platform") that doesn't reflect a settled design.
 2. ~~**Today's Info Hub: configurable in v1, or a fixed set first?**~~ — **[resolved 2026-05-12]** configurable, in v1 (v1 = prototype fidelity). The *default* widget set + order is a design detail, not an open product question.
-16. **Insights v1 scope.** Performance-view-only is the working assumption ([`mvp.md`](mvp.md)); the user wants to iterate on whether the **Team** tab (and/or Goals / Burnout / Focus Time) come into v1. Reopened 2026-05-12 — see changelog.
+16. ~~**Insights v1 scope.**~~ — **[resolved 2026-05-21]** The entire Insights surface is deferred from v1 — there is no signal to reflect on until Sessions are real. Signal *capture* still happens in v1. Insights returns post-MVP: operational insights inline first, a reflective surface later. See [`mvp.md`](mvp.md).
 
 ## Data model & mechanics
 
-3. **Is an Action ever 1:1 with a source issue, or always strictly smaller?** Raised repeatedly, never decided. The prototype has both multi-action and single-action specs, so de facto "1:1 allowed" — but it's not a stated rule. Affects breakdown UX and how "needs breakdown" is computed.
+3. ~~**Is an Action ever 1:1 with a source issue, or always strictly smaller?**~~ — **[resolved 2026-05-21]** The question dissolves under the *execution-step* model: an Action is a function of how work *decomposes*, not how source tickets are *shaped*. A 1:1 Spec→Action is fine for trivial work; a complex Spec decomposes into several. See the Action entity in [`data-model.md`](data-model.md).
 4. **Do "Later" / "Snoozed" / "Archive" / "Reassign" collapse?** The user said there are "too many actions that realistically won't all get used at once" and these "feel like they should be handled differently." Which are primary, which merge into one state?
 5. **Default teammate visibility.** When you look at a teammate, do you see load-only, or their full Today? Privacy-sensitive — ties to the "visibility without surveillance" principle in [`../PRODUCT.md`](../PRODUCT.md).
 6. **Label/tag grouping.** The user floated grouping labels by "feature within a project." The prototype keeps a flat `labels[]`. In or out?
 7. **Focus Time / Habits.** v1: out (per [`mvp.md`](mvp.md) — "Focus Time" rides with the Insights-rest deferral; habits are absent from the current prototype). Open: do habits return post-v1, and is "Focus Time" meant to grow into a full Pomodoro engine, or stay a simple timer? (Old design in `Figma Make Files/IMPLEMENTATION_GUIDE.md` — see [`../reference/archived.md`](../reference/archived.md).)
 8. **Reopen behavior.** What happens to actions/sessions/schedule when a closed spec is reopened (in Stride or in the source)? The prototype mocks a "closed in source / still open here" warning state but the full reopen flow isn't pinned down.
+21. **In-session content signal.** A Session today records the *timeshape* of work — duration, feeling — but not the *content*: what files changed, what was referenced. The future-state context system needs content, not just timeshape. Lowest-friction starting point: correlate local git activity (commits in the Session window) to the Session. Decision deferred; flagged so it is not forgotten. Affects the Session schema and the desktop integration surface.
 
 ## Integrations
 
 9. **Slack.** The user mentioned leveraging Slack ("saved messages" was unclear) and deferred it. What's the actual integration, if any?
 10. **GitHub source.** Deferred from v1 (sources in v1 are Jira + Linear; the data model is source-agnostic already). When GitHub lands: issues only, or issues + PRs handled as distinct things?
-17. **Calendar providers.** Google Calendar is in v1 ([`mvp.md`](mvp.md)). Is **Outlook** also v1, or v1.x? Any others (Apple / CalDAV)? Recurring-event handling, all-day events, declined-event filtering — to spec when this is built.
+17. **Calendar providers.** Calendar sync as a whole is now **deferred from v1** ([`mvp.md`](mvp.md)) — provider choice is moot until it returns. When it does: Google first; Outlook / Apple / CalDAV TBD; recurring-event handling, all-day events, declined-event filtering to spec then.
 
 ## Routing — round-2 details
 
@@ -51,6 +52,11 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Changelog
 
+- **2026-05-21 — v1 scope re-cut.** Supersedes the 2026-05-12 "v1 = full product minus go-to-market" decision. v1 is now the thin execution loop, built execution-first: Session flow, Spec view + real Actions, Schedule (both modes), simplified Today + Tray, a "my data" view, one-way Jira sync. Deferred: Insights surface, Linear/GitHub, calendar, team layer, offline queue, the TimeBudget/ScheduledEventType/ActionDayAssignment planning model, LLM, comments. Recorded in [`mvp.md`](mvp.md); architectural commitments in [`.cursor/rules/decisions.mdc`](../../.cursor/rules/decisions.mdc) (2026-05-21).
+- **2026-05-21 — Product principles established.** New [`principles.md`](principles.md): the purpose statement, the "is the data theirs?" test, privacy reframed as a data-integrity requirement, and six enforced commitments. `CLAUDE.md` points to it.
+- **2026-05-21 — Q3 resolved.** "Is an Action 1:1 with a source issue" dissolves under the execution-step model — see [`data-model.md`](data-model.md).
+- **2026-05-21 — Q16 resolved.** Insights surface deferred from v1 entirely.
+- **2026-05-21 — Q21 added.** In-session content signal (git correlation) — flagged, deferred.
 - **2026-05-19 — Settings scope model decided.** Settings uses `/settings?section=…` inside the app shell with a secondary settings sidebar. Sections are organized by ownership scope; admin-only sections are hidden without access. Source connections are workspace-pooled, Team Admins can add pooled connections from team settings, each Team has exactly one primary source mapping, source units are unique per Workspace, calendars are personal and opt-in per Workspace, and Team default working hours seed each member's per-Workspace hours.
 - **2026-05-13 — Q13 resolved.** `apps/server` renamed to `apps/api`. Aligns the directory with the conventions (which already said `apps/api`); contents unchanged — the CF Workers rewrite is Phase 3.
 - **2026-05-12 — Desktop / TanStack Start integration approach documented** in [`.cursor/rules/architecture.mdc`](../../.cursor/rules/architecture.mdc): the desktop app is `apps/web`'s SPA build (`BUILD_TARGET=desktop`) wrapped by a Tauri 2 shell (two windows; one shared native SQLite; the mutation drainer Rust-side); data access via `packages/api-client` (configurable base URL), not server functions; the Query cache persisted for offline reads; desktop auth via bearer-token-in-keychain. Auth-transport / OAuth-callback / drainer-location specifics → Q18–Q20. Refines the 2026-05-04 decision; an ADR refinement is pending.

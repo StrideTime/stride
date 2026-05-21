@@ -12,7 +12,7 @@ The vocabulary, pinned. Terminology churned a lot during design; these are the l
 | Term | Meaning | Notes / history |
 |---|---|---|
 | **Spec** | A ticket synced from a source system (Jira / Linear / GitHub). Has ≥ 1 Action before work can begin. | There are **no** Stride-native specs. Was called "Item" / "Inbox item". |
-| **Action** | A Stride-native unit of work; 1+ per Spec. Title + estimate; gains done-state and actual time. | Was "Step". Action IDs are not globally unique — match by (specId, actionId). Whether an Action is ever 1:1 with a source issue: see [`open-questions.md`](open-questions.md). |
+| **Action** | A Stride-native **execution step**; 1+ per Spec. Title + estimate; gains done-state and actual time. **Not a sub-ticket** — no status workflow, no assignee, no priority of its own. | Was "Step". Action IDs are not globally unique — match by (specId, actionId). Actions are a function of how work *decomposes*, not how source tickets are shaped — see [`data-model.md`](data-model.md). |
 | **Standalone Action** | An Action with no parent Spec — a lightweight personal task (title + estimate only). | Personal; never appears in the team's shared backlog. |
 | **Session** | A timed work block run against an Action. One at a time. Ends with a feeling check-in (icons: frown / neutral / smile / target) + optional note + mark-done-or-keep-open. | Variance nudge appears only at ~1.5–2× over estimate — deliberately gentle. "Pause" was removed; single "End session" button. |
 | **Break down** | Splitting a Spec into Actions, with an inline AI-assist panel in the Spec modal's Overview tab. | Was "Refine" (and a standalone page) — now inline. **Never** "Triage" (the user dislikes the term). |

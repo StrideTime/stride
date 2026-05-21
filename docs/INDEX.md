@@ -13,12 +13,13 @@ Read this page first. It routes you to the one file you need; don't grep the rep
 
 ## Product — what Stride is and does
 
-- [`product/overview.md`](product/overview.md) — what Stride is, the conceptual model, who it's for, platforms. **Start here.**
+- [`product/overview.md`](product/overview.md) — what Stride is, the conceptual model, the long-term vision, user modes, who it's for, platforms. **Start here.**
+- [`product/principles.md`](product/principles.md) — the non-negotiable commitments: the purpose, the "is the data theirs?" test, privacy as a data-integrity requirement. **Read before designing any surface.**
 - [`product/glossary.md`](product/glossary.md) — spec, action, session, break down, workspace, team, source, roles. The vocabulary, pinned.
 - [`product/surfaces.md`](product/surfaces.md) — the screens: Today, Backlog, Schedule, Insights, Tray, Spec modal. What each does, key elements, states.
 - [`product/backlog.md`](product/backlog.md) — Backlog-specific product and design brief for production implementation and `$impeccable live` iteration.
 - [`product/data-model.md`](product/data-model.md) — Spec → Action → Session, standalone Actions, the source-mapping table. Conceptual model (the DB schema lives in code).
-- [`product/mvp.md`](product/mvp.md) — the v1 cut line. *(draft — not confirmed yet)*
+- [`product/mvp.md`](product/mvp.md) — the v1 cut line: the thin execution loop, build order, what's deferred. *(re-cut 2026-05-21)*
 - [`product/open-questions.md`](product/open-questions.md) — undecided product questions, each with context. Resolve here, then promote the answer.
 - [`PRODUCT.md`](PRODUCT.md) — the strategy / brand / principles doc (owned by the `impeccable` tooling). Strategic framing; `product/overview.md` is the current functional description.
 - [`DESIGN.md`](DESIGN.md) — the working visual design brief and token/component direction for `$impeccable live` iteration.
@@ -31,7 +32,7 @@ Read this page first. It routes you to the one file you need; don't grep the rep
 
 ## Plan
 
-- [`plan/roadmap.md`](plan/roadmap.md) — the phased plan (Phase 0 docs → Phase 1 FE system → Phase 2 screens → Phase 3 BE). Replaces the deleted `.agents/STRIDE_MASTER_PLAN.md`.
+- [`plan/roadmap.md`](plan/roadmap.md) — the plan by time horizon (MVP → single-player polish → team layer → Insights), plus the JIT build methodology. Replaces the deleted `.agents/STRIDE_MASTER_PLAN.md`.
 - [`plan/now.md`](plan/now.md) — what's actively in flight. Small, updated often.
 
 ## Reference
