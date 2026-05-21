@@ -1,6 +1,6 @@
 ---
 title: Architecture overview
-updated: 2026-05-13
+updated: 2026-05-21
 status: current
 owner: jaren
 ---
@@ -52,13 +52,12 @@ Dependency direction is strict (see `architecture.mdc`): `apps/web` → `package
 
 ## Where current code differs from the target (known gaps)
 
-The conventions are written **ahead of** the code — that's intentional. As of 2026-05-12 the repo (one commit, "initial commit") has:
+The conventions are written **ahead of** the code — that's intentional. As of 2026-05-21 the repo has:
 
-- `apps/web/` — a bare `create-vite` React + TS scaffold. **To do:** replace with a TanStack Start app (`routes/`, server functions, the SSR/SPA build-target split).
-- `apps/api/` — a "Hello Hono" + Drizzle starter, still on `@hono/node-server`. **Stack mismatch:** the locked stack (2026-05-04) is Hono on Cloudflare Workers, mounted in the same Worker as TanStack Start at `/api/$`. The current contents will be rewritten in Phase 3 ([`../plan/roadmap.md`](../plan/roadmap.md)).
-- `packages/` — only `eslint-config` and `typescript-config` exist. **To do:** add `ui`, `db`, `api-client`, `queue` when they're needed (per the roadmap — not all at once).
+- `apps/web/` — a **TanStack Start app** (`@tanstack/react-start`), with the `_auth` app-shell layout and routes for Today, Inbox, Backlog, Schedule, Settings, the Spec view, and the Tray. The planning/triage surfaces (Today, Inbox, Backlog, Settings, Schedule) are built at demo fidelity; the **execution surfaces (Session flow, a real Spec view) are still placeholders** — building them is MVP step 1 ([`../product/mvp.md`](../product/mvp.md)). The Insights route was **deleted 2026-05-21** (Insights deferred from v1). Still on Vite-only build; the `BUILD_TARGET` web/desktop SSR/SPA split is not wired yet.
+- `apps/api/` — a "Hello Hono" + Drizzle starter, still on `@hono/node-server`. **Stack mismatch:** the locked stack (2026-05-04) is Hono on Cloudflare Workers, mounted in the same Worker as TanStack Start at `/api/$`. The backend trails the FE — it gets built out once the Session-flow FE shape is clear ([`../plan/roadmap.md`](../plan/roadmap.md)).
+- `packages/` — `eslint-config`, `typescript-config`, and `ui` exist. **To do:** add `db`, `api-client`, `queue` when they're needed (per the roadmap — not all at once).
 - `apps/desktop/` (Tauri) — not created yet; the integration approach is documented ("Desktop & web from one codebase" above + `architecture.mdc`).
-- No `.claude/` dir; `stride/CLAUDE.md` was added (2026-05-12) as the agent pointer.
 - `landing-page/` (a sibling directory, not in this monorepo) is on a different stack and predates the reset — see [`../reference/archived.md`](../reference/archived.md).
 
 When in doubt about *what should exist*, follow `.cursor/rules/`. When the gap matters for a task, flag it.

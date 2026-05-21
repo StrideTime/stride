@@ -7,7 +7,6 @@ import {
   ListBullets,
   SquaresFour,
   Tray,
-  TrendUp,
 } from '@phosphor-icons/react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 
@@ -41,7 +40,6 @@ const navItems: NavItem[] = [
     ],
   },
   { to: '/schedule', label: 'Schedule', icon: ClockCountdown },
-  { to: '/insights', label: 'Insights', icon: TrendUp },
 ];
 
 const statusOptions: StatusOption[] = [
