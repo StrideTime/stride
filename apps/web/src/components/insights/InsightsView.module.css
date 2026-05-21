@@ -144,14 +144,51 @@
 }
 
 @media (max-width: 880px) {
+  .page {
+    padding: var(--space-5) var(--space-4) calc(var(--space-6) + 76px + env(safe-area-inset-bottom));
+  }
+
   .header {
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-3);
   }
 
+  .roleSwitcher {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .roleOptions {
+    width: 100%;
+  }
+
+  .roleButton,
+  .roleButtonActive {
+    flex: 1 1 0;
+  }
+
   .scopeNav {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
+    display: flex;
+    gap: var(--space-1);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .scopeNav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scopeMode,
+  .scopeModeActive {
+    display: inline-flex;
+    min-width: max-content;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+  }
+
+  .scopeIcon,
+  .scopeSubtitle {
+    display: none;
   }
 }

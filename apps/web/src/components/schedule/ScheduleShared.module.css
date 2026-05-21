@@ -1240,3 +1240,85 @@
     flex-direction: column;
   }
 }
+
+@media (max-width: 640px) {
+  .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .titleArea,
+  .headerActions,
+  .navButtons,
+  .modeToggle {
+    width: 100%;
+  }
+
+  .headerActions {
+    justify-content: stretch;
+  }
+
+  .navButtons,
+  .modeToggle {
+    overflow-x: auto;
+  }
+
+  .datePickerPopup {
+    width: min(292px, calc(100vw - var(--space-8)));
+  }
+
+  .miniWeek {
+    margin: 0 calc(var(--space-2) * -1);
+    overflow-x: auto;
+    padding: 0 var(--space-2);
+  }
+
+  .miniDay,
+  .miniDayActive {
+    min-width: 46px;
+  }
+
+  .sideTray {
+    position: fixed;
+    right: var(--space-3);
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    left: var(--space-3);
+    z-index: 25;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: auto;
+    max-height: min(58dvh, 440px);
+    height: auto;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--color-shell);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .sideTrayHeader {
+    position: relative;
+    padding-top: var(--space-3);
+  }
+
+  .sideTrayHeader::before {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-border-strong);
+    content: '';
+    transform: translateX(-50%);
+  }
+
+  .sideTrayBody {
+    max-height: 34dvh;
+  }
+
+  .trayActionMain,
+  .field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

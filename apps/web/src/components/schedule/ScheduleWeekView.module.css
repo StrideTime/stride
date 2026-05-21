@@ -127,3 +127,54 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 920px) {
+  .page {
+    min-height: auto;
+  }
+
+  .mainContent {
+    grid-template-rows: none;
+    padding: var(--space-5) var(--space-4) calc(var(--space-6) + 76px + env(safe-area-inset-bottom));
+  }
+
+  .weekGrid {
+    display: flex;
+    gap: var(--space-3);
+    margin-right: calc(var(--space-4) * -1);
+    overflow-x: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .weekGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dayColumn {
+    flex: 0 0 min(270px, 78vw);
+    min-height: 420px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .weekGrid {
+    padding-right: var(--space-4);
+  }
+
+  .dayColumn {
+    flex-basis: 82vw;
+    min-height: 360px;
+  }
+
+  .dayHeader {
+    min-height: 56px;
+  }
+}

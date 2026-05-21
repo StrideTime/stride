@@ -700,3 +700,114 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 920px) {
+  .page,
+  .mainContent {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .mainContent {
+    grid-template-rows: none;
+    padding: var(--space-5) var(--space-4) calc(var(--space-6) + 76px + env(safe-area-inset-bottom));
+  }
+
+  .topBar,
+  .unscheduledPanel,
+  .layout {
+    padding-right: 0;
+    margin-right: 0;
+  }
+
+  .canvasShell {
+    max-height: calc(100dvh - 270px);
+    overflow: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .topBar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2);
+    align-items: center;
+    padding-right: 48px;
+  }
+
+  .topBar > :first-child {
+    min-width: 40px;
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
+  }
+
+  .topBar > :first-child span {
+    display: none;
+  }
+
+  .topBar > :nth-child(2) {
+    justify-self: stretch;
+  }
+
+  .topBar > :nth-child(3) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .unscheduledHeader {
+    display: grid;
+    gap: var(--space-2);
+    align-items: start;
+  }
+
+  .unscheduledList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .canvas {
+    min-width: 0;
+  }
+
+  .hourRow::before,
+  .hourRowOff::before,
+  .hourRow::after,
+  .hourRowOff::after,
+  .nowLine {
+    left: 64px;
+  }
+
+  .hourLabel {
+    left: var(--space-2);
+    width: 44px;
+    font-size: var(--text-xs);
+  }
+
+  .activeBlock {
+    min-height: 54px;
+  }
+
+  .resizeHandle,
+  .resizeHandleDisabled {
+    z-index: 80;
+    height: 22px;
+    pointer-events: auto;
+    opacity: 1;
+    touch-action: none;
+  }
+
+  .resizeHandleTop {
+    top: -6px;
+  }
+
+  .resizeHandleBottom {
+    bottom: -6px;
+  }
+
+  .resizeHandle::after,
+  .resizeHandleDisabled::after {
+    width: 46px;
+    height: 5px;
+    background: var(--color-accent);
+  }
+}

@@ -57,6 +57,41 @@ export function AppShell() {
   return (
     <div className={styles.shell}>
       {!isSettings ? (
+        <header className={styles.mobileHeader}>
+          <Popover
+            trigger={(
+              <>
+                <div className={styles.scopeMark}>S</div>
+                <div className={styles.scopeCopy}>
+                  <Typography size="sm" weight="semibold" color="inverse">Stride</Typography>
+                  <span className={styles.mobileScopeTeam}>Platform</span>
+                </div>
+                <CaretDown size={14} className={styles.caretIcon} aria-hidden="true" />
+              </>
+            )}
+            triggerClassName={styles.mobileScopeTrigger}
+            popupClassName={styles.menuPanel}
+          >
+            <div className={styles.menuSection}>
+              <button className={`${styles.menuItem} ${styles.workspaceItemSelected}`} type="button">
+                <span>
+                  <span className={styles.menuItemTitle}>Stride</span>
+                  <span className={styles.menuItemMeta}>Acme</span>
+                </span>
+              </button>
+              <button className={`${styles.menuItem} ${styles.teamItemSelected}`} type="button">
+                <span className={styles.menuItemTitle}>Platform</span>
+              </button>
+            </div>
+          </Popover>
+
+          <Link to="/settings" className={styles.mobileSettingsButton} aria-label="Open settings">
+            <Gear size={18} weight="bold" aria-hidden="true" />
+          </Link>
+        </header>
+      ) : null}
+
+      {!isSettings ? (
         <aside className={styles.rail}>
         <Popover
           trigger={(
@@ -194,6 +229,28 @@ export function AppShell() {
       <main className={styles.main}>
         <Outlet />
       </main>
+
+      {!isSettings ? (
+        <nav className={styles.mobileNav} aria-label="Primary">
+          {navItems.map(item => {
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={styles.mobileNavItem}
+                activeProps={{ className: `${styles.mobileNavItem} ${styles.mobileNavActive}` }}
+                activeOptions={{ exact: !item.children }}
+              >
+                <Icon size={19} weight="bold" aria-hidden="true" />
+                <span>{item.label}</span>
+                {item.badge ? <span className={styles.mobileBadge}>{item.badge}</span> : null}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
     </div>
   );
 }

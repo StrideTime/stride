@@ -221,7 +221,19 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
+  .budgetSummary {
+    padding-right: 0;
+  }
+
   .triggerDetail {
     grid-column: 1 / -1;
+  }
+
+  .budgetRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rowPercent {
+    grid-column: 2;
   }
 }

@@ -990,3 +990,42 @@
     align-items: start;
   }
 }
+
+@media (max-width: 640px) {
+  .actionRow,
+  .actionRowTeam,
+  .actionRowCompleted,
+  .actionRowTeamCompleted {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+
+  .actionRowTitle {
+    align-items: start;
+    white-space: normal;
+  }
+
+  .actionSpecId,
+  .ownerCell,
+  .statusCell,
+  .actionRowCtas {
+    justify-self: start;
+  }
+
+  .actionRowCtas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .actionRowCtas > * {
+    min-height: 38px;
+  }
+
+  .actionCtaPlaceholder {
+    display: none;
+  }
+}
