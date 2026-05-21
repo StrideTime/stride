@@ -8,22 +8,37 @@ import {
   Briefcase,
   CalendarDots,
   CaretDown,
+  CaretLeft,
+  CaretRight,
+  CheckCircle,
   Clock,
+  Database,
   GearSix,
   GithubLogo,
   House,
   LinkSimple,
-  LockKey,
+  MagnifyingGlass,
   PaintBrush,
   PlugsConnected,
   ShieldCheck,
   SlidersHorizontal,
+  Smiley,
+  SmileyMeh,
+  SmileySad,
+  Target,
+  Trash,
   User,
   UsersThree,
 } from '@phosphor-icons/react';
 import { Badge, Button, Popover, Select, TextInput, Typography } from '@stride/ui';
 
 import styles from './SettingsView.module.css';
+import {
+  captureRecords,
+  checkInRecords,
+  sessionRecords,
+  type Feeling,
+} from './yourData.mock';
 
 export type SettingsSectionId =
   | 'my-workspace'
@@ -34,7 +49,7 @@ export type SettingsSectionId =
   | 'account'
   | 'appearance'
   | 'personal-connections'
-  | 'privacy'
+  | 'your-data'
   | 'workspace-general'
   | 'workspace-connections'
   | 'workspace-members'
@@ -162,10 +177,10 @@ const groups: SettingsGroup[] = [
         icon: LinkSimple,
       },
       {
-        id: 'privacy',
-        label: 'Privacy',
-        description: 'Presence sharing inside Stride safety limits.',
-        icon: LockKey,
+        id: 'your-data',
+        label: 'Your data',
+        description: 'See, export, and delete everything Stride has captured about you.',
+        icon: Database,
       },
     ],
   },
@@ -379,8 +394,8 @@ function SectionContent({ section }: SectionContentProps) {
       return <AppearanceSection />;
     case 'personal-connections':
       return <PersonalConnectionsSection />;
-    case 'privacy':
-      return <PrivacySection />;
+    case 'your-data':
+      return <YourDataSection />;
     case 'workspace-general':
       return <WorkspaceGeneralSection />;
     case 'workspace-connections':
@@ -594,15 +609,488 @@ function PersonalConnectionsSection() {
   );
 }
 
-function PrivacySection() {
+const PAGE_SIZE = 12;
+
+type DataCategory = 'sessions' | 'checkins' | 'captures';
+
+const DATA_CATEGORIES: readonly DataCategory[] = ['sessions', 'checkins', 'captures'];
+
+const CATEGORY_LABEL: Record<DataCategory, string> = {
+  sessions: 'Sessions',
+  checkins: 'Check-ins',
+  captures: 'Captures',
+};
+
+const FEELING_META: Record<Feeling, { label: string; icon: typeof Smiley }> = {
+  frown: { label: 'Tough', icon: SmileySad },
+  neutral: { label: 'Okay', icon: SmileyMeh },
+  smile: { label: 'Good', icon: Smiley },
+  target: { label: 'On point', icon: Target },
+};
+
+const whenFormat = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+const sinceFormat = new Intl.DateTimeFormat('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+function formatWhen(iso: string) {
+  return whenFormat.format(new Date(iso));
+}
+
+function formatDuration(min: number) {
+  const hours = Math.floor(min / 60);
+  const minutes = min % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
+function GuaranteeNote({ body }: { body: string }) {
+  return (
+    <div className={styles.guaranteeNote}>
+      <ShieldCheck size={17} weight="fill" aria-hidden="true" />
+      <Typography as="p" size="sm" color="muted">{body}</Typography>
+    </div>
+  );
+}
+
+function FeelingTag({ feeling }: { feeling: Feeling | null }) {
+  if (!feeling) {
+    return <Typography as="span" size="xs" color="muted">Not logged</Typography>;
+  }
+  const meta = FEELING_META[feeling];
+  const Icon = meta.icon;
+  return (
+    <span className={styles.feelingTag}>
+      <Icon size={15} weight="fill" aria-hidden="true" />
+      <Typography as="span" size="xs" weight="semibold">{meta.label}</Typography>
+    </span>
+  );
+}
+
+type DataTableRow = {
+  id: string;
+  cells: ReactNode[];
+  confirmText: string;
+  deleteLabel: string;
+};
+
+type DataTableProps = {
+  columns: string[];
+  gridClass: string;
+  rows: DataTableRow[];
+  confirmId: string | null;
+  onConfirm: (id: string | null) => void;
+  onDelete: (id: string) => void;
+  emptyTitle: string;
+  emptyBody: string;
+};
+
+function DataTable({
+  columns,
+  gridClass,
+  rows,
+  confirmId,
+  onConfirm,
+  onDelete,
+  emptyTitle,
+  emptyBody,
+}: DataTableProps) {
+  if (rows.length === 0) {
+    return (
+      <div className={styles.dataEmpty}>
+        <Typography as="p" size="sm" weight="semibold">{emptyTitle}</Typography>
+        <Typography as="p" size="sm" color="muted">{emptyBody}</Typography>
+      </div>
+    );
+  }
+
+  const gridClassName = [styles.dataGrid, styles[gridClass]].filter(Boolean).join(' ');
+
+  return (
+    <div className={styles.dataTable} role="table">
+      <div className={`${styles.dataHead} ${gridClassName}`} role="row">
+        {columns.map(column => (
+          <Typography
+            as="span"
+            key={column}
+            size="xs"
+            weight="semibold"
+            color="muted"
+            className={styles.fieldLabel}
+          >
+            {column}
+          </Typography>
+        ))}
+        <span aria-hidden="true" />
+      </div>
+      {rows.map(row => (
+        confirmId === row.id ? (
+          <div className={styles.dataConfirm} key={row.id} role="row">
+            <Typography as="p" size="sm">{row.confirmText}</Typography>
+            <div className={styles.confirmActions}>
+              <Button size="sm" variant="ghost" onClick={() => onConfirm(null)}>Cancel</Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => {
+                  onDelete(row.id);
+                  onConfirm(null);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={`${styles.dataRow} ${gridClassName}`} key={row.id} role="row">
+            {row.cells.map((cell, index) => (
+              <div className={styles.dataCell} key={columns[index] ?? String(index)} role="cell">
+                {cell}
+              </div>
+            ))}
+            <button
+              aria-label={row.deleteLabel}
+              className={styles.rowDelete}
+              onClick={() => onConfirm(row.id)}
+              type="button"
+            >
+              <Trash size={15} aria-hidden="true" />
+            </button>
+          </div>
+        )
+      ))}
+    </div>
+  );
+}
+
+function YourDataSection() {
+  const [sessions, setSessions] = useState(sessionRecords);
+  const [checkins, setCheckins] = useState(checkInRecords);
+  const [captures, setCaptures] = useState(captureRecords);
+  const [category, setCategory] = useState<DataCategory>('sessions');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [dangerConfirm, setDangerConfirm] = useState<DataCategory | null>(null);
+  const [exportState, setExportState] = useState<'idle' | 'working' | 'done'>('idle');
+
+  const counts: Record<DataCategory, number> = {
+    sessions: sessions.length,
+    checkins: checkins.length,
+    captures: captures.length,
+  };
+  const totalCount = counts.sessions + counts.checkins + counts.captures;
+
+  const earliest = useMemo(() => {
+    const stamps = [
+      ...sessions.map(record => record.at),
+      ...checkins.map(record => record.at),
+      ...captures.map(record => record.at),
+    ];
+    if (stamps.length === 0) return null;
+    return stamps.reduce((min, at) => (at < min ? at : min));
+  }, [sessions, checkins, captures]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const allRows = useMemo<DataTableRow[]>(() => {
+    if (category === 'sessions') {
+      return sessions
+        .filter(record => normalizedQuery === ''
+          || record.actionTitle.toLowerCase().includes(normalizedQuery)
+          || (record.specKey?.toLowerCase().includes(normalizedQuery) ?? false))
+        .map(record => ({
+          id: record.id,
+          deleteLabel: `Delete session on ${record.actionTitle}`,
+          confirmText: 'Delete this session? Its logged time and check-in are removed with it.',
+          cells: [
+            <Typography key="when" as="span" size="sm" color="muted">{formatWhen(record.at)}</Typography>,
+            <span key="action" className={styles.titleCell}>
+              <Typography as="span" size="sm" weight="semibold" className={styles.truncate}>
+                {record.actionTitle}
+              </Typography>
+              {record.specKey
+                ? <span className={styles.specKey}>{record.specKey}</span>
+                : <Typography as="span" size="xs" color="muted">Personal</Typography>}
+            </span>,
+            <Typography key="duration" as="span" size="sm">{formatDuration(record.durationMin)}</Typography>,
+            <FeelingTag key="felt" feeling={record.feeling} />,
+          ],
+        }));
+    }
+    if (category === 'checkins') {
+      return checkins
+        .filter(record => normalizedQuery === ''
+          || record.note.toLowerCase().includes(normalizedQuery)
+          || record.onAction.toLowerCase().includes(normalizedQuery))
+        .map(record => ({
+          id: record.id,
+          deleteLabel: `Delete check-in from ${formatWhen(record.at)}`,
+          confirmText: 'Delete this check-in? The session it belongs to stays.',
+          cells: [
+            <Typography key="when" as="span" size="sm" color="muted">{formatWhen(record.at)}</Typography>,
+            <FeelingTag key="felt" feeling={record.feeling} />,
+            <span key="note" className={styles.noteCell}>
+              <Typography as="span" size="sm" className={styles.truncate}>
+                {record.note === '' ? 'No note left' : record.note}
+              </Typography>
+              <Typography as="span" size="xs" color="muted" className={styles.truncate}>
+                {`on ${record.onAction}`}
+              </Typography>
+            </span>,
+          ],
+        }));
+    }
+    return captures
+      .filter(record => normalizedQuery === ''
+        || record.text.toLowerCase().includes(normalizedQuery)
+        || record.kind.toLowerCase().includes(normalizedQuery))
+      .map(record => ({
+        id: record.id,
+        deleteLabel: `Delete capture from ${formatWhen(record.at)}`,
+        confirmText: 'Delete this capture?',
+        cells: [
+          <Typography key="when" as="span" size="sm" color="muted">{formatWhen(record.at)}</Typography>,
+          <Badge key="kind" variant={record.kind === 'Insight' ? 'accent' : 'neutral'}>{record.kind}</Badge>,
+          <Typography key="text" as="span" size="sm" className={styles.truncate}>{record.text}</Typography>,
+        ],
+      }));
+  }, [category, sessions, checkins, captures, normalizedQuery]);
+
+  const pageCount = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visibleRows = allRows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const rangeStart = allRows.length === 0 ? 0 : safePage * PAGE_SIZE + 1;
+  const rangeEnd = safePage * PAGE_SIZE + visibleRows.length;
+
+  const selectCategory = (next: DataCategory) => {
+    setCategory(next);
+    setQuery('');
+    setPage(0);
+    setConfirmId(null);
+  };
+
+  const updateQuery = (next: string) => {
+    setQuery(next);
+    setPage(0);
+    setConfirmId(null);
+  };
+
+  const deleteRow = (id: string) => {
+    if (category === 'sessions') setSessions(rows => rows.filter(record => record.id !== id));
+    else if (category === 'checkins') setCheckins(rows => rows.filter(record => record.id !== id));
+    else setCaptures(rows => rows.filter(record => record.id !== id));
+  };
+
+  const deleteAll = (target: DataCategory) => {
+    if (target === 'sessions') setSessions([]);
+    else if (target === 'checkins') setCheckins([]);
+    else setCaptures([]);
+    setDangerConfirm(null);
+    if (target === category) {
+      setPage(0);
+      setConfirmId(null);
+    }
+  };
+
+  const exportData = () => {
+    if (exportState === 'working') return;
+    setExportState('working');
+    window.setTimeout(() => {
+      const payload = JSON.stringify({ sessions, checkins, captures }, null, 2);
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'stride-your-data.json';
+      link.click();
+      URL.revokeObjectURL(url);
+      setExportState('done');
+    }, 850);
+  };
+
+  const columnsByCategory: Record<DataCategory, string[]> = {
+    sessions: ['When', 'Action', 'Duration', 'Felt'],
+    checkins: ['When', 'Felt', 'Note'],
+    captures: ['When', 'Kind', 'Note'],
+  };
+  const emptyByCategory: Record<DataCategory, [string, string]> = {
+    sessions: ['No sessions recorded', 'When you run a timed session it lands here, fully under your control.'],
+    checkins: ['No check-ins recorded', 'A check-in is the quick how-did-it-go you log when a session ends.'],
+    captures: ['No captures recorded', 'Captures are quick notes you take during a session with the capture shortcut.'],
+  };
+  const gridByCategory: Record<DataCategory, string> = {
+    sessions: 'gridSessions',
+    checkins: 'gridCheckins',
+    captures: 'gridCaptures',
+  };
+  const filteredEmpty = normalizedQuery !== '' && allRows.length === 0;
+
   return (
     <div className={styles.stack}>
       <div className={styles.formPanel}>
-        <ToggleRow title="Focus status" detail="Let teammates see when you are in deep work." defaultOn />
-        <ToggleRow title="Nudges" detail="Allow teammates to nudge blocked work assigned to you." defaultOn />
-        <ToggleRow title="Session notes" detail="Keep notes private by default." defaultOn />
+        <div className={styles.dataIntro}>
+          <Database size={22} weight="fill" aria-hidden="true" className={styles.dataIntroIcon} />
+          <div className={styles.panelHeader}>
+            <Typography as="h3" size="lg" weight="semibold">Everything Stride has captured</Typography>
+            <Typography as="p" size="sm" color="muted">
+              Your sessions, check-ins, and captures all live here. Read them, export them,
+              or delete any of them whenever you want. A delete is permanent and drops the
+              data from every Stride report at once.
+            </Typography>
+          </div>
+        </div>
+        <GuaranteeNote body="In team reports, individual session detail is never shown to anyone. That is built into how Stride works, not a setting you have to trust." />
       </div>
-      <SaveRow />
+
+      <div className={styles.dataTabs}>
+        {DATA_CATEGORIES.map(value => (
+          <button
+            aria-pressed={value === category}
+            className={value === category ? `${styles.dataTab} ${styles.dataTabActive}` : styles.dataTab}
+            key={value}
+            onClick={() => selectCategory(value)}
+            type="button"
+          >
+            {CATEGORY_LABEL[value]}
+            <span className={styles.dataTabCount}>{counts[value]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.dataToolbar}>
+        <Typography as="p" size="xs" color="muted">
+          {totalCount === 0
+            ? 'No records yet.'
+            : `${counts.sessions} sessions · ${counts.checkins} check-ins · ${counts.captures} captures${earliest ? ` · since ${sinceFormat.format(new Date(earliest))}` : ''}`}
+        </Typography>
+        <label className={styles.dataSearch}>
+          <MagnifyingGlass size={15} aria-hidden="true" />
+          <input
+            aria-label={`Search ${CATEGORY_LABEL[category].toLowerCase()}`}
+            onChange={event => updateQuery(event.target.value)}
+            placeholder={`Search ${CATEGORY_LABEL[category].toLowerCase()}`}
+            value={query}
+          />
+        </label>
+      </div>
+
+      <DataTable
+        columns={columnsByCategory[category]}
+        gridClass={gridByCategory[category]}
+        rows={visibleRows}
+        confirmId={confirmId}
+        onConfirm={setConfirmId}
+        onDelete={deleteRow}
+        emptyTitle={filteredEmpty ? `Nothing matches “${query.trim()}”` : emptyByCategory[category][0]}
+        emptyBody={filteredEmpty ? 'Try a different search.' : emptyByCategory[category][1]}
+      />
+
+      {allRows.length > 0 ? (
+        <div className={styles.dataFooter}>
+          <Typography as="span" size="xs" color="muted">
+            {`Showing ${rangeStart}–${rangeEnd} of ${allRows.length}`}
+          </Typography>
+          {pageCount > 1 ? (
+            <div className={styles.pager}>
+              <button
+                aria-label="Previous page"
+                className={styles.pagerButton}
+                disabled={safePage === 0}
+                onClick={() => setPage(value => Math.max(0, value - 1))}
+                type="button"
+              >
+                <CaretLeft size={14} aria-hidden="true" />
+              </button>
+              <Typography as="span" size="xs" color="muted">{`${safePage + 1} / ${pageCount}`}</Typography>
+              <button
+                aria-label="Next page"
+                className={styles.pagerButton}
+                disabled={safePage >= pageCount - 1}
+                onClick={() => setPage(value => Math.min(pageCount - 1, value + 1))}
+                type="button"
+              >
+                <CaretRight size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className={styles.formPanel}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">Export your data</Typography>
+          <Typography as="p" size="sm" color="muted">
+            Download every session, check-in, and capture as one JSON file.
+          </Typography>
+        </div>
+        <div className={styles.exportRow}>
+          <Button variant="secondary" onClick={exportData} disabled={exportState === 'working'}>
+            {exportState === 'working'
+              ? 'Preparing…'
+              : exportState === 'done'
+                ? 'Export again'
+                : 'Export everything (JSON)'}
+          </Button>
+          {exportState === 'done' ? (
+            <span className={styles.exportDone}>
+              <CheckCircle size={16} weight="fill" aria-hidden="true" />
+              <Typography as="span" size="sm" color="muted">Downloaded as stride-your-data.json</Typography>
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={`${styles.formPanel} ${styles.dangerPanel}`}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">Delete data</Typography>
+          <Typography as="p" size="sm" color="muted">
+            Remove a whole category at once. This cannot be undone.
+          </Typography>
+        </div>
+        <div className={styles.dangerList}>
+          {DATA_CATEGORIES.map(value => (
+            <div className={styles.dangerRow} key={value}>
+              {dangerConfirm === value ? (
+                <>
+                  <Typography as="span" size="sm">
+                    {`Delete all ${counts[value]} ${CATEGORY_LABEL[value].toLowerCase()}? This is permanent.`}
+                  </Typography>
+                  <div className={styles.confirmActions}>
+                    <Button size="sm" variant="ghost" onClick={() => setDangerConfirm(null)}>Cancel</Button>
+                    <Button size="sm" variant="danger" onClick={() => deleteAll(value)}>Delete all</Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className={styles.dangerLabel}>
+                    <Typography as="span" size="sm" weight="semibold">{CATEGORY_LABEL[value]}</Typography>
+                    <Typography as="span" size="xs" color="muted">
+                      {`${counts[value]} record${counts[value] === 1 ? '' : 's'}`}
+                    </Typography>
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={counts[value] === 0}
+                    onClick={() => setDangerConfirm(value)}
+                  >
+                    Delete all
+                  </Button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -625,7 +1113,10 @@ function WorkspaceGeneralSection() {
         </div>
       </div>
       <div className={styles.formPanel}>
-        <ToggleRow title="Aggregate insights only" detail="Workspace reports never expose individual session detail." defaultOn />
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">Aggregate insights only</Typography>
+        </div>
+        <GuaranteeNote body="Workspace and team reports only ever show aggregate patterns. Individual session detail is never exposed to admins or teammates. Stride enforces this; it is not a setting that can be turned off." />
       </div>
       <SaveRow />
     </div>

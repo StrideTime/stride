@@ -1439,3 +1439,312 @@
     align-items: start;
   }
 }
+
+/* Your data surface */
+
+.dataIntro {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.dataIntroIcon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-accent);
+}
+
+.guaranteeNote {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+.guaranteeNote svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--color-accent);
+}
+
+.dataTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.dataTab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.dataTab:hover {
+  color: var(--color-text);
+}
+.dataTabActive,
+.dataTabActive:hover {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+.dataTabCount {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.dataTabActive .dataTabCount {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.dataToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.dataSearch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 220px;
+  padding: 6px var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  transition: border-color 120ms ease;
+}
+.dataSearch:focus-within {
+  border-color: var(--color-accent);
+}
+.dataSearch input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  outline: none;
+}
+.dataSearch input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.dataTable {
+  overflow-x: auto;
+  background: var(--color-surface);
+}
+.dataGrid {
+  display: grid;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 520px;
+}
+.gridSessions {
+  grid-template-columns: 128px minmax(0, 1fr) 78px 96px 30px;
+}
+.gridCheckins {
+  grid-template-columns: 128px 96px minmax(0, 1fr) 30px;
+}
+.gridCaptures {
+  grid-template-columns: 128px 84px minmax(0, 1fr) 30px;
+}
+.dataHead {
+  padding: var(--space-2) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+.dataRow {
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 120ms ease;
+}
+.dataRow:hover {
+  background: var(--color-surface-raised);
+}
+.dataCell {
+  min-width: 0;
+}
+
+.titleCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.specKey {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: var(--text-xs);
+}
+.noteCell {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.truncate {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.feelingTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.feelingTag svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.rowDelete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.rowDelete:hover {
+  background: var(--color-attention-danger-bg);
+  color: var(--color-danger);
+}
+
+.dataConfirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-attention-danger-bg);
+}
+.confirmActions {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.dataEmpty {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  padding: var(--space-10) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+}
+.dataEmpty p:last-child {
+  max-width: 44ch;
+}
+
+.dataFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.pagerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+.pagerButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.pagerButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.exportRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+.exportDone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.exportDone svg {
+  flex: none;
+  color: var(--color-success);
+}
+
+.dangerPanel {
+  border-bottom: 0;
+}
+.dangerList {
+  display: grid;
+  gap: var(--space-2);
+}
+.dangerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.dangerLabel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}

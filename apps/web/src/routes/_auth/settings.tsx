@@ -11,7 +11,7 @@ const settingsSectionIds = [
   'account',
   'appearance',
   'personal-connections',
-  'privacy',
+  'your-data',
   'workspace-general',
   'workspace-connections',
   'workspace-members',
