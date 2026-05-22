@@ -16,7 +16,6 @@ import {
 } from '@dnd-kit/core';
 import {
   CalendarBlankIcon,
-  CaretLeftIcon,
   CoffeeIcon,
   DotsSixVerticalIcon,
   PlusIcon,
@@ -25,9 +24,9 @@ import {
   TrayIcon,
 } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
-import { Button, Typography } from '@stride/ui';
+import { Typography } from '@stride/ui';
 
-import { ScheduleBudgetSummary } from './ScheduleBudgetSummary';
+import { useAppMode } from '../app-mode';
 import {
   formatTime,
   MiniWeekStrip,
@@ -80,7 +79,11 @@ export function ScheduleDayView({
   selectedBlockId?: string;
   view: 'schedule' | 'sessions';
 }) {
-  const [mode, setMode] = useState<ScheduleMode>(view === 'sessions' ? 'actual' : 'plan');
+  const { mode: appMode } = useAppMode();
+  const scheduleFirst = appMode === 'schedule-first';
+  const [mode, setMode] = useState<ScheduleMode>(
+    scheduleFirst ? 'plan' : view === 'sessions' ? 'actual' : 'plan'
+  );
   const navigate = useNavigate();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const canvasShellRef = useRef<HTMLDivElement>(null);
@@ -102,26 +105,23 @@ export function ScheduleDayView({
   const scheduleBlocks = mode === 'plan' ? plannedScheduleBlocks : actualScheduleBlocks;
   const contextScheduleBlocks = mode === 'plan' ? actualScheduleBlocks : plannedScheduleBlocks;
   const activeBlocks = useMemo(
-    () => scheduleBlocks.filter(block => block.date === date && block.startMin !== undefined),
+    () => scheduleBlocks.filter(block => block.date === date),
     [date, scheduleBlocks]
   );
   const contextBlocks = useMemo(
-    () => contextScheduleBlocks.filter(block => block.date === date && block.startMin !== undefined),
+    () => contextScheduleBlocks.filter(block => block.date === date),
     [contextScheduleBlocks, date]
   );
   const activeBlockLayouts = layoutScheduleBlocks(activeBlocks);
   const contextBlockLayouts = layoutScheduleBlocks(contextBlocks);
-  const unscheduledBlocks = useMemo(
-    () => scheduleBlocks.filter(block => block.date === date && block.startMin === undefined),
-    [date, scheduleBlocks]
-  );
-  const budgetPeriod = useMemo(() => getWeekPeriod(date), [date]);
 
   function handleDayChange(dayOffset: number) {
     navigate({
-      to: '/schedule/day/$date',
-      params: { date: toDateKey(addDays(parseDateKey(date), dayOffset)) },
-      search: { view: mode === 'actual' ? 'sessions' : 'schedule' },
+      to: '/schedule',
+      search: {
+        date: toDateKey(addDays(parseDateKey(date), dayOffset)),
+        view: mode === 'actual' ? 'sessions' : 'schedule',
+      },
     });
   }
 
@@ -130,9 +130,8 @@ export function ScheduleDayView({
     setSelectedBlock(null);
     setNewBlockTitleFocusId(null);
     navigate({
-      to: '/schedule/day/$date',
-      params: { date },
-      search: { view: nextMode === 'actual' ? 'sessions' : 'schedule' },
+      to: '/schedule',
+      search: { date, view: nextMode === 'actual' ? 'sessions' : 'schedule' },
       replace: true,
     });
   }
@@ -140,9 +139,9 @@ export function ScheduleDayView({
   function handleSelectBlock(block: SelectedScheduleBlock) {
     setSelectedBlock(block);
     navigate({
-      to: '/schedule/day/$date',
-      params: { date },
+      to: '/schedule',
       search: {
+        date,
         view: mode === 'actual' ? 'sessions' : 'schedule',
         blockId: block.id,
       },
@@ -154,9 +153,8 @@ export function ScheduleDayView({
     setSelectedBlock(null);
     setNewBlockTitleFocusId(null);
     navigate({
-      to: '/schedule/day/$date',
-      params: { date },
-      search: { view: mode === 'actual' ? 'sessions' : 'schedule' },
+      to: '/schedule',
+      search: { date, view: mode === 'actual' ? 'sessions' : 'schedule' },
       replace: true,
     });
   }
@@ -178,8 +176,8 @@ export function ScheduleDayView({
   }, [date, selectedBlockId]);
 
   useEffect(() => {
-    setMode(view === 'sessions' ? 'actual' : 'plan');
-  }, [view]);
+    setMode(scheduleFirst ? 'plan' : view === 'sessions' ? 'actual' : 'plan');
+  }, [scheduleFirst, view]);
 
   useEffect(() => {
     if (!selectedBlockId) {
@@ -191,17 +189,8 @@ export function ScheduleDayView({
     if (visibleBlock) {
       setSelectedBlock({ ...visibleBlock, layer: mode });
       scrollBlockIntoFocus(visibleBlock, canvasShellRef.current);
-      return;
     }
-
-    const unscheduledBlock = scheduleBlocks.find(item => (
-      item.id === selectedBlockId && item.date === date && item.startMin === undefined
-    ));
-
-    if (unscheduledBlock) {
-      setSelectedBlock({ ...unscheduledBlock, layer: mode });
-    }
-  }, [activeBlocks, date, mode, scheduleBlocks, selectedBlockId]);
+  }, [activeBlocks, mode, selectedBlockId]);
 
   useEffect(() => {
     if (!activeDrag && !activeGenericDrag) {
@@ -241,11 +230,6 @@ export function ScheduleDayView({
 
     const block = data.block as ScheduleBlock;
     setDraggingBlockId(block.id);
-
-    if (block.startMin === undefined) {
-      dragOffsetMinRef.current = 0;
-      return;
-    }
 
     dragOffsetMinRef.current = Math.max(
       0,
@@ -388,10 +372,6 @@ export function ScheduleDayView({
   }
 
   function handleResize(block: ScheduleBlock, edge: 'start' | 'end', pointerDeltaY: number) {
-    if (block.startMin === undefined) {
-      return;
-    }
-
     if (!resizeStateRef.current || resizeStateRef.current.blockId !== block.id) {
       resizeStateRef.current = {
         blockId: block.id,
@@ -516,15 +496,6 @@ export function ScheduleDayView({
       <section className={styles.page}>
         <div className={styles.mainContent}>
           <div className={styles.topBar}>
-            <Button
-              size="sm"
-              variant="secondary"
-              aria-label="Back to week"
-              icon={<CaretLeftIcon size={15} />}
-              onClick={() => navigate({ to: '/schedule' })}
-            >
-              Back
-            </Button>
             <ScheduleDateNavigator
               label={formatDateSelectorLabel(date)}
               previousLabel="Previous day"
@@ -532,26 +503,16 @@ export function ScheduleDayView({
               selectedDate={date}
               onPrevious={() => handleDayChange(-1)}
               onNext={() => handleDayChange(1)}
-              onSelectDate={nextDate => navigate({ to: '/schedule/day/$date', params: { date: nextDate } })}
+              onSelectDate={nextDate => navigate({
+                to: '/schedule',
+                search: { date: nextDate, view: mode === 'actual' ? 'sessions' : 'schedule' },
+              })}
             />
-            <ModeToggle mode={mode} onModeChange={handleModeChange} />
+            {!scheduleFirst ? (
+              <ModeToggle mode={mode} onModeChange={handleModeChange} />
+            ) : null}
           </div>
-          <MiniWeekStrip selectedDate={date} />
-          <ScheduleBudgetSummary
-            mode={mode}
-            plannedBlocks={plannedScheduleBlocks}
-            actualBlocks={actualScheduleBlocks}
-            periodStart={budgetPeriod.start}
-            periodEnd={budgetPeriod.end}
-            visibleDate={date}
-            compact
-          />
-          <UnscheduledDayBlocks
-            blocks={unscheduledBlocks}
-            mode={mode}
-            selectedBlock={selectedBlock}
-            onSelectBlock={handleSelectBlock}
-          />
+          <MiniWeekStrip selectedDate={date} viewParam={mode === 'actual' ? 'sessions' : 'schedule'} />
           <DayCanvas
             mode={mode}
             canvasRef={canvasRef}
@@ -625,50 +586,6 @@ type DropPreview = {
   startMin: number;
   durationMin: number;
 };
-
-function UnscheduledDayBlocks({
-  blocks,
-  mode,
-  selectedBlock,
-  onSelectBlock,
-}: {
-  blocks: ScheduleBlock[];
-  mode: ScheduleMode;
-  selectedBlock: SelectedScheduleBlock | null;
-  onSelectBlock: (block: SelectedScheduleBlock) => void;
-}) {
-  if (!blocks.length) {
-    return null;
-  }
-
-  return (
-    <section className={styles.unscheduledPanel} aria-label="Unscheduled blocks for this day">
-      <div className={styles.unscheduledHeader}>
-        <Typography size="xs" color="muted" weight="semibold">
-          Planned for this day
-        </Typography>
-        <Typography size="xs" color="muted">
-          Not placed on the timeline yet
-        </Typography>
-      </div>
-      <div className={styles.unscheduledList}>
-        {blocks.map(block => (
-          <ScheduleBlockCard
-            key={block.id}
-            block={block}
-            layer={mode}
-            selected={selectedBlock?.id === block.id}
-            compact
-            allowTiny={false}
-            timeFormat="durationAware"
-            draggable={mode === 'plan'}
-            onSelect={onSelectBlock}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
 
 type ResizeState = {
   blockId: string;
@@ -763,7 +680,7 @@ function DayCanvas({
               key={block.id}
               className={styles.contextBlock}
               style={{
-                ...contextBlockStyle(block.startMin ?? 0, block.durationMin, column),
+                ...contextBlockStyle(block.startMin, block.durationMin, column),
               }}
             >
               <ScheduleGhostBlock block={block} layer={mode === 'plan' ? 'actual' : 'plan'} />
@@ -777,8 +694,8 @@ function DayCanvas({
                 block.durationMin <= 15 ? styles.activeBlockMicro : null,
                 block.id === draggingBlockId && dropPreview ? styles.activeBlockDragging : null,
               ].filter(Boolean).join(' ') }
-              style={{ 
-                ...blockStyle(block.startMin ?? 0, block.durationMin),
+              style={{
+                ...blockStyle(block.startMin, block.durationMin),
                 ...columnStyle(column, columnCount),
               }}
             >
@@ -1018,10 +935,6 @@ function ScheduleGhostBlock({ block, layer }: { block: ScheduleBlock; layer: Sch
 }
 
 function formatGhostBlockTime(block: ScheduleBlock) {
-  if (block.startMin === undefined) {
-    return 'Unscheduled';
-  }
-
   return `${formatTime(block.startMin)}–${formatTime(block.startMin + block.durationMin)}`;
 }
 
@@ -1153,14 +1066,6 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function getWeekPeriod(date: string) {
-  const selected = parseDateKey(date);
-  const start = addDays(selected, -selected.getDay());
-  const end = addDays(start, 6);
-
-  return { start: toDateKey(start), end: toDateKey(end) };
-}
-
 function formatDateSelectorLabel(date: string) {
   return parseDateKey(date).toLocaleDateString('en-US', {
     weekday: 'short',
@@ -1224,7 +1129,7 @@ function getGenericBlockIcon(type: GenericBlockType) {
 }
 
 function scrollBlockIntoFocus(block: ScheduleBlock, canvasShell: HTMLDivElement | null) {
-  if (!canvasShell || block.startMin === undefined) {
+  if (!canvasShell) {
     return;
   }
 
@@ -1284,14 +1189,14 @@ function columnStyle(column: number, columnCount: number) {
 }
 
 function layoutScheduleBlocks(blocks: ScheduleBlock[]) {
-  const sortedBlocks = [...blocks].sort((left, right) => (left.startMin ?? 0) - (right.startMin ?? 0));
+  const sortedBlocks = [...blocks].sort((left, right) => left.startMin - right.startMin);
   const groups: ScheduleBlock[][] = [];
 
   sortedBlocks.forEach(block => {
-    const startMin = block.startMin ?? 0;
+    const startMin = block.startMin;
     const lastGroup = groups.at(-1);
     const lastGroupEndMin = lastGroup
-      ? Math.max(...lastGroup.map(item => (item.startMin ?? 0) + item.durationMin))
+      ? Math.max(...lastGroup.map(item => item.startMin + item.durationMin))
       : 0;
 
     if (!lastGroup || startMin >= lastGroupEndMin) {
@@ -1305,7 +1210,7 @@ function layoutScheduleBlocks(blocks: ScheduleBlock[]) {
   return groups.flatMap(group => {
     const columnEndTimes: number[] = [];
     const layouts = group.map(block => {
-      const startMin = block.startMin ?? 0;
+      const startMin = block.startMin;
       const reusableColumn = columnEndTimes.findIndex(endMin => endMin <= startMin);
       const column = reusableColumn === -1 ? columnEndTimes.length : reusableColumn;
 
