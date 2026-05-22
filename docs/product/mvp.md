@@ -50,9 +50,8 @@ Execution before reflection. Each step ships incrementally:
    note → mark-done-or-keep-open. The core capture mechanism and the moment of trust
    transfer. Currently a placeholder; it is the first thing to make real.
 2. **Spec view with real Actions** — Action CRUD, estimates, done-state. Not a placeholder.
-3. **Schedule** — both modes; possibly simplified from the current week/day ambition (see
-   below), but in v1.
-4. **Today + Tray** — simplified (Today to one dominant question; Tray idle + live-session).
+3. **Schedule** — a single day view, both modes (see below), in v1.
+4. **Today + Tray** — Today as two mode variants; Tray idle + live-session.
 5. **"My data" view** in Settings — and **Jira one-way sync** so real specs flow in.
 
 ## In v1
@@ -68,13 +67,14 @@ Execution before reflection. Each step ships incrementally:
   title + estimate + done-state + relationship to time. No status workflow, no assignee,
   no source-mapped status. Project management lives in Jira; Actions make the *execution*
   of work captureable.
-- **Schedule** — week + day views, **both time-accounting modes** as a personal setting.
-  May ship simplified from the current spec (see Schedule note in
-  [`surfaces.md`](surfaces.md)); the surface itself is in v1 because both dogfood users
-  need it.
-- **Today** — radically simplified to **one dominant question** ("what's next"), with a
-  secondary compact schedule and a tertiary changed-since-yesterday count. Not the current
-  four-jobs-at-once dashboard. See [`surfaces.md`](surfaces.md).
+- **Schedule** — a **single day view** (`/schedule`, date as `?date=`): one 24-hour
+  canvas, no week view, no untimed day-assignments, no TimeBudget UI (simplified
+  2026-05-21). The Plan/Sessions toggle is session-first only. In v1 because both dogfood
+  users need it. See [`surfaces.md`](surfaces.md).
+- **Today** — two mode variants behind one route: session-first (`SessionToday`) centers
+  on a hero (next Action → live timer → check-in) plus a compact "Later today";
+  schedule-first (`ScheduleToday`) is the day timeline with a day-at-a-glance summary. Not
+  the old four-panel dashboard. See [`surfaces.md`](surfaces.md).
 - **Tray** — idle + live-session states (web demo is fine for v1; the Tauri shell can
   trail).
 - **"My data" view** — in Settings. The user can see and delete their captured data:
