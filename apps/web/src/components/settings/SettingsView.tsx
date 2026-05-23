@@ -32,6 +32,7 @@ import {
 } from '@phosphor-icons/react';
 import { Badge, Button, Popover, Select, TextInput, Typography } from '@stride/ui';
 
+import { useAppMode, type AppMode } from '../app-mode';
 import styles from './SettingsView.module.css';
 import {
   captureRecords,
@@ -412,9 +413,9 @@ function SectionContent({ section }: SectionContentProps) {
 }
 
 function MyWorkspaceSection() {
+  const { mode, setMode } = useAppMode();
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
-  const [trackingMode, setTrackingMode] = useState('sessions');
   const [timezone, setTimezone] = useState('America/Denver');
 
   return (
@@ -453,12 +454,12 @@ function MyWorkspaceSection() {
       </div>
 
       <ChoicePanel
-        title="Time tracking source"
-        value={trackingMode}
-        onChange={setTrackingMode}
+        title="Working mode"
+        value={mode}
+        onChange={value => setMode(value as AppMode)}
         options={[
-          ['schedule', 'Schedule-based', 'Past scheduled action blocks count as worked time until adjusted.'],
-          ['sessions', 'Session-based', 'Actual time comes from explicit start and stop sessions.'],
+          ['session-first', 'Session-first', 'You start and stop timed sessions. Recorded sessions are the source of truth for time spent, and Today centers on what to run next.'],
+          ['schedule-first', 'Schedule-first', 'You plan your day on the calendar. Planned blocks count as worked time as the day plays out, and Today shows the day timeline.'],
         ]}
       />
 

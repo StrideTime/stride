@@ -1,6 +1,6 @@
 ---
 title: What Stride is
-updated: 2026-05-14
+updated: 2026-05-21
 status: draft
 owner: jaren
 ---
@@ -37,7 +37,7 @@ v1 is the execution-layer foundation — nothing more. Future versions add the s
 
 ## User modes
 
-There are two ways people relate to their day, and they are **irreconcilable** — not a setting to compromise on, but a mode to commit to, picked at onboarding, after which navigation and defaults shift to match:
+There are two ways people relate to their day, and they are **irreconcilable** — not a preference to compromise on, but a mode to commit to. It is an app-wide, account-level **working mode** (an `AppMode` context; changed in Settings today, set at onboarding once that exists), and Today's whole layout and the Schedule's defaults shift to match:
 
 - **Session-first / explicit-sessions.** The calendar is a planning *guide*; recorded **Sessions are the source of truth** for actual time. Today leads with a prominent Start affordance; feeling check-ins happen at session end; the Tray shows the timer.
 - **Schedule-first / planned-time.** The **Schedule is the source of truth**; planned blocks count as time worked as the day plays out. Today *is* the day view with the current block highlighted; feeling check-ins happen at end-of-block; the Tray shows the current block. (Schedule-first has an inherent privacy advantage — plans are intentional and don't trigger the surveillance instinct that logged time can.)

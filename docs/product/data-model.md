@@ -1,6 +1,6 @@
 ---
 title: Data model (conceptual)
-updated: 2026-05-19
+updated: 2026-05-21
 status: draft
 owner: jaren
 ---
@@ -20,8 +20,7 @@ Workspace (tenant — solo or team; RLS-isolated)
   │                       └── Session   actual timed work on an Action
   ├── ScheduledEventType    category for planned/actual calendar time; seeded defaults + user custom types
   ├── ScheduledEvent        planned time block; may point to an Action or be generic/external
-  ├── TimeBudget            optional duration goals for selected ScheduledEventTypes
-  └── ActionDayAssignment   untimed intent to work on an Action on a specific day
+  └── TimeBudget            optional duration goals for selected ScheduledEventTypes
 
 Standalone Action — no parent Spec; a personal task (title + estimate only)
   └── Session
@@ -77,11 +76,14 @@ Actual timed work against an Action. Sessions are execution/history, not plannin
 - on end: `feeling` (icons: frown / neutral / smile / target), `note` (optional free text), `markDone` (whether it also closed the Action)
 - the variance nudge surfaces only when `elapsedMin` ≳ 1.5–2× `action.estimateMin`
 
-> **v1 scope note.** The next three entities — **ScheduledEventType** (customization),
-> **TimeBudget**, and **ActionDayAssignment** — are the elaborate planning/budgeting model
-> and are **deferred from MVP** ([`mvp.md`](mvp.md)). v1 Schedule uses a minimal fixed set
-> of block types and no budgets. The conceptual model below stays here as the spec for
-> when this layer returns post-MVP.
+> **v1 scope note (updated 2026-05-21).** **ScheduledEventType** customization and
+> **TimeBudget** are the elaborate planning/budgeting model and are **deferred from MVP**
+> ([`mvp.md`](mvp.md)) — v1 Schedule uses a minimal fixed set of block types and no
+> budgets. **ActionDayAssignment was cut entirely** when the Schedule became a single day
+> view: every scheduled block has a real start time, so "intend to work on this Action
+> today, unplaced" no longer exists as a concept. The ScheduledEventType / TimeBudget model
+> below is the post-MVP spec; the ActionDayAssignment slot is kept only to record the
+> removal.
 
 ### ScheduledEventType
 A category for schedule blocks and time insights. Accounts are seeded with default types, and users can add or modify the types they use.
@@ -132,17 +134,12 @@ Rules:
 - Budget reporting uses the same planned-vs-actual source-of-truth behavior as the user's time-accounting mode and the active Schedule view.
 - If a referenced ScheduledEventType is archived, historical budget records keep the reference, but active budget editing hides/removes that target going forward.
 
-### ActionDayAssignment
-Untimed intent to work on an Action on a specific day. This is used by the week planning overview and scheduling tray before exact time placement.
-- `actionId`
-- `date`
-- `userId`
-
-Rules:
-- Assignments are day-specific, not week-level.
-- Dragging an Action onto a week day creates or updates an ActionDayAssignment.
-- Dragging an Action-linked timed block to another day in week view removes the exact time and creates an ActionDayAssignment for the target day.
-- A timed ScheduledEvent is created only when work is placed on the day canvas.
+### ActionDayAssignment — removed 2026-05-21
+**Cut entirely.** This was an untimed intent to work on an Action on a specific day, used
+by the (now removed) week overview and the tray before exact time placement. The Schedule
+simplification — a single day view where every block has a real start time — removed the
+concept. Untimed day-level intent now lives as **ordering in the Backlog**, not as a
+schedule entity. This slot is kept only so the removal is traceable.
 
 ### User / membership
 Not modeled in the prototype (it keys everything on a display name and maps names → avatar colors). The real model needs: User, and a Membership joining User × Workspace (and User × Team) with a `role` (Member / Team Admin / Workspace Admin — additive). Auth is Better Auth; tenant isolation is Postgres RLS via session context.
@@ -179,14 +176,14 @@ Calendar connections are personal, not workspace-pooled. A user may authorize a 
 ## Planning, actuals, and capacity
 
 Schedule has two layers:
-- **Plan** — ScheduledEvents plus ActionDayAssignments in the tray.
+- **Plan** — ScheduledEvents. The tray lists Actions still to place.
 - **Actual** — Sessions.
 
-Plan and Actual can be compared visually, but they remain distinct model concepts. In Plan mode, ScheduledEvents are active/editable and Sessions may be shown as click-through context. In Actual mode, Sessions are active/editable and ScheduledEvents may be shown as click-through context.
+Plan and Actual can be compared visually, but they remain distinct model concepts. In Plan mode, ScheduledEvents are active/editable and Sessions may be shown as click-through context. In Actual mode, Sessions are active/editable and ScheduledEvents may be shown as click-through context. The Plan/Actual comparison is a **session-first** affordance; in schedule-first mode there is only the Plan layer.
 
-Time accounting is a team-default preference with optional individual override if the team allows it:
-- **Planned-time / YOLO mode** — when the user plans blocks and the day plays out, planned schedule time automatically counts toward time spent.
-- **Explicit sessions mode** — the schedule is a guide; recorded Sessions are the source of truth for actual time.
+Time accounting follows the user's **Working mode** — a personal, account-level setting, not a team default and with no admin override gate (see [`overview.md`](overview.md) → User modes and [`principles.md`](principles.md)):
+- **Schedule-first (planned-time)** — planned schedule time counts toward time spent as the day plays out.
+- **Session-first (explicit sessions)** — the schedule is a guide; recorded Sessions are the source of truth for actual time.
 
 Budgets and insights follow the selected accounting mode. The `actions` schedule type is budgeted/accounted for like any other type; action-linked details do not create a separate budget rule.
 
@@ -236,4 +233,4 @@ schema is not.
 
 ## Open model questions
 
-Tracked in [`open-questions.md`](open-questions.md): Do "Later" / "Snoozed" / "Archive" collapse to fewer states? How are labels/tags grouped ("feature within a project")? Default teammate visibility (load-only vs full Today)? What signal does Stride capture about *what* the developer is doing inside a Session (git correlation)? Final DB representation for ScheduledEvent recurrence/exceptions and ActionDayAssignment still needs schema design. *(Q3 — "is an Action ever 1:1 with a source issue" — resolved 2026-05-21: see the Action entity above.)*
+Tracked in [`open-questions.md`](open-questions.md): Do "Later" / "Snoozed" / "Archive" collapse to fewer states? How are labels/tags grouped ("feature within a project")? Default teammate visibility (load-only vs full Today)? What signal does Stride capture about *what* the developer is doing inside a Session (git correlation)? Final DB representation for ScheduledEvent recurrence/exceptions still needs schema design. *(Q3 — "is an Action ever 1:1 with a source issue" — resolved 2026-05-21: see the Action entity above.)*

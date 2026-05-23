@@ -16,7 +16,7 @@ Read this page first. It routes you to the one file you need; don't grep the rep
 - [`product/overview.md`](product/overview.md) — what Stride is, the conceptual model, the long-term vision, user modes, who it's for, platforms. **Start here.**
 - [`product/principles.md`](product/principles.md) — the non-negotiable commitments: the purpose, the "is the data theirs?" test, privacy as a data-integrity requirement. **Read before designing any surface.**
 - [`product/glossary.md`](product/glossary.md) — spec, action, session, break down, workspace, team, source, roles. The vocabulary, pinned.
-- [`product/surfaces.md`](product/surfaces.md) — the screens: Today, Backlog, Schedule, Insights, Tray, Spec modal. What each does, key elements, states.
+- [`product/surfaces.md`](product/surfaces.md) — the screens: Today (two mode variants), Backlog, Schedule (single day view), Tray, Spec view. What each does, key elements, states. (Insights is deferred from v1.)
 - [`product/backlog.md`](product/backlog.md) — Backlog-specific product and design brief for production implementation and `$impeccable live` iteration.
 - [`product/data-model.md`](product/data-model.md) — Spec → Action → Session, standalone Actions, the source-mapping table. Conceptual model (the DB schema lives in code).
 - [`product/mvp.md`](product/mvp.md) — the v1 cut line: the thin execution loop, build order, what's deferred. *(re-cut 2026-05-21)*

@@ -891,7 +891,7 @@ export function ScheduleBlockCard({
         <span className={styles.blockTitle} title={block.title}>{block.title}</span>
       )}
       <span className={styles.blockBottomRow}>
-        <span className={block.startMin === undefined ? styles.blockTimeUnscheduled : styles.blockTimeRow}>
+        <span className={styles.blockTimeRow}>
           <span>{formatBlockTimeLabel(block, timeFormat)}</span>
           {showDuration && block.durationMin >= 45 ? (
             <span className={styles.blockDuration}> · {formatDuration(block.durationMin)}</span>
@@ -920,7 +920,13 @@ export function ScheduleBlockCard({
   );
 }
 
-export function MiniWeekStrip({ selectedDate }: { selectedDate: string }) {
+export function MiniWeekStrip({
+  selectedDate,
+  viewParam = 'schedule',
+}: {
+  selectedDate: string;
+  viewParam?: 'schedule' | 'sessions';
+}) {
   const displayDays = getDisplayWeekDays(selectedDate);
 
   return (
@@ -929,7 +935,7 @@ export function MiniWeekStrip({ selectedDate }: { selectedDate: string }) {
         <a
           key={day.date}
           className={day.date === selectedDate ? styles.miniDayActive : styles.miniDay}
-          href={`/schedule/day/${day.date}`}
+          href={`/schedule?date=${day.date}&view=${viewParam}`}
         >
           <Typography size="sm" color="muted">{day.label}</Typography>
           <Typography size="base" weight="bold">{day.dayNumber}</Typography>
@@ -1022,6 +1028,7 @@ export function toScheduleBlock(action: ScheduleAction, date: string): ScheduleB
     date,
     title: action.title,
     type: 'action',
+    startMin: 540,
     durationMin: 60,
     actionId: action.id,
     sourceKey: action.sourceKey,
@@ -1118,10 +1125,6 @@ function formatEventType(type: ScheduleBlock['type']) {
 }
 
 function formatBlockTime(block: ScheduleBlock) {
-  if (block.startMin === undefined) {
-    return 'Unscheduled';
-  }
-
   return `${formatTime(block.startMin)}–${formatTime(block.startMin + block.durationMin)}`;
 }
 
@@ -1129,10 +1132,6 @@ function formatBlockTimeLabel(
   block: ScheduleBlock,
   timeFormat: 'range' | 'start' | 'durationAware'
 ) {
-  if (block.startMin === undefined) {
-    return 'Unscheduled';
-  }
-
   if (timeFormat === 'start' || (timeFormat === 'durationAware' && block.durationMin < 45)) {
     return formatTime(block.startMin);
   }
