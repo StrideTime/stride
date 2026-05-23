@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useSpecs } from '../../specs';
 import { ActionList } from './components/ActionList/ActionList';
 import { Controls } from '../components/Controls/Controls';
 import { Header } from '../components/Header/Header';
@@ -12,13 +13,14 @@ import styles from './ActionsPage.module.css';
 
 export function ActionsPage(_props: ActionsPageProps) {
   const { t } = useTranslation();
+  const { specs } = useSpecs();
   const [activeView, setActiveView] = useState<BacklogView>('next');
   const [actionScope, setActionScope] = useState<ActionScope>('mine');
   const viewCopy = getViewCopy(t, activeView);
   const effectiveActionScope = activeView === 'next' ? 'mine' : actionScope;
   const actionRows = useMemo(
-    () => getVisibleActions(activeView, effectiveActionScope, defaultBacklogFilters),
-    [activeView, effectiveActionScope],
+    () => getVisibleActions(specs, activeView, effectiveActionScope, defaultBacklogFilters),
+    [specs, activeView, effectiveActionScope],
   );
 
   return (

@@ -62,7 +62,8 @@
   color: var(--color-text);
 }
 
-.sourceKey {
+.sourceKey,
+.sourceKeyLink {
   flex: none;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
@@ -70,6 +71,27 @@
   color: var(--color-text-muted);
   font-family: 'Fira Code', ui-monospace, monospace;
   font-size: var(--text-xs);
+}
+
+.sourceKeyLink {
+  text-decoration: none;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.sourceKeyLink:hover {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.heroSpecLink {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.heroSpecLink:hover {
+  color: var(--color-accent);
 }
 
 .runningEyebrow {

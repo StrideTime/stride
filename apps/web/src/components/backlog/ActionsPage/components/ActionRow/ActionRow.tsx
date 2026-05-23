@@ -1,4 +1,5 @@
 import { CheckCircle } from '@phosphor-icons/react';
+import { Link } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,7 +35,13 @@ export function ActionRow({ action, scope, view }: ActionRowProps) {
         )}
         <span>{action.title}</span>
       </div>
-      <code className={styles.actionSpecId}>{action.spec.sourceKey}</code>
+      <Link
+        className={styles.actionSpecId}
+        to="/specs/$specId"
+        params={{ specId: action.spec.id }}
+      >
+        {action.spec.sourceKey}
+      </Link>
       {scope === 'team' ? (
         <div className={styles.ownerCell}>
           <AssigneeAvatar

@@ -3,12 +3,14 @@
 
 export type Feeling = 'frown' | 'neutral' | 'smile' | 'target';
 
-// What a session is run against. In a later slice this is a real Action;
-// for now it carries just what the timer and check-in need.
+// What a session is run against. May reference a real Action via specId +
+// actionId so completion rolls up into that Action's logged time and done state.
 export type SessionTarget = {
   title: string;
   sourceKey?: string;
   estimateMin?: number;
+  specId?: string;
+  actionId?: string;
 };
 
 export type RunningSession = {

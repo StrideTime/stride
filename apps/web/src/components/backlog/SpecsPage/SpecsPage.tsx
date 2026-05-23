@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useSpecs } from '../../specs';
 import { Controls } from '../components/Controls/Controls';
 import { Header } from '../components/Header/Header';
 import { SpecGroup } from './components/SpecGroup/SpecGroup';
@@ -12,11 +13,12 @@ import styles from './SpecsPage.module.css';
 
 export function SpecsPage(_props: SpecsPageProps) {
   const { t } = useTranslation();
+  const { specs } = useSpecs();
   const [activeView, setActiveView] = useState<BacklogView>('all');
   const [filters, setFilters] = useState(defaultBacklogFilters);
   const visibleSpecs = useMemo(
-    () => getVisibleSpecs(activeView, filters),
-    [activeView, filters],
+    () => getVisibleSpecs(specs, activeView, filters),
+    [specs, activeView, filters],
   );
   const viewCopy = getViewCopy(t, activeView);
 
