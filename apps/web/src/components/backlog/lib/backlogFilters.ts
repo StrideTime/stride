@@ -1,4 +1,4 @@
-import { backlogSpecs, type BacklogSpec } from '../backlog.mock';
+import type { BacklogSpec } from '../backlog.mock';
 import type { ActionScope, BacklogActionRow, BacklogFilters, BacklogView } from '../types';
 
 export const defaultBacklogFilters: BacklogFilters = {
@@ -10,18 +10,19 @@ export const defaultBacklogFilters: BacklogFilters = {
   readiness: 'all',
 };
 
-export function getVisibleSpecs(view: BacklogView, filters: BacklogFilters) {
-  return backlogSpecs
+export function getVisibleSpecs(specs: BacklogSpec[], view: BacklogView, filters: BacklogFilters) {
+  return specs
     .filter(spec => matchesView(spec, view))
     .filter(spec => matchesFilters(spec, filters));
 }
 
 export function getVisibleActions(
+  specs: BacklogSpec[],
   view: BacklogView,
   scope: ActionScope,
   filters: BacklogFilters,
 ) {
-  const rows = backlogSpecs.filter(spec => matchesFilters(spec, filters)).flatMap(spec =>
+  const rows = specs.filter(spec => matchesFilters(spec, filters)).flatMap(spec =>
     spec.actions.map(action => {
       const assignee = action.assignee ?? spec.assignee ?? 'Unassigned';
 
@@ -46,8 +47,8 @@ export function getVisibleActions(
     .sort(compareActionPriority);
 }
 
-export function getFilterOptions(kind: 'assignee' | 'priority' | 'status') {
-  const values = backlogSpecs.flatMap(spec => {
+export function getFilterOptions(specs: BacklogSpec[], kind: 'assignee' | 'priority' | 'status') {
+  const values = specs.flatMap(spec => {
     if (kind === 'assignee') {
       return [spec.assignee, ...spec.actions.map(action => action.assignee)].filter(
         Boolean,

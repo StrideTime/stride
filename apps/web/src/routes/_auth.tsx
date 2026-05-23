@@ -3,12 +3,15 @@ import { AppShell } from '@stride/ui';
 
 import { AppModeProvider } from '../components/app-mode';
 import { SessionProvider } from '../components/session';
+import { SpecsProvider } from '../components/specs';
 
 function AuthLayout() {
   return (
     <AppModeProvider>
       <SessionProvider>
-        <AppShell />
+        <SpecsProvider>
+          <AppShell />
+        </SpecsProvider>
       </SessionProvider>
     </AppModeProvider>
   );

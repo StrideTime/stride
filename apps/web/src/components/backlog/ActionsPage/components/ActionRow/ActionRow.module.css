@@ -456,6 +456,14 @@
   font-size: var(--text-xs);
   line-height: 1;
   white-space: nowrap;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.actionSpecId:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .completedRow .actionSpecId {

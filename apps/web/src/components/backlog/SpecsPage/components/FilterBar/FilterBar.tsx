@@ -2,6 +2,7 @@ import { MagnifyingGlass, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button, TextInput } from '@stride/ui';
 
+import { useSpecs } from '../../../../specs';
 import { FilterSelect } from '../FilterSelect/FilterSelect';
 import { defaultBacklogFilters, getActiveFilterCount, getFilterOptions } from '../../../lib/backlogFilters';
 import type { BacklogFilters } from '../../../types';
@@ -12,6 +13,7 @@ import styles from './FilterBar.module.css';
 
 export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   const { t } = useTranslation();
+  const { specs } = useSpecs();
   const activeFilterCount = getActiveFilterCount(filters);
 
   return (
@@ -29,7 +31,7 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <FilterSelect
         label={t('backlog.filters.assignee')}
         values={filters.assignee}
-        options={getAssigneeOptions(getFilterOptions('assignee'), t)}
+        options={getAssigneeOptions(getFilterOptions(specs, 'assignee'), t)}
         placeholder={t('backlog.filters.everyone')}
         searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={assignee => onFilterChange({ ...filters, assignee })}
@@ -37,7 +39,7 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <FilterSelect
         label={t('backlog.filters.priority')}
         values={filters.priority}
-        options={getSimpleOptions(t('backlog.filters.anyPriority'), getFilterOptions('priority'))}
+        options={getSimpleOptions(t('backlog.filters.anyPriority'), getFilterOptions(specs, 'priority'))}
         placeholder={t('backlog.filters.anyPriority')}
         searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={priority =>
@@ -50,7 +52,7 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <FilterSelect
         label={t('backlog.filters.status')}
         values={filters.status}
-        options={getSimpleOptions(t('backlog.filters.anyStatus'), getFilterOptions('status'))}
+        options={getSimpleOptions(t('backlog.filters.anyStatus'), getFilterOptions(specs, 'status'))}
         placeholder={t('backlog.filters.anyStatus')}
         searchPlaceholder={t('backlog.filters.dropdownSearchPlaceholder')}
         onChange={status => onFilterChange({ ...filters, status })}

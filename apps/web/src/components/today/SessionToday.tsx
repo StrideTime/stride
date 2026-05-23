@@ -6,7 +6,8 @@ import { Badge, Button, Typography } from '@stride/ui';
 
 import { useSession } from '../session';
 import type { Feeling } from '../session';
-import { attentionItems, priorityActions, scheduleBlocks, type TodayScheduleBlock } from './today.mock';
+import { pickUpNextAction, useSpecs } from '../specs';
+import { attentionItems, scheduleBlocks, type TodayScheduleBlock } from './today.mock';
 import styles from './SessionToday.module.css';
 
 const FEELING_OPTIONS: ReadonlyArray<{ value: Feeling; label: string; icon: typeof Smiley }> = [
@@ -73,7 +74,8 @@ function Hero() {
 
 function IdleHero() {
   const { startSession } = useSession();
-  const next = priorityActions[0];
+  const { specs } = useSpecs();
+  const next = pickUpNextAction(specs);
 
   return (
     <section className={`${styles.hero} ${styles.heroIdle}`}>
@@ -83,12 +85,27 @@ function IdleHero() {
 
       {next ? (
         <>
-          <Typography as="h2" size="xl" weight="bold">{next.title}</Typography>
+          <Typography as="h2" size="xl" weight="bold">{next.action.title}</Typography>
           <div className={styles.heroMeta}>
-            <span className={styles.sourceKey}>{next.sourceKey}</span>
+            <Link
+              className={styles.sourceKeyLink}
+              to="/specs/$specId"
+              params={{ specId: next.spec.id }}
+            >
+              {next.spec.sourceKey}
+            </Link>
             <Typography as="span" size="sm" color="muted">
-              {next.estimate ? `${next.estimate} estimate` : 'No estimate yet'}
+              {next.action.estimateMin
+                ? `${next.action.estimateMin}m estimate · ${next.spec.title}`
+                : `No estimate yet · ${next.spec.title}`}
             </Typography>
+            <Link
+              className={styles.heroSpecLink}
+              to="/specs/$specId"
+              params={{ specId: next.spec.id }}
+            >
+              View spec →
+            </Link>
           </div>
         </>
       ) : (
@@ -103,9 +120,11 @@ function IdleHero() {
           onClick={() => {
             if (next) {
               startSession({
-                title: next.title,
-                sourceKey: next.sourceKey,
-                estimateMin: next.estimate ? parseMinutes(next.estimate) : undefined,
+                title: next.action.title,
+                sourceKey: next.spec.sourceKey,
+                estimateMin: next.action.estimateMin,
+                specId: next.spec.id,
+                actionId: next.action.id,
               });
             }
           }}
@@ -149,7 +168,17 @@ function RunningHero() {
 
       <div className={styles.runningTitle}>
         <Typography as="h2" size="lg" weight="bold" className={styles.truncate}>{title}</Typography>
-        {sourceKey ? <span className={styles.sourceKey}>{sourceKey}</span> : null}
+        {running.target.specId && sourceKey ? (
+          <Link
+            className={styles.sourceKeyLink}
+            to="/specs/$specId"
+            params={{ specId: running.target.specId }}
+          >
+            {sourceKey}
+          </Link>
+        ) : sourceKey ? (
+          <span className={styles.sourceKey}>{sourceKey}</span>
+        ) : null}
       </div>
 
       <span className={over ? `${styles.clock} ${styles.clockOver}` : styles.clock}>
