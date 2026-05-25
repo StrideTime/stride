@@ -1,23 +1,50 @@
 import { useEffect, useState } from 'react';
 
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Play, Smiley, SmileyMeh, SmileySad, Target } from '@phosphor-icons/react';
-import { Badge, Button, Typography } from '@stride/ui';
+import {
+  ArrowRight,
+  Play,
+  Smiley,
+  SmileyMeh,
+  SmileySad,
+  Target,
+} from '@phosphor-icons/react';
+import { Button, Typography } from '@stride/ui';
 
 import { useSession } from '../session';
 import type { Feeling } from '../session';
 import { pickUpNextAction, useSpecs } from '../specs';
-import { attentionItems, scheduleBlocks, type TodayScheduleBlock } from './today.mock';
+import type { BacklogSpec } from '../backlog/backlog.mock';
 import styles from './SessionToday.module.css';
 
-const FEELING_OPTIONS: ReadonlyArray<{ value: Feeling; label: string; icon: typeof Smiley }> = [
-  { value: 'frown', label: 'Tough', icon: SmileySad },
-  { value: 'neutral', label: 'Okay', icon: SmileyMeh },
-  { value: 'smile', label: 'Good', icon: Smiley },
-  { value: 'target', label: 'On point', icon: Target },
+const FEELING_OPTIONS: ReadonlyArray<{
+  value: Feeling;
+  label: string;
+  icon: typeof Smiley;
+  className: string;
+}> = [
+  { value: 'frown', label: 'Tough', icon: SmileySad, className: 'feelingTough' },
+  { value: 'neutral', label: 'Okay', icon: SmileyMeh, className: 'feelingOkay' },
+  { value: 'smile', label: 'Good', icon: Smiley, className: 'feelingGood' },
+  { value: 'target', label: 'On point', icon: Target, className: 'feelingOnPoint' },
 ];
 
-const STARTABLE = new Set<TodayScheduleBlock['state']>(['ready', 'later']);
+const PRIORITY_ORDER: Record<BacklogSpec['priority'], number> = {
+  P1: 0,
+  P2: 1,
+  P3: 2,
+  P4: 3,
+};
+
+function getNextActions(specs: BacklogSpec[]) {
+  return [...specs]
+    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+    .flatMap(spec => spec.actions
+      .filter(action => !action.done && (action.assignee === 'You' || (!action.assignee && spec.assignee === 'You')))
+      .sort((a, b) => Number(b.scheduled) - Number(a.scheduled))
+      .map(action => ({ spec, action })))
+    .slice(0, 4);
+}
 
 function formatClock(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -27,16 +54,6 @@ function formatClock(ms: number) {
   const mm = String(minutes).padStart(2, '0');
   const ss = String(seconds).padStart(2, '0');
   return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`;
-}
-
-function parseMinutes(text: string): number | undefined {
-  const match = text.match(/(\d+)\s*m\b/);
-  return match ? Number(match[1]) : undefined;
-}
-
-function parseSourceKey(text: string): string | undefined {
-  const match = text.match(/\b[A-Z]{2,4}-\d+\b/);
-  return match ? match[0] : undefined;
 }
 
 function dateLabel() {
@@ -55,12 +72,11 @@ export function SessionToday() {
     <section className={styles.page}>
       <header className={styles.header}>
         <Typography as="h1" size="2xl" weight="bold">Today</Typography>
-        <Typography as="span" size="sm" color="muted">{dateText}</Typography>
+        <Typography as="span" size="base" color="muted">{dateText}</Typography>
       </header>
 
       <Hero />
       <LaterToday />
-      <StatusLine />
     </section>
   );
 }
@@ -79,65 +95,64 @@ function IdleHero() {
 
   return (
     <section className={`${styles.hero} ${styles.heroIdle}`}>
-      <Typography as="p" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
-        Up next
-      </Typography>
+      <div className={styles.heroMain}>
+        <Typography as="p" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
+          Up next
+        </Typography>
 
-      {next ? (
-        <>
-          <Typography as="h2" size="xl" weight="bold">{next.action.title}</Typography>
-          <div className={styles.heroMeta}>
-            <Link
-              className={styles.sourceKeyLink}
-              to="/specs/$specId"
-              params={{ specId: next.spec.id }}
+        {next ? (
+          <>
+            <div className={styles.heroTitleRow}>
+              <Typography as="h2" size="2xl" weight="bold" className={styles.heroTitle}>
+                {next.action.title}
+              </Typography>
+              <Button
+                variant="primary"
+                icon={<Play size={16} weight="fill" />}
+                onClick={() => {
+                  startSession({
+                    title: next.action.title,
+                    sourceKey: next.spec.sourceKey,
+                    specId: next.spec.id,
+                    actionId: next.action.id,
+                  });
+                }}
+              >
+                Start session
+              </Button>
+            </div>
+            <div className={styles.heroMeta}>
+              <Link
+                className={styles.ticketLink}
+                to="/specs/$specId"
+                params={{ specId: next.spec.id }}
+                aria-label={`Open spec view for ${next.spec.sourceKey}`}
+              >
+                <span className={styles.ticketKey}>{next.spec.sourceKey}</span>
+                <span className={styles.ticketLinkLabel}>Open spec</span>
+                <ArrowRight size={13} aria-hidden="true" />
+              </Link>
+              <Typography as="span" size="sm" color="muted">
+                {next.spec.title}
+              </Typography>
+            </div>
+
+          </>
+        ) : (
+          <Typography as="h2" size="2xl" weight="bold">Nothing queued right now</Typography>
+        )}
+
+        {next ? null : (
+          <div className={styles.heroActions}>
+            <button
+              className={styles.secondaryAction}
+              type="button"
+              onClick={() => startSession({ title: 'Focus session' })}
             >
-              {next.spec.sourceKey}
-            </Link>
-            <Typography as="span" size="sm" color="muted">
-              {next.action.estimateMin
-                ? `${next.action.estimateMin}m estimate · ${next.spec.title}`
-                : `No estimate yet · ${next.spec.title}`}
-            </Typography>
-            <Link
-              className={styles.heroSpecLink}
-              to="/specs/$specId"
-              params={{ specId: next.spec.id }}
-            >
-              View spec →
-            </Link>
+              Start focus session
+            </button>
           </div>
-        </>
-      ) : (
-        <Typography as="h2" size="xl" weight="bold">Nothing queued right now</Typography>
-      )}
-
-      <div className={styles.heroActions}>
-        <Button
-          variant="primary"
-          icon={<Play size={16} weight="fill" />}
-          disabled={!next}
-          onClick={() => {
-            if (next) {
-              startSession({
-                title: next.action.title,
-                sourceKey: next.spec.sourceKey,
-                estimateMin: next.action.estimateMin,
-                specId: next.spec.id,
-                actionId: next.action.id,
-              });
-            }
-          }}
-        >
-          Start session
-        </Button>
-        <button
-          className={styles.linkButton}
-          type="button"
-          onClick={() => startSession({ title: 'Focus session' })}
-        >
-          Start a blank focus session
-        </button>
+        )}
       </div>
     </section>
   );
@@ -147,143 +162,174 @@ function RunningHero() {
   const { running, elapsedMs, requestEnd } = useSession();
   if (!running) return null;
 
-  const { title, sourceKey, estimateMin } = running.target;
-  const ratio = estimateMin ? elapsedMs / 60000 / estimateMin : 0;
-  const over = estimateMin != null && ratio >= 1;
-  const wayOver = estimateMin != null && ratio >= 1.5;
-  const fillClass = wayOver
-    ? `${styles.varianceFill} ${styles.varianceWayOver}`
-    : over
-      ? `${styles.varianceFill} ${styles.varianceOver}`
-      : styles.varianceFill;
+  const { title, sourceKey } = running.target;
 
   return (
     <section className={`${styles.hero} ${styles.heroRunning}`}>
-      <div className={styles.runningEyebrow}>
-        <span className={styles.pulse} aria-hidden="true" />
-        <Typography as="span" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
-          Session running
-        </Typography>
-      </div>
-
-      <div className={styles.runningTitle}>
-        <Typography as="h2" size="lg" weight="bold" className={styles.truncate}>{title}</Typography>
-        {running.target.specId && sourceKey ? (
-          <Link
-            className={styles.sourceKeyLink}
-            to="/specs/$specId"
-            params={{ specId: running.target.specId }}
-          >
-            {sourceKey}
-          </Link>
-        ) : sourceKey ? (
-          <span className={styles.sourceKey}>{sourceKey}</span>
-        ) : null}
-      </div>
-
-      <span className={over ? `${styles.clock} ${styles.clockOver}` : styles.clock}>
-        {formatClock(elapsedMs)}
-      </span>
-
-      {estimateMin ? (
-        <div className={styles.variance}>
-          <div
-            className={styles.varianceTrack}
-            role="progressbar"
-            aria-label="Time against estimate"
-            aria-valuemin={0}
-            aria-valuemax={estimateMin}
-            aria-valuenow={Math.round(elapsedMs / 60000)}
-          >
-            <span className={fillClass} style={{ width: `${Math.min(ratio, 1) * 100}%` }} />
-          </div>
-          <Typography as="span" size="xs" color="muted">
-            {wayOver
-              ? `Well past the ${estimateMin}m estimate. A good moment to wrap up.`
-              : over
-                ? `Over the ${estimateMin}m estimate.`
-                : `${estimateMin}m estimate`}
+      <div className={styles.runningContext}>
+        <div className={styles.runningEyebrow}>
+          <span className={styles.pulse} aria-hidden="true" />
+          <Typography as="span" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
+            Session running
           </Typography>
         </div>
-      ) : (
-        <Typography as="span" size="xs" color="muted">No estimate set for this one.</Typography>
-      )}
 
-      <div className={styles.heroActions}>
-        <Button variant="primary" onClick={requestEnd}>End session</Button>
+        <div className={styles.runningTitleBlock}>
+          <Typography as="h2" size="xl" weight="bold" className={styles.runningActionTitle}>
+            {title}
+          </Typography>
+        </div>
+
+        <Typography as="span" className={styles.clock}>
+          {formatClock(elapsedMs)}
+        </Typography>
+
+        <div className={styles.runningActions}>
+          <Button variant="primary" onClick={requestEnd}>End session</Button>
+          {running.target.specId && sourceKey ? (
+            <Link
+              className={styles.runningSpecInline}
+              to="/specs/$specId"
+              params={{ specId: running.target.specId }}
+              aria-label={`Open spec view for ${sourceKey}`}
+            >
+              <span className={styles.runningSpecKey}>{sourceKey}</span>
+              <span>Open spec</span>
+              <ArrowRight size={12} aria-hidden="true" />
+            </Link>
+          ) : sourceKey ? (
+            <span className={styles.sourceKey}>{sourceKey}</span>
+          ) : null}
+        </div>
       </div>
     </section>
   );
 }
 
 function CheckInHero() {
-  const { running, elapsedMs, completeSession, resumeSession, discardSession } = useSession();
+  const { running, elapsedMs, completeSession, discardSession } = useSession();
+  const { specs } = useSpecs();
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [note, setNote] = useState('');
-  const [markedDone, setMarkedDone] = useState(false);
+  const [markedDone, setMarkedDone] = useState<boolean | null>(null);
+  const [showRequirements, setShowRequirements] = useState(false);
 
   if (!running) return null;
   const minutes = Math.max(1, Math.round(elapsedMs / 60000));
+  const spec = specs.find(item => item.id === running.target.specId);
 
   return (
     <section className={`${styles.hero} ${styles.heroCheckin}`}>
       <div className={styles.checkinHead}>
         <Typography as="h2" size="lg" weight="bold">How did that go?</Typography>
-        <Typography as="p" size="sm" color="muted">
-          {running.target.title} · {minutes}m tracked
-        </Typography>
+        <div className={styles.checkinMeta}>
+          <Typography as="p" size="sm" color="muted">
+            {running.target.title}
+          </Typography>
+          <Typography as="span" size="sm" weight="semibold" color="muted">
+            {`${minutes}m`}
+          </Typography>
+        </div>
       </div>
 
-      <div className={styles.feelingRow}>
-        {FEELING_OPTIONS.map(option => {
-          const Icon = option.icon;
-          const active = feeling === option.value;
-          return (
+      <div className={styles.feedbackGrid}>
+        <div className={styles.feelingRow} aria-label="Optional session feeling">
+          {FEELING_OPTIONS.map(option => {
+            const Icon = option.icon;
+            const active = feeling === option.value;
+            return (
+              <button
+                aria-pressed={active}
+                className={active
+                  ? `${styles.feeling} ${styles[option.className]} ${styles.feelingActive}`
+                  : `${styles.feeling} ${styles[option.className]}`}
+                key={option.value}
+                onClick={() => setFeeling(option.value)}
+                type="button"
+              >
+                <Icon size={22} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
+                <Typography as="span" size="sm" weight="semibold">{option.label}</Typography>
+              </button>
+            );
+          })}
+        </div>
+
+        <textarea
+          className={styles.note}
+          onChange={event => setNote(event.target.value)}
+          placeholder="What changed?"
+          rows={3}
+          value={note}
+        />
+      </div>
+
+      <div className={styles.completionBlock}>
+        <div className={styles.completionTopRow}>
+          <Typography as="span" size="base" weight="semibold">
+            Finished the action?
+          </Typography>
+          {spec?.description ? (
             <button
-              aria-pressed={active}
-              className={active ? `${styles.feeling} ${styles.feelingActive}` : styles.feeling}
-              key={option.value}
-              onClick={() => setFeeling(option.value)}
+              className={styles.requirementsButton}
+              onClick={() => setShowRequirements(true)}
               type="button"
             >
-              <Icon size={24} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
-              <Typography as="span" size="xs" weight="semibold">{option.label}</Typography>
+              View requirements
             </button>
-          );
-        })}
+          ) : null}
+        </div>
+        <div className={styles.doneChoice} aria-label="Action completion">
+          <button
+            aria-pressed={markedDone === false}
+            className={markedDone === false ? `${styles.doneOption} ${styles.doneOptionActive}` : styles.doneOption}
+            onClick={() => setMarkedDone(false)}
+            type="button"
+          >
+            No
+          </button>
+          <button
+            aria-pressed={markedDone === true}
+            className={markedDone === true ? `${styles.doneOption} ${styles.doneOptionDone}` : styles.doneOption}
+            onClick={() => setMarkedDone(true)}
+            type="button"
+          >
+            Yes
+          </button>
+        </div>
       </div>
 
-      <textarea
-        className={styles.note}
-        onChange={event => setNote(event.target.value)}
-        placeholder="Add a note for yourself (optional)"
-        rows={2}
-        value={note}
-      />
-
-      <label className={styles.doneToggle}>
-        <input
-          checked={markedDone}
-          onChange={event => setMarkedDone(event.target.checked)}
-          type="checkbox"
-        />
-        <Typography as="span" size="sm">{`Mark “${running.target.title}” done`}</Typography>
-      </label>
+      {showRequirements && spec?.description ? (
+        <div className={styles.requirementsOverlay} role="presentation" onClick={() => setShowRequirements(false)}>
+          <section
+            aria-label="Action requirements"
+            className={styles.requirementsDialog}
+            onClick={event => event.stopPropagation()}
+          >
+            <div className={styles.requirementsDialogHead}>
+              <Typography as="h3" size="base" weight="bold">Requirements</Typography>
+              <button
+                className={styles.requirementsClose}
+                onClick={() => setShowRequirements(false)}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+            <Typography as="p" size="sm" color="muted" className={styles.completionDescription}>
+              {spec.description}
+            </Typography>
+          </section>
+        </div>
+      ) : null}
 
       <div className={styles.checkinActions}>
-        <Button variant="ghost" onClick={discardSession}>Discard</Button>
-        <div className={styles.checkinActionsRight}>
-          <Button variant="secondary" onClick={resumeSession}>Back to timer</Button>
-          <Button
-            variant="primary"
-            disabled={feeling === null}
-            onClick={() => {
-              if (feeling) completeSession({ feeling, note, markedDone });
-            }}
-          >
-            Save session
-          </Button>
-        </div>
+        <Button variant="secondary" onClick={discardSession}>Discard</Button>
+        <Button
+          variant="primary"
+          onClick={() => completeSession({ feeling: feeling ?? 'neutral', note, markedDone: markedDone === true })}
+        >
+          Save session
+        </Button>
       </div>
     </section>
   );
@@ -291,61 +337,50 @@ function CheckInHero() {
 
 function LaterToday() {
   const { phase, startSession } = useSession();
-  const upcoming = scheduleBlocks.filter(block => block.state !== 'done');
+  const { specs } = useSpecs();
+  const upcoming = getNextActions(specs);
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHead}>
-        <Typography as="h2" size="sm" weight="semibold">Later today</Typography>
-        <Typography as="span" size="xs" color="muted">{`${upcoming.length} blocks`}</Typography>
+        <Typography as="h2" size="lg" weight="bold">Up next</Typography>
       </div>
       <ul className={styles.laterList}>
-        {upcoming.map(block => (
-          <li className={styles.laterRow} key={block.id}>
-            <Typography as="span" size="xs" color="muted" className={styles.laterTime}>
-              {block.time}
-            </Typography>
+        {upcoming.map(({ spec, action }) => (
+          <li className={styles.laterRow} key={action.id}>
             <div className={styles.laterCopy}>
-              <Typography as="span" size="sm" weight="semibold" className={styles.truncate}>
-                {block.title}
+              <Typography as="span" size="base" weight="semibold" className={styles.truncate}>
+                {action.title}
               </Typography>
-              <Typography as="span" size="xs" color="muted" className={styles.truncate}>
-                {block.detail}
-              </Typography>
+              <Link
+                className={styles.queueSpecLink}
+                to="/specs/$specId"
+                params={{ specId: spec.id }}
+                aria-label={`Open spec view for ${spec.sourceKey}`}
+              >
+                {spec.sourceKey}
+                {action.scheduled ? <span>Scheduled</span> : null}
+              </Link>
             </div>
-            {STARTABLE.has(block.state) ? (
-              <Button
-                size="sm"
-                variant="ghost"
+            <div className={styles.laterAction}>
+              <button
+                aria-label={`Begin ${action.title}`}
+                className={styles.quickStart}
                 disabled={phase !== 'idle'}
                 onClick={() => startSession({
-                  title: block.title,
-                  sourceKey: parseSourceKey(block.detail),
-                  estimateMin: parseMinutes(block.detail),
+                  title: action.title,
+                  sourceKey: spec.sourceKey,
+                  specId: spec.id,
+                  actionId: action.id,
                 })}
+                type="button"
               >
-                Start
-              </Button>
-            ) : (
-              <Badge variant={block.state === 'meeting' ? 'accent' : 'neutral'}>
-                {block.state === 'meeting' ? 'Meeting' : 'Break'}
-              </Badge>
-            )}
+                Begin
+              </button>
+            </div>
           </li>
         ))}
       </ul>
     </section>
-  );
-}
-
-function StatusLine() {
-  const count = attentionItems.length;
-  return (
-    <Link className={styles.statusLine} to="/inbox">
-      <Typography as="span" size="sm" color="muted">
-        {`${count} ${count === 1 ? 'item needs' : 'items need'} your attention in the inbox`}
-      </Typography>
-      <ArrowRight size={15} aria-hidden="true" />
-    </Link>
   );
 }
