@@ -43,14 +43,29 @@ function loadState(): SpecsState {
   }
 }
 
-type ActionPatch = Partial<Pick<BacklogAction, 'title' | 'estimateMin' | 'done'>>;
-type SpecPatch = Partial<Pick<BacklogSpec, 'title' | 'description'>>;
+type ActionPatch = Partial<
+  Pick<BacklogAction, 'title' | 'description' | 'estimateMin' | 'done'>
+>;
+type SpecPatch = Partial<
+  Pick<
+    BacklogSpec,
+    'title' | 'description' | 'sourceStatus' | 'assignee' | 'labels'
+  >
+>;
 
 type SpecsContextValue = {
   specs: BacklogSpec[];
   getSpec: (id: string) => BacklogSpec | undefined;
   updateSpec: (id: string, patch: SpecPatch) => void;
-  addAction: (specId: string, partial: { title: string; estimateMin?: number; assignee?: string }) => string;
+  addAction: (
+    specId: string,
+    partial: {
+      title: string;
+      description?: string;
+      estimateMin?: number;
+      assignee?: string;
+    },
+  ) => string;
   updateAction: (specId: string, actionId: string, patch: ActionPatch) => void;
   deleteAction: (specId: string, actionId: string) => void;
 };
@@ -87,70 +102,105 @@ export function SpecsProvider({ children }: { children: ReactNode }) {
     if (!latest) return;
     if (state.lastAppliedSessionId === latest.id) return;
     const { specId, actionId } = latest.target;
-    setState(prev => {
+    setState((prev) => {
       if (prev.lastAppliedSessionId === latest.id) return prev;
       if (!specId || !actionId) {
         return { ...prev, lastAppliedSessionId: latest.id };
       }
       return {
         lastAppliedSessionId: latest.id,
-        specs: prev.specs.map(spec => (spec.id !== specId ? spec : {
-          ...spec,
-          actions: spec.actions.map(action => (action.id !== actionId ? action : {
-            ...action,
-            loggedMin: (action.loggedMin ?? 0) + latest.elapsedMin,
-            done: latest.markedDone ? true : action.done,
-          })),
-        })),
+        specs: prev.specs.map((spec) =>
+          spec.id !== specId
+            ? spec
+            : {
+                ...spec,
+                actions: spec.actions.map((action) =>
+                  action.id !== actionId
+                    ? action
+                    : {
+                        ...action,
+                        loggedMin: (action.loggedMin ?? 0) + latest.elapsedMin,
+                        done: latest.markedDone ? true : action.done,
+                      },
+                ),
+              },
+        ),
       };
     });
   }, [session.history, hydrated, state.lastAppliedSessionId]);
 
-  const value = useMemo<SpecsContextValue>(() => ({
-    specs: state.specs,
-    getSpec: id => state.specs.find(spec => spec.id === id),
-    updateSpec: (id, patch) => setState(prev => ({
-      ...prev,
-      specs: prev.specs.map(spec => (spec.id === id ? { ...spec, ...patch } : spec)),
-    })),
-    addAction: (specId, partial) => {
-      const id = `a-${Date.now().toString(36)}`;
-      setState(prev => ({
-        ...prev,
-        specs: prev.specs.map(spec => (spec.id !== specId ? spec : {
-          ...spec,
-          actions: [
-            ...spec.actions,
-            {
-              id,
-              title: partial.title,
-              estimateMin: partial.estimateMin,
-              assignee: partial.assignee,
-              loggedMin: 0,
-              plannedMin: 0,
-            },
-          ],
+  const value = useMemo<SpecsContextValue>(
+    () => ({
+      specs: state.specs,
+      getSpec: (id) => state.specs.find((spec) => spec.id === id),
+      updateSpec: (id, patch) =>
+        setState((prev) => ({
+          ...prev,
+          specs: prev.specs.map((spec) =>
+            spec.id === id ? { ...spec, ...patch } : spec,
+          ),
         })),
-      }));
-      return id;
-    },
-    updateAction: (specId, actionId, patch) => setState(prev => ({
-      ...prev,
-      specs: prev.specs.map(spec => (spec.id !== specId ? spec : {
-        ...spec,
-        actions: spec.actions.map(action => (action.id === actionId ? { ...action, ...patch } : action)),
-      })),
-    })),
-    deleteAction: (specId, actionId) => setState(prev => ({
-      ...prev,
-      specs: prev.specs.map(spec => (spec.id !== specId ? spec : {
-        ...spec,
-        actions: spec.actions.filter(action => action.id !== actionId),
-      })),
-    })),
-  }), [state.specs]);
+      addAction: (specId, partial) => {
+        const id = `a-${Date.now().toString(36)}`;
+        setState((prev) => ({
+          ...prev,
+          specs: prev.specs.map((spec) =>
+            spec.id !== specId
+              ? spec
+              : {
+                  ...spec,
+                  actions: [
+                    ...spec.actions,
+                    {
+                      id,
+                      title: partial.title,
+                      description: partial.description,
+                      estimateMin: partial.estimateMin,
+                      assignee: partial.assignee,
+                      loggedMin: 0,
+                      plannedMin: 0,
+                    },
+                  ],
+                },
+          ),
+        }));
+        return id;
+      },
+      updateAction: (specId, actionId, patch) =>
+        setState((prev) => ({
+          ...prev,
+          specs: prev.specs.map((spec) =>
+            spec.id !== specId
+              ? spec
+              : {
+                  ...spec,
+                  actions: spec.actions.map((action) =>
+                    action.id === actionId ? { ...action, ...patch } : action,
+                  ),
+                },
+          ),
+        })),
+      deleteAction: (specId, actionId) =>
+        setState((prev) => ({
+          ...prev,
+          specs: prev.specs.map((spec) =>
+            spec.id !== specId
+              ? spec
+              : {
+                  ...spec,
+                  actions: spec.actions.filter(
+                    (action) => action.id !== actionId,
+                  ),
+                },
+          ),
+        })),
+    }),
+    [state.specs],
+  );
 
-  return <SpecsContext.Provider value={value}>{children}</SpecsContext.Provider>;
+  return (
+    <SpecsContext.Provider value={value}>{children}</SpecsContext.Provider>
+  );
 }
 
 export function useSpecs(): SpecsContextValue {

@@ -486,3 +486,185 @@
     font-size: 9px;
   }
 }
+
+@media (max-width: 760px) {
+  .mobileNav {
+    justify-items: stretch;
+  }
+  .mobileNavItem {
+    justify-items: center;
+    text-align: center;
+  }
+  .mobileNavItem svg {
+    display: block;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobileNav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-content: center;
+    justify-items: center;
+  }
+  .mobileNavItem {
+    width: 100%;
+    justify-content: center;
+    justify-items: center;
+    place-items: center;
+  }
+  .mobileNavItem > svg,
+  .mobileNavItem > span:not(.mobileBadge) {
+    justify-self: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobileNavItem {
+    display: grid !important;
+    grid-template-rows: 22px auto !important;
+    align-content: center !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    text-align: center !important;
+  }
+  .mobileNavItem > svg {
+    grid-row: 1 !important;
+    justify-self: center !important;
+    margin: 0 auto !important;
+  }
+  .mobileNavItem > span:not(.mobileBadge) {
+    grid-row: 2 !important;
+    justify-self: center !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobileNav {
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: space-around !important;
+  }
+  .mobileNavItem {
+    flex: 1 1 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+  }
+}
+
+/* Mobile app header should not float over spec content */
+@media (max-width: 920px) {
+  .mobileHeader {
+    display: none !important;
+  }
+}
+
+/* Mobile account/settings affordance lives outside bottom nav. */
+@media (max-width: 920px) {
+  .mobileHeader {
+    position: fixed !important;
+    top: calc(var(--space-3) + env(safe-area-inset-top)) !important;
+    right: var(--space-3) !important;
+    z-index: 30 !important;
+    display: flex !important;
+    gap: var(--space-1) !important;
+    pointer-events: none !important;
+  }
+
+  .mobileScopeTrigger {
+    display: none !important;
+  }
+
+  .mobileSettingsButton {
+    pointer-events: auto !important;
+    display: grid !important;
+    width: 38px !important;
+    min-height: 38px !important;
+    place-items: center !important;
+    border-radius: 999px !important;
+    background: var(--color-accent-subtle) !important;
+    color: var(--color-accent) !important;
+  }
+
+  .mobileSettingsButton::before {
+    content: 'J';
+    display: grid;
+    width: 20px;
+    height: 20px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: var(--color-shell);
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .mobileSettingsButton svg {
+    display: none !important;
+  }
+}
+
+@media (max-width: 920px) {
+  .mobileNav {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Mobile profile/settings: in-flow app bar, not a floating overlay. */
+@media (max-width: 920px) {
+  .mobileHeader {
+    position: sticky !important;
+    top: 0 !important;
+    right: auto !important;
+    z-index: 30 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: var(--space-2) !important;
+    width: 100% !important;
+    padding: calc(var(--space-2) + env(safe-area-inset-top)) var(--space-3) var(--space-2) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    background: var(--color-shell) !important;
+    pointer-events: auto !important;
+    box-shadow: none !important;
+  }
+
+  .mobileScopeTrigger {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding: 0 var(--space-2) !important;
+    border-radius: var(--radius-md) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .mobileHeader .scopeCopy {
+    display: grid !important;
+  }
+
+  .mobileHeader .caretIcon {
+    display: block !important;
+  }
+
+  .mobileSettingsButton {
+    width: 38px !important;
+    min-height: 38px !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    background: transparent !important;
+    color: var(--color-text-muted) !important;
+    box-shadow: none !important;
+  }
+
+  .mobileSettingsButton::before {
+    content: none !important;
+  }
+
+  .mobileSettingsButton svg {
+    display: block !important;
+  }
+}

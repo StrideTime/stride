@@ -6,5 +6,6 @@ export type FilterSelectProps = {
   options: FilterOption[];
   placeholder?: string;
   searchPlaceholder?: string;
+  className?: string;
   onChange: (values: string[]) => void;
 };

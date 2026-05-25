@@ -938,3 +938,16 @@
     align-items: start;
   }
 }
+
+@media (max-width: 640px) {
+  .group {
+    gap: 0 !important;
+  }
+
+  .specList {
+    gap: 0 !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+  }
+}

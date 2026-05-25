@@ -41,8 +41,7 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
@@ -192,6 +191,43 @@
 
 .searchControl {
   width: 100%;
+}
+
+.filterScroller {
+  display: contents;
+}
+
+.filterChip {
+  min-width: 0;
+}
+
+.clearButton,
+.clearActive {
+  min-height: 30px;
+  padding-inline: var(--space-2);
+}
+
+.clearActive {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.filterChip button {
+  min-width: 0;
+  height: 30px;
+  min-height: 30px;
+  padding-inline: var(--space-2);
+}
+
+.filterChipActive button {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.filterChipActive button span {
+  color: var(--color-accent);
 }
 
 .focusQueue {
@@ -936,5 +972,100 @@
   .actionRowCompleted,
   .actionRowTeamCompleted {
     align-items: start;
+  }
+}
+
+/* Mobile backlog filters */
+@media (max-width: 640px) {
+  .controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: var(--space-2) !important;
+    padding: var(--space-2) 0 !important;
+    border-radius: 0 !important;
+    background: var(--color-bg) !important;
+  }
+
+  .searchControl {
+    width: auto !important;
+    margin: 0 var(--space-3) !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .searchControl input {
+    min-height: 40px !important;
+  }
+
+  .filterScroller {
+    display: flex !important;
+    gap: var(--space-2) !important;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain !important;
+    padding: 0 var(--space-3) !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .filterScroller::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .filterScroller > * {
+    flex: 0 0 auto !important;
+    min-width: 112px !important;
+  }
+
+  .filterChip button {
+    min-height: 34px !important;
+    height: 34px !important;
+    border-radius: 999px !important;
+    padding-inline: var(--space-2) !important;
+  }
+
+  .filterScroller > button {
+    min-width: max-content !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    border-radius: 999px !important;
+    padding-inline: var(--space-2) !important;
+  }
+}
+
+/* Keep the mobile horizontal filter rail clear of the page scrollbar. */
+@media (max-width: 640px) {
+  .controls {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .filterScroller {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding-right: calc(var(--space-6) + env(safe-area-inset-right)) !important;
+    scroll-padding-right: calc(var(--space-6) + env(safe-area-inset-right)) !important;
+  }
+}
+
+/* Mobile filter rail should stop before the page scrollbar/viewport edge. */
+@media (max-width: 640px) {
+  .filterScroller {
+    width: auto !important;
+    max-width: none !important;
+    margin-right: calc(var(--space-3) + env(safe-area-inset-right)) !important;
+    padding-right: 0 !important;
+    scroll-padding-right: calc(var(--space-3) + env(safe-area-inset-right)) !important;
+  }
+}
+
+/* Keep the filter rail self-contained; never widen the page. */
+@media (max-width: 640px) {
+  .controls,
+  .filterScroller {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }

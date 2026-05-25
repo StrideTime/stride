@@ -9,6 +9,7 @@ export function FilterSelect({
   onChange,
   placeholder,
   searchPlaceholder,
+  className,
 }: FilterSelectProps) {
   return (
     <MultiSelect
@@ -17,6 +18,7 @@ export function FilterSelect({
       options={options}
       placeholder={placeholder}
       searchPlaceholder={searchPlaceholder}
+      className={className}
       onChange={onChange}
     />
   );

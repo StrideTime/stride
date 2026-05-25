@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
   { to: '/schedule', label: 'Schedule', icon: ClockCountdown },
 ];
 
+
 const statusOptions: StatusOption[] = [
   { label: 'Available', tone: 'online' },
   { label: 'In focus mode', tone: 'focus' },

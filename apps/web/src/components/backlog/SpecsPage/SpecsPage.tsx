@@ -6,7 +6,6 @@ import { Controls } from '../components/Controls/Controls';
 import { Header } from '../components/Header/Header';
 import { SpecGroup } from './components/SpecGroup/SpecGroup';
 import { defaultBacklogFilters, getVisibleSpecs } from '../lib/backlogFilters';
-import { getViewCopy } from '../lib/viewCopy';
 import type { BacklogView } from '../types';
 import type { SpecsPageProps } from './SpecsPage.type';
 import styles from './SpecsPage.module.css';
@@ -20,7 +19,7 @@ export function SpecsPage(_props: SpecsPageProps) {
     () => getVisibleSpecs(specs, activeView, filters),
     [specs, activeView, filters],
   );
-  const viewCopy = getViewCopy(t, activeView);
+  const emptyText = t(`backlog.views.${activeView}.empty`);
 
   return (
     <section className={styles.page}>
@@ -32,10 +31,8 @@ export function SpecsPage(_props: SpecsPageProps) {
       />
       <div className={styles.pipeline}>
         <SpecGroup
-          title={viewCopy.title}
-          description={viewCopy.description}
           specs={visibleSpecs}
-          emptyText={viewCopy.empty}
+          emptyText={emptyText}
           filters={filters}
           onFilterChange={setFilters}
         />

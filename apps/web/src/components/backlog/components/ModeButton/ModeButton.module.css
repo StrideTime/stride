@@ -938,3 +938,64 @@
     align-items: start;
   }
 }
+
+/* Mobile backlog view switch: compact horizontal chips. */
+@media (max-width: 640px) {
+  .mode {
+    grid-template-columns: 16px max-content !important;
+    flex: 0 0 auto !important;
+    min-height: 36px !important;
+    padding: 0 var(--space-3) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    gap: var(--space-2) !important;
+  }
+
+  .modeActive {
+    border-color: var(--color-accent) !important;
+    background: var(--color-accent-subtle) !important;
+    color: var(--color-accent) !important;
+  }
+
+  .modeIcon {
+    width: 16px !important;
+    min-height: 0 !important;
+    color: currentColor !important;
+  }
+
+  .modeCopy {
+    display: block !important;
+  }
+
+  .modeTitle {
+    color: currentColor !important;
+    font-size: var(--text-sm) !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+  }
+
+  .modeSubtitle {
+    display: none !important;
+  }
+}
+
+/* Center mobile view-chip contents optically. */
+@media (max-width: 640px) {
+  .mode {
+    align-items: center !important;
+    line-height: 1 !important;
+  }
+
+  .modeCopy,
+  .modeTitle,
+  .modeIcon {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+  }
+
+  .modeIcon svg {
+    display: block !important;
+  }
+}

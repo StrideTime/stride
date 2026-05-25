@@ -991,3 +991,86 @@
     border-left: 0;
   }
 }
+
+/* Mobile backlog view switcher */
+@media (max-width: 640px) {
+  .controlStack {
+    gap: var(--space-2) !important;
+  }
+  .navUseCases {
+    padding: var(--space-1) !important;
+    border-radius: var(--radius-lg) !important;
+  }
+  .modes {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: var(--space-1) !important;
+    overflow: visible !important;
+  }
+  .mode {
+    display: grid !important;
+    grid-template-columns: 18px minmax(0, 1fr) !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: var(--space-2) !important;
+  }
+  .modeIcon {
+    display: grid !important;
+    min-height: 24px !important;
+  }
+  .modeSubtitle {
+    display: none !important;
+  }
+  .modeTitle {
+    overflow: hidden !important;
+    font-size: var(--text-sm) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Mobile backlog view switch: compact horizontal chips instead of a boxed grid. */
+@media (max-width: 640px) {
+  .controlStack {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .navUseCases {
+    display: block !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .modes {
+    display: flex !important;
+    gap: var(--space-2) !important;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain !important;
+    padding: 0 0 var(--space-1) !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .modes::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* Keep the tab rail self-contained; never widen the page. */
+@media (max-width: 640px) {
+  .controlStack,
+  .navUseCases,
+  .modes {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .modes {
+    width: 100% !important;
+    padding-right: calc(var(--space-4) + env(safe-area-inset-right)) !important;
+  }
+}

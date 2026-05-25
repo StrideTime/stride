@@ -15,6 +15,7 @@ export type AttentionKind =
 export type BacklogAction = {
   id: string;
   title: string;
+  description?: string;
   assignee?: string;
   estimateMin?: number;
   loggedMin: number;
