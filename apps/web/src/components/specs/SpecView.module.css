@@ -1726,7 +1726,6 @@
 }
 
 /* History correction: details button sits beside the summary on every width */
-.historyContent,
 @media (max-width: 820px) {
   .historyContent {
     grid-template-columns: minmax(0, max-content) auto 1fr !important;
