@@ -32,3 +32,17 @@ Conventions are **not** duplicated into this file or the `docs/` vault. `.cursor
 ## The drift rule
 
 A change that affects product scope, the data model, the screens, the architecture, or the plan updates the matching doc in `docs/` **in the same change**. A new architectural decision gets an entry appended to `.cursor/rules/decisions.mdc`. Don't let docs and code drift.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in Linear using the Linear CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Agent triage uses five Linear labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo: use the existing docs vault starting at `docs/INDEX.md`, with decisions in `.cursor/rules/decisions.mdc`. See `docs/agents/domain.md`.
