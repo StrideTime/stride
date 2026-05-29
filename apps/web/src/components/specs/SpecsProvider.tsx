@@ -32,12 +32,36 @@ const DEFAULT_STATE: SpecsState = {
 
 const STORAGE_KEY = 'stride.specs.v1';
 
+function mergeMockDefaults(stored: SpecsState): SpecsState {
+  return {
+    ...stored,
+    specs: [
+      ...stored.specs.map(spec => {
+        const defaultSpec = backlogSpecs.find(item => item.id === spec.id);
+        if (!defaultSpec) return spec;
+        const missingActions = defaultSpec.actions.filter(
+          action => !spec.actions.some(existing => existing.id === action.id),
+        );
+        return missingActions.length > 0
+          ? { ...spec, actions: [...spec.actions, ...missingActions] }
+          : spec;
+      }),
+      ...backlogSpecs.filter(
+        defaultSpec => !stored.specs.some(spec => spec.id === defaultSpec.id),
+      ),
+    ],
+  };
+}
+
 function loadState(): SpecsState {
   if (typeof window === 'undefined') return DEFAULT_STATE;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
-    return { ...DEFAULT_STATE, ...(JSON.parse(raw) as Partial<SpecsState>) };
+    return mergeMockDefaults({
+      ...DEFAULT_STATE,
+      ...(JSON.parse(raw) as Partial<SpecsState>),
+    });
   } catch {
     return DEFAULT_STATE;
   }

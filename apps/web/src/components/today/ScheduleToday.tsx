@@ -40,7 +40,9 @@ export function ScheduleToday() {
   useEffect(() => setDateText(dateLabel()), []);
 
   const currentIndex = scheduleBlocks.findIndex(block => block.state === 'ready');
-  const currentBlock = currentIndex >= 0 ? scheduleBlocks[currentIndex] : scheduleBlocks[0];
+  const currentBlock = scheduleBlocks[currentIndex >= 0 ? currentIndex : 0];
+
+  if (!currentBlock) return null;
 
   return (
     <section className={styles.page}>
@@ -52,9 +54,6 @@ export function ScheduleToday() {
 
         <div className={styles.summary}>
           <div className={styles.summaryNow}>
-            <Typography as="span" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
-              Current block
-            </Typography>
             <Typography as="p" size="lg" weight="bold" className={styles.summaryTitle}>
               {currentBlock.title}
             </Typography>
