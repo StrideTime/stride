@@ -1,0 +1,901 @@
+.tray {
+  width: 100%;
+  min-height: 560px;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.stack,
+.liveLayout,
+.checkIn,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.liveLayout {
+  min-height: calc(560px - var(--space-8));
+  gap: var(--space-3);
+}
+
+.liveLayout > :last-child {
+  margin-top: auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.header h1 {
+  margin: 0;
+  line-height: 1.15;
+}
+
+.openButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.openButton:hover,
+.openButton:focus-visible {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+  outline: none;
+}
+
+.actionHero,
+.blockHero,
+.freeTime,
+.nextBlock {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+}
+
+.actionHero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.actionHero h1,
+.actionHero p {
+  margin: 0;
+}
+
+.heroMeta,
+.timeLine,
+.liveMeta,
+.blockTopline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.heroMeta span,
+.typePill {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--color-bg);
+}
+
+.timeLine {
+  justify-content: space-between;
+  padding-top: var(--space-1);
+}
+
+.alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.alternatives h2 {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.actionRow,
+.compactSuggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+
+
+.actionRow {
+  cursor: pointer;
+  text-align: left;
+}
+
+.actionRow:hover,
+.actionRow:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.actionRow span,
+.compactSuggestion span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workCard {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+}
+
+.workCardCopy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.workCard h1,
+.workCard p {
+  margin: 0;
+}
+
+.workCard span {
+  font-family: 'Fira Code', ui-monospace, monospace;
+}
+
+.detailsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.detailsButton:hover,
+.detailsButton:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  outline: none;
+}
+
+.arcWrap {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) 0 0;
+}
+
+.arcDial {
+  display: grid;
+  place-items: center;
+  width: 304px;
+  height: 276px;
+  position: relative;
+}
+
+.arcSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.arcTrack,
+.arcProgress {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 18;
+}
+
+.arcTrack {
+  stroke: var(--color-border);
+}
+
+.arcProgress {
+  transition: stroke 180ms ease, stroke-dashoffset 180ms ease;
+}
+
+.progressNormal {
+  stroke: var(--color-accent);
+}
+
+.progressComplete {
+  stroke: var(--color-success);
+}
+
+.progressOver {
+  stroke: var(--color-overtime);
+}
+
+.arcCore {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  transform: translateY(10px);
+}
+
+.sessionClock {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.arcActionTime {
+  line-height: 1.1;
+  text-align: center;
+}
+
+.noEstimateState {
+  display: grid;
+  place-items: center;
+  min-height: 276px;
+}
+
+.simpleTimer {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  transform: translateY(8px);
+}
+
+.simpleTimerClock {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.addEstimateButton {
+  min-height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.addEstimateButton:hover,
+.addEstimateButton:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  outline: none;
+}
+
+.estimateForm {
+  display: grid;
+  grid-template-columns: 72px auto;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 2px;
+  background: transparent;
+}
+
+.estimateForm input {
+  min-width: 0;
+  border: 0;
+  padding: 0 0 0 var(--space-2);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.estimateForm input:focus {
+  outline: none;
+}
+
+.estimateForm button {
+  min-height: 24px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 750;
+}
+
+.estimateForm button:hover,
+.estimateForm button:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+
+.estimateForm button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.estimateForm input::-webkit-outer-spin-button,
+.estimateForm input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.liveMeta {
+  justify-content: center;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.liveMeta > span + span::before {
+  content: '·';
+  margin-right: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.progressPreview {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.progressPreview input {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.checkIn {
+  min-height: calc(560px - var(--space-8));
+}
+
+.checkInHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.checkInHead h1,
+.checkInHead p {
+  margin: 0;
+}
+
+.feelingScale {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.feelingDot,
+.doneOption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.feelingDot {
+  min-height: 58px;
+  flex-direction: column;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.feelingDot:hover,
+.feelingDot:focus-visible {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  outline: none;
+}
+
+.feelingTough.selectedFeeling {
+  border-color: var(--color-danger);
+  background: var(--color-attention-danger-bg);
+  color: var(--color-danger);
+}
+
+.feelingOkay.selectedFeeling {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.feelingGood.selectedFeeling {
+  border-color: var(--color-success);
+  background: color-mix(in oklch, var(--color-success) 16%, var(--color-bg));
+  color: var(--color-success);
+}
+
+.feelingTarget.selectedFeeling {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.doneOption {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-raised);
+}
+
+.doneOptionActive {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+}
+
+.doneOptionDone {
+  border-color: var(--color-success);
+  background: color-mix(in oklch, var(--color-success) 18%, var(--color-bg));
+  color: var(--color-text);
+}
+
+.noteField {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.noteField:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.requirementsBox {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.requirementsBox h2,
+.requirementsBox p {
+  margin: 0;
+}
+
+.completionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.doneChoice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  min-width: 130px;
+}
+
+.doneOption {
+  padding: var(--space-2) var(--space-3);
+}
+
+.checkInActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.scheduleCompass {
+  display: flex;
+  min-height: calc(560px - var(--space-8));
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.scheduleTopBar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.scheduleTitleGroup {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.scheduleTitleGroup > span {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scheduleTopBar h1 {
+  margin: 0;
+  line-height: 1.05;
+}
+
+.scheduleDateMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+.scheduleIconLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 30px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.scheduleIconLink:hover,
+.scheduleIconLink:focus-visible {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  outline: none;
+}
+
+.scheduleLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 750;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.scheduleLink:hover,
+.scheduleLink:focus-visible {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  outline: none;
+}
+
+.schedulePreviewControls {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.schedulePreviewControls button {
+  min-height: 24px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.schedulePreviewControls button:hover,
+.schedulePreviewControls button:focus-visible,
+.schedulePreviewActive {
+  background: var(--color-surface-raised) !important;
+  color: var(--color-text) !important;
+  outline: none;
+}
+
+/* Day-spine timeline — Now and Next as nodes on one continuous rail that
+   fades into the open space below (the rest of the unplanned day). */
+.timeline {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The rail only spans the timeline nodes — not the suggestions below it. */
+.spine {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.spine::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: 6px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+/* When nothing follows the nodes, the rail grows and fades into the open day. */
+.spineFill {
+  flex: 1;
+}
+
+.spineFill::before {
+  bottom: 0;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 72px), transparent);
+}
+
+.tlNode {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: start;
+}
+
+.tlMarker,
+.tlMarkerNow,
+.tlMarkerOpen {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px var(--color-surface);
+}
+
+.tlMarkerNow {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 4px var(--color-surface), 0 0 0 6px var(--color-accent-subtle);
+}
+
+.tlMarker {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border-strong);
+}
+
+.tlMarkerOpen {
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border-strong);
+}
+
+.nodeBody {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nodeBody h2,
+.nodeBody h3,
+.nodeBody p,
+.nowCard h2,
+.nowCard p {
+  margin: 0;
+}
+
+.tlEyebrow,
+.tlEyebrowAccent {
+  font-size: var(--text-xs);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.tlEyebrowAccent {
+  color: var(--color-accent);
+}
+
+.eyebrowRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.eyebrowTime {
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Now — the one focal card */
+.nowCard {
+  --block-progress: 0%;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+}
+
+.nowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.nowRemaining {
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.nowScale {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: var(--text-xs);
+}
+
+.progressTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-border) 74%, var(--color-bg));
+}
+
+.progressTrack span {
+  display: block;
+  width: var(--block-progress);
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in oklch, var(--color-accent) 82%, var(--color-text));
+  transition: width 180ms ease;
+}
+
+/* Suggestions — only shown in open time, where they help rather than compete */
+.suggestions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.suggestionsTitle {
+  margin: 0;
+  padding-left: var(--space-1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.suggestionList {
+  display: grid;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+}
+
+.suggestionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.suggestionList .suggestionRow:first-child {
+  border-top: 0;
+}
+
+.suggestionCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suggestionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 140ms ease;
+}
+
+.suggestionPlan {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  transition: border-color 140ms ease, color 140ms ease;
+}
+
+.suggestionRow:hover .suggestionTitle,
+.suggestionRow:focus-visible .suggestionTitle {
+  color: var(--color-accent);
+}
+
+.suggestionRow:hover .suggestionPlan,
+.suggestionRow:focus-visible .suggestionPlan {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.suggestionRow:focus-visible {
+  outline: none;
+}
+
+@media (max-width: 420px) {
+  .tray {
+    min-height: 520px;
+  }
+
+  .arcDial {
+    width: 284px;
+    height: 258px;
+  }
+}

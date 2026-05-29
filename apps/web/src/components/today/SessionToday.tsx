@@ -96,10 +96,6 @@ function IdleHero() {
   return (
     <section className={`${styles.hero} ${styles.heroIdle}`}>
       <div className={styles.heroMain}>
-        <Typography as="p" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
-          Up next
-        </Typography>
-
         {next ? (
           <>
             <div className={styles.heroTitleRow}>
@@ -167,11 +163,8 @@ function RunningHero() {
   return (
     <section className={`${styles.hero} ${styles.heroRunning}`}>
       <div className={styles.runningContext}>
-        <div className={styles.runningEyebrow}>
+        <div className={styles.runningEyebrow} aria-label="Session running">
           <span className={styles.pulse} aria-hidden="true" />
-          <Typography as="span" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
-            Session running
-          </Typography>
         </div>
 
         <div className={styles.runningTitleBlock}>
