@@ -58,9 +58,6 @@ export function ScheduleToday() {
 
         <div className={styles.summary}>
           <div className={styles.summaryNow}>
-            <Typography as="span" size="xs" weight="semibold" color="muted" className={styles.eyebrow}>
-              Current block
-            </Typography>
             <Typography as="p" size="lg" weight="bold" className={styles.summaryTitle}>
               {currentBlock.title}
             </Typography>

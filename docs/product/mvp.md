@@ -75,8 +75,11 @@ Execution before reflection. Each step ships incrementally:
   on a hero (next Action → live timer → check-in) plus a compact "Later today";
   schedule-first (`ScheduleToday`) is the day timeline with a day-at-a-glance summary. Not
   the old four-panel dashboard. See [`surfaces.md`](surfaces.md).
-- **Tray** — idle + live-session states (web demo is fine for v1; the Tauri shell can
-  trail).
+- **Tray** — web implementation of both working-mode variants (the Tauri shell can
+  trail). Session-first ships idle, live-session, and compact check-in states. Schedule-first
+  ships the quiet day compass: strict wall-clock current block, next block, and free-time
+  priority suggestions. Capture remains a separate shortcut-driven surface, not part of
+  the Tray.
 - **"My data" view** — in Settings. The user can see and delete their captured data:
   recent sessions, feeling check-ins, captures. Minimal is fine — a list with delete
   buttons. This ships *because* the backend captures more than it surfaces (see below);

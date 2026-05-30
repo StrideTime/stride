@@ -39,6 +39,9 @@ export type AppShellProps = {
   onSelectStatus?: (id: string) => void;
 };
 
+const showTrayPreview =
+  ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV ?? false);
+
 const navItems: NavItem[] = [
   { to: '/', label: 'Today', icon: House },
   { to: '/inbox', label: 'Inbox', icon: Tray, badge: 3 },
@@ -53,6 +56,7 @@ const navItems: NavItem[] = [
     ],
   },
   { to: '/schedule', label: 'Schedule', icon: ClockCountdown },
+  ...(showTrayPreview ? [{ to: '/tray', label: 'Tray preview', icon: ClockCountdown }] : []),
 ];
 
 const DEFAULT_STATUSES: ShellStatus[] = [
