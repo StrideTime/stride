@@ -11,6 +11,7 @@ import {
   SquaresFourIcon,
   TargetIcon,
   TrashIcon,
+  TrayIcon,
   UsersIcon,
 } from '@phosphor-icons/react';
 import { Badge, Button, Popover, TextInput, Typography } from '@stride/ui';
@@ -20,6 +21,18 @@ import { trayActions } from './schedule.mock';
 import styles from './ScheduleShared.module.css';
 
 export type SelectedScheduleBlock = ScheduleBlock & { layer: ScheduleMode };
+
+export type TrayState = 'hidden' | 'peek' | 'full';
+
+export type GenericBlockType =
+  | 'session'
+  | 'break'
+  | 'focus'
+  | 'meeting'
+  | 'buffer'
+  | 'research'
+  | 'learning'
+  | 'personal';
 
 type HeaderProps = {
   title: string;
@@ -45,6 +58,11 @@ type ScheduleTrayProps = {
   mode?: ScheduleMode;
   selectedBlock?: SelectedScheduleBlock | null;
   showAdjustInSchedule?: boolean;
+  trayState?: TrayState;
+  dragging?: boolean;
+  onChangeTrayState?: (state: TrayState) => void;
+  onPickAction?: (action: ScheduleAction) => void;
+  onPickGenericBlock?: (type: GenericBlockType) => void;
   onRenameBlock?: (blockId: string, title: string) => void;
   onLinkAction?: (blockId: string, action: ScheduleAction | null) => void;
   onChangeRecurrence?: (blockId: string, recurrence: RecurrenceRule | null) => void;
@@ -392,6 +410,11 @@ export function ScheduleTray({
   mode = 'plan',
   selectedBlock,
   showAdjustInSchedule = true,
+  trayState = 'full',
+  dragging = false,
+  onChangeTrayState,
+  onPickAction,
+  onPickGenericBlock,
   onRenameBlock,
   onLinkAction,
   onChangeRecurrence,
@@ -404,8 +427,6 @@ export function ScheduleTray({
     'highestPriority'
   );
   const [sortBy, setSortBy] = useState<'recent' | 'modified' | 'oldest'>('recent');
-  const [linkActionQuery, setLinkActionQuery] = useState('');
-  const [isLinkActionPickerOpen, setIsLinkActionPickerOpen] = useState(false);
   const filteredActions = trayActions.filter(action => {
     const matchesQuery = `${action.title} ${action.sourceKey}`
       .toLowerCase()
@@ -427,26 +448,17 @@ export function ScheduleTray({
 
     return compareDates(right.createdAt, left.createdAt);
   });
-  const filteredLinkActions = trayActions.filter(action => (
-    `${action.title} ${action.specTitle ?? ''} ${action.sourceKey}`
-  ).toLowerCase().includes(linkActionQuery.toLowerCase()));
 
   if (selectedBlock) {
     return (
       <ScheduleSideTray
         title={selectedBlock.title}
         onBack={onClearSelection}
+        state={trayState}
+        dragging={dragging}
+        onChangeState={onChangeTrayState}
         titleControl={!selectedBlock.fixed ? (
-          <label className={styles.sideTrayTitleEditor} title={selectedBlock.title}>
-            <span className={styles.sideTrayTitleSizer}>{selectedBlock.title || formatEventType(selectedBlock.type)}</span>
-            <input
-              className={styles.sideTrayTitleInput}
-              aria-label="Scheduled event title"
-              title={selectedBlock.title}
-              value={selectedBlock.title}
-              onChange={event => onRenameBlock?.(selectedBlock.id, event.target.value)}
-            />
-          </label>
+          <BlockTitleEditor block={selectedBlock} onRename={onRenameBlock} />
         ) : undefined}
         meta={(
           <Badge variant={getEventTypeBadgeVariant(selectedBlock.type)}>
@@ -454,147 +466,22 @@ export function ScheduleTray({
           </Badge>
         )}
       >
-        <div className={styles.inspector}>
-          <div className={styles.detailCard}>
-            {selectedBlock.description ? (
-              <div className={styles.detailDescription}>
-                <Typography size="xs" color="muted">Description</Typography>
-                <Typography size="sm">{selectedBlock.description}</Typography>
-              </div>
-            ) : null}
-            <div className={styles.scheduleSection}>
-              <div className={styles.detailGrid}>
-                <Detail
-                  label={selectedBlock.type === 'session' ? 'Session time' : 'Scheduled'}
-                  value={formatBlockTime(selectedBlock)}
-                />
-                {selectedBlock.type === 'action' ? (
-                  <>
-                    <Detail
-                      label="Planned"
-                      value={formatDuration(selectedBlock.plannedMin ?? selectedBlock.durationMin)}
-                    />
-                    <Detail label="Actual" value={formatDuration(selectedBlock.actualMin ?? 0)} />
-                  </>
-                ) : (
-                  <Detail label="Duration" value={formatDuration(selectedBlock.durationMin)} />
-                )}
-                {selectedBlock.type === 'session' ? (
-                  <div className={styles.linkedActionDetail}>
-                    <Typography size="xs" color="muted">Linked action</Typography>
-                    {selectedBlock.actionId && selectedBlock.sourceKey ? (
-                      <div className={styles.linkedActionPill}>
-                        <button
-                          className={styles.linkedActionPillMain}
-                          type="button"
-                          onClick={() => setIsLinkActionPickerOpen(true)}
-                        >
-                          <span>{selectedBlock.title}</span>
-                          <span>{selectedBlock.sourceKey}</span>
-                        </button>
-                        <button
-                          className={styles.linkedActionDelete}
-                          type="button"
-                          aria-label="Remove linked action"
-                          onClick={() => {
-                            onLinkAction?.(selectedBlock.id, null);
-                            setIsLinkActionPickerOpen(false);
-                            setLinkActionQuery('');
-                          }}
-                        >
-                          <TrashIcon size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        className={styles.linkedActionEmptyButton}
-                        type="button"
-                        onClick={() => setIsLinkActionPickerOpen(true)}
-                      >
-                        Link action
-                      </button>
-                    )}
-                    {isLinkActionPickerOpen ? (
-                      <div className={styles.linkActionPicker}>
-                        <TextInput
-                          aria-label="Search actions to link"
-                          placeholder="Search action name, spec name, or spec ID"
-                          value={linkActionQuery}
-                          onChange={event => setLinkActionQuery(event.target.value)}
-                        />
-                        <div className={styles.linkActionResults}>
-                          {filteredLinkActions.map(action => (
-                            <button
-                              key={action.id}
-                              className={styles.linkActionResult}
-                              type="button"
-                              onClick={() => {
-                                onLinkAction?.(selectedBlock.id, action);
-                                setIsLinkActionPickerOpen(false);
-                                setLinkActionQuery('');
-                              }}
-                            >
-                              <span>{action.title}</span>
-                              <span className={styles.linkActionResultMeta}>
-                                <span>{action.sourceKey}</span>
-                                <FlagIcon
-                                  size={13}
-                                  weight="fill"
-                                  aria-label={`${action.priority} priority`}
-                                />
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : selectedBlock.actionId && selectedBlock.sourceKey ? (
-                  <Detail label="Linked action" value={selectedBlock.sourceKey} />
-                ) : null}
-                {selectedBlock.source ? <Detail label="Source" value={selectedBlock.source} /> : null}
-                {selectedBlock.type !== 'session' && !selectedBlock.fixed ? (
-                  <RecurrenceEditor
-                    recurrence={selectedBlock.recurrence}
-                    onChange={recurrence => onChangeRecurrence?.(selectedBlock.id, recurrence)}
-                  />
-                ) : null}
-              </div>
-            </div>
-          </div>
-          <div className={styles.inspectorActions}>
-            {showAdjustInSchedule ? (
-              <Button
-                size="sm"
-                variant="primary"
-                icon={<CalendarBlankIcon size={15} />}
-                onClick={() => onAdjustInSchedule?.(selectedBlock)}
-              >
-                Adjust in schedule
-              </Button>
-            ) : null}
-            {selectedBlock.actionId && selectedBlock.sourceKey ? (
-              <Button size="sm" variant="secondary" icon={<SquaresFourIcon size={15} />}>
-                View in spec
-              </Button>
-            ) : null}
-            {!selectedBlock.fixed ? (
-              <button
-                className={styles.destructiveIconButton}
-                type="button"
-                aria-label="Delete block"
-                onClick={() => onDeleteBlock?.(selectedBlock.id)}
-              >
-                <TrashIcon size={15} />
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <ScheduleBlockInspector
+          block={selectedBlock}
+          showAdjustInSchedule={showAdjustInSchedule}
+          onLinkAction={onLinkAction}
+          onChangeRecurrence={onChangeRecurrence}
+          onAdjustInSchedule={onAdjustInSchedule}
+          onDeleteBlock={onDeleteBlock}
+        />
       </ScheduleSideTray>
     );
   }
 
   const isSessionMode = mode === 'actual';
+  const quickAddTypes: GenericBlockType[] = isSessionMode
+    ? ['session']
+    : ['focus', 'research', 'learning', 'buffer', 'break', 'meeting', 'personal'];
   const filterLabels: Record<typeof workFilter, string> = isSessionMode
     ? {
         neverStarted: 'Not logged',
@@ -613,7 +500,36 @@ export function ScheduleTray({
       description={isSessionMode
         ? 'Drag actions onto the calendar to backfill sessions, or add an unlinked session.'
         : 'Drag items onto a day.'}
+      variant="picker"
+      state={trayState}
+      dragging={dragging}
+      onChangeState={onChangeTrayState}
     >
+      {onPickGenericBlock ? (
+        <div className={styles.trayQuickAdd}>
+          <Typography size="xs" weight="semibold" color="muted">
+            {isSessionMode ? 'Add a session' : 'Add a block'}
+          </Typography>
+          <div className={styles.trayQuickAddRow}>
+            {quickAddTypes.map(type => {
+              const Icon = getGenericBlockIcon(type);
+
+              return (
+                <button
+                  key={type}
+                  className={styles.trayQuickAddChip}
+                  data-event-type={type}
+                  type="button"
+                  onClick={() => onPickGenericBlock(type)}
+                >
+                  <Icon size={15} />
+                  <span>{getGenericBlockTitle(type)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       <div className={styles.trayControls}>
         <div className={styles.searchSortRow}>
           <TextInput
@@ -651,10 +567,194 @@ export function ScheduleTray({
           {isSessionMode ? 'Actions to log' : 'Work'}
         </Typography>
         {filteredActions.map(action => (
-          <TrayAction key={action.id} action={action} />
+          <TrayAction key={action.id} action={action} onPick={onPickAction} />
         ))}
       </div>
     </ScheduleSideTray>
+  );
+}
+
+export function BlockTitleEditor({
+  block,
+  onRename,
+}: {
+  block: ScheduleBlock;
+  onRename?: (blockId: string, title: string) => void;
+}) {
+  return (
+    <label className={styles.sideTrayTitleEditor} title={block.title}>
+      <span className={styles.sideTrayTitleSizer}>{block.title || formatEventType(block.type)}</span>
+      <input
+        className={styles.sideTrayTitleInput}
+        aria-label="Scheduled event title"
+        title={block.title}
+        value={block.title}
+        onChange={event => onRename?.(block.id, event.target.value)}
+      />
+    </label>
+  );
+}
+
+type ScheduleBlockInspectorProps = {
+  block: ScheduleBlock;
+  showAdjustInSchedule?: boolean;
+  onLinkAction?: (blockId: string, action: ScheduleAction | null) => void;
+  onChangeRecurrence?: (blockId: string, recurrence: RecurrenceRule | null) => void;
+  onAdjustInSchedule?: (block: ScheduleBlock) => void;
+  onDeleteBlock?: (blockId: string) => void;
+};
+
+export function ScheduleBlockInspector({
+  block,
+  showAdjustInSchedule = false,
+  onLinkAction,
+  onChangeRecurrence,
+  onAdjustInSchedule,
+  onDeleteBlock,
+}: ScheduleBlockInspectorProps) {
+  const [linkActionQuery, setLinkActionQuery] = useState('');
+  const [isLinkActionPickerOpen, setIsLinkActionPickerOpen] = useState(false);
+  const filteredLinkActions = trayActions.filter(action => (
+    `${action.title} ${action.specTitle ?? ''} ${action.sourceKey}`
+  ).toLowerCase().includes(linkActionQuery.toLowerCase()));
+
+  return (
+    <div className={styles.inspector}>
+      <div className={styles.detailCard}>
+        {block.description ? (
+          <div className={styles.detailDescription}>
+            <Typography size="xs" color="muted">Description</Typography>
+            <Typography size="sm">{block.description}</Typography>
+          </div>
+        ) : null}
+        <div className={styles.scheduleSection}>
+          <div className={styles.detailGrid}>
+            <Detail
+              label={block.type === 'session' ? 'Session time' : 'Scheduled'}
+              value={formatBlockTime(block)}
+            />
+            {block.type === 'action' ? (
+              <>
+                <Detail
+                  label="Planned"
+                  value={formatDuration(block.plannedMin ?? block.durationMin)}
+                />
+                <Detail label="Actual" value={formatDuration(block.actualMin ?? 0)} />
+              </>
+            ) : (
+              <Detail label="Duration" value={formatDuration(block.durationMin)} />
+            )}
+            {block.type === 'session' ? (
+              <div className={styles.linkedActionDetail}>
+                <Typography size="xs" color="muted">Linked action</Typography>
+                {block.actionId && block.sourceKey ? (
+                  <div className={styles.linkedActionPill}>
+                    <button
+                      className={styles.linkedActionPillMain}
+                      type="button"
+                      onClick={() => setIsLinkActionPickerOpen(true)}
+                    >
+                      <span>{block.title}</span>
+                      <span>{block.sourceKey}</span>
+                    </button>
+                    <button
+                      className={styles.linkedActionDelete}
+                      type="button"
+                      aria-label="Remove linked action"
+                      onClick={() => {
+                        onLinkAction?.(block.id, null);
+                        setIsLinkActionPickerOpen(false);
+                        setLinkActionQuery('');
+                      }}
+                    >
+                      <TrashIcon size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className={styles.linkedActionEmptyButton}
+                    type="button"
+                    onClick={() => setIsLinkActionPickerOpen(true)}
+                  >
+                    Link action
+                  </button>
+                )}
+                {isLinkActionPickerOpen ? (
+                  <div className={styles.linkActionPicker}>
+                    <TextInput
+                      aria-label="Search actions to link"
+                      placeholder="Search action name, spec name, or spec ID"
+                      value={linkActionQuery}
+                      onChange={event => setLinkActionQuery(event.target.value)}
+                    />
+                    <div className={styles.linkActionResults}>
+                      {filteredLinkActions.map(action => (
+                        <button
+                          key={action.id}
+                          className={styles.linkActionResult}
+                          type="button"
+                          onClick={() => {
+                            onLinkAction?.(block.id, action);
+                            setIsLinkActionPickerOpen(false);
+                            setLinkActionQuery('');
+                          }}
+                        >
+                          <span>{action.title}</span>
+                          <span className={styles.linkActionResultMeta}>
+                            <span>{action.sourceKey}</span>
+                            <FlagIcon
+                              size={13}
+                              weight="fill"
+                              aria-label={`${action.priority} priority`}
+                            />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : block.actionId && block.sourceKey ? (
+              <Detail label="Linked action" value={block.sourceKey} />
+            ) : null}
+            {block.source ? <Detail label="Source" value={block.source} /> : null}
+            {block.type !== 'session' && !block.fixed ? (
+              <RecurrenceEditor
+                recurrence={block.recurrence}
+                onChange={recurrence => onChangeRecurrence?.(block.id, recurrence)}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className={styles.inspectorActions}>
+        {showAdjustInSchedule ? (
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<CalendarBlankIcon size={15} />}
+            onClick={() => onAdjustInSchedule?.(block)}
+          >
+            Adjust in schedule
+          </Button>
+        ) : null}
+        {block.actionId && block.sourceKey ? (
+          <Button size="sm" variant="secondary" icon={<SquaresFourIcon size={15} />}>
+            View in spec
+          </Button>
+        ) : null}
+        {!block.fixed ? (
+          <button
+            className={styles.destructiveIconButton}
+            type="button"
+            aria-label="Delete block"
+            onClick={() => onDeleteBlock?.(block.id)}
+          >
+            <TrashIcon size={15} />
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -755,6 +855,10 @@ function ScheduleSideTray({
   meta,
   children,
   footer,
+  variant = 'inspector',
+  state = 'full',
+  dragging = false,
+  onChangeState,
 }: {
   title: string;
   description?: string;
@@ -763,9 +867,67 @@ function ScheduleSideTray({
   meta?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  variant?: 'picker' | 'inspector';
+  state?: TrayState;
+  dragging?: boolean;
+  onChangeState?: (state: TrayState) => void;
 }) {
+  const dragStartRef = useRef<number | null>(null);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStartRef.current = event.clientY;
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragStartRef.current === null) return;
+    const delta = event.clientY - dragStartRef.current;
+    dragStartRef.current = null;
+    const threshold = 44;
+
+    if (Math.abs(delta) < 6) {
+      onChangeState?.(state === 'full' ? 'peek' : 'full');
+      return;
+    }
+
+    if (delta < -threshold) {
+      onChangeState?.('full');
+      return;
+    }
+
+    if (delta > threshold) {
+      onChangeState?.(state === 'full' ? 'peek' : 'hidden');
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onChangeState?.(state === 'full' ? 'peek' : 'full');
+    }
+  };
+
   return (
-    <aside className={styles.sideTray} aria-label={title}>
+    <aside
+      className={styles.sideTray}
+      aria-label={title}
+      data-tray-state={state}
+      data-variant={variant}
+      data-dragging={dragging ? 'true' : 'false'}
+    >
+      <button
+        type="button"
+        className={styles.sideTrayGrip}
+        aria-label={state === 'full' ? 'Collapse panel' : 'Expand panel'}
+        aria-expanded={state === 'full'}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={() => { dragStartRef.current = null; }}
+        onKeyDown={handleKeyDown}
+      >
+        <span className={styles.sideTrayHandle} aria-hidden="true" />
+        <span className={styles.sideTrayGripLabel}>{title}</span>
+      </button>
       <div className={styles.sideTrayHeader}>
         <div className={styles.sideTrayTitleRow}>
           <div className={styles.sideTrayTopLine}>
@@ -995,7 +1157,13 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function TrayAction({ action }: { action: ScheduleAction }) {
+function TrayAction({
+  action,
+  onPick,
+}: {
+  action: ScheduleAction;
+  onPick?: (action: ScheduleAction) => void;
+}) {
   const draggableAction = useDraggable({
     id: `action:${action.id}`,
     data: { type: 'action', action },
@@ -1008,6 +1176,7 @@ function TrayAction({ action }: { action: ScheduleAction }) {
       className={styles.trayAction}
       {...draggableAction.attributes}
       {...draggableAction.listeners}
+      onClick={onPick ? () => onPick(action) : undefined}
     >
       <div className={styles.trayActionMain}>
         <Typography size="sm" weight="semibold">{action.title}</Typography>
@@ -1020,6 +1189,36 @@ function TrayAction({ action }: { action: ScheduleAction }) {
       </div>
     </article>
   );
+}
+
+export function getGenericBlockTitle(type: GenericBlockType) {
+  const titles: Record<GenericBlockType, string> = {
+    session: 'Session',
+    break: 'Break',
+    focus: 'Focus',
+    meeting: 'Meeting',
+    buffer: 'Buffer',
+    research: 'Research',
+    learning: 'Learning',
+    personal: 'Personal',
+  };
+
+  return titles[type];
+}
+
+export function getGenericBlockIcon(type: GenericBlockType) {
+  const icons: Record<GenericBlockType, typeof TargetIcon> = {
+    session: TargetIcon,
+    break: CoffeeIcon,
+    focus: TargetIcon,
+    meeting: CalendarBlankIcon,
+    buffer: TrayIcon,
+    research: TargetIcon,
+    learning: CoffeeIcon,
+    personal: CalendarBlankIcon,
+  };
+
+  return icons[type];
 }
 
 export function toScheduleBlock(action: ScheduleAction, date: string): ScheduleBlock {
@@ -1090,7 +1289,7 @@ function getBlockTypeClassName(type: ScheduleBlock['type']) {
   }
 }
 
-function getEventTypeBadgeVariant(type: ScheduleBlock['type']) {
+export function getEventTypeBadgeVariant(type: ScheduleBlock['type']) {
   const variants: Record<ScheduleBlock['type'], 'neutral' | 'accent' | 'success' | 'warning' | 'danger'> = {
     session: 'accent',
     action: 'accent',
@@ -1107,7 +1306,7 @@ function getEventTypeBadgeVariant(type: ScheduleBlock['type']) {
   return variants[type];
 }
 
-function formatEventType(type: ScheduleBlock['type']) {
+export function formatEventType(type: ScheduleBlock['type']) {
   const labels: Record<ScheduleBlock['type'], string> = {
     session: 'Session',
     action: 'Action',

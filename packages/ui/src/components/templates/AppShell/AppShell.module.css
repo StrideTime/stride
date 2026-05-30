@@ -365,6 +365,9 @@
   height: 100dvh;
   min-width: 0;
   overflow: auto;
+  /* Suppress the browser's pull-to-refresh / rubber-band, which fires
+     disruptively during touch drags on scrollable screens. */
+  overscroll-behavior-y: contain;
 }
 
 @media (max-width: 920px) {
