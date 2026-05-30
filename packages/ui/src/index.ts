@@ -8,10 +8,12 @@ export {
   Select,
   TextInput,
   Typography,
+  type AppShellProps,
   type BadgeProps,
   type ButtonProps,
   type DrawerProps,
   type MultiSelectOption,
   type MultiSelectProps,
+  type ShellStatus,
   type TextInputProps,
 } from './components';

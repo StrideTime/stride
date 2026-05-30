@@ -40,9 +40,13 @@ export function ScheduleToday() {
   useEffect(() => setDateText(dateLabel()), []);
 
   const currentIndex = scheduleBlocks.findIndex(block => block.state === 'ready');
-  const currentBlock = scheduleBlocks[currentIndex >= 0 ? currentIndex : 0];
-
-  if (!currentBlock) return null;
+  const currentBlock = scheduleBlocks[currentIndex >= 0 ? currentIndex : 0] ?? {
+    id: 'empty',
+    time: 'No blocks planned',
+    title: 'Nothing scheduled yet',
+    detail: 'Plan your day from Schedule.',
+    state: 'break',
+  } satisfies TodayScheduleBlock;
 
   return (
     <section className={styles.page}>

@@ -13,4 +13,4 @@ export {
   type TextInputProps,
 } from './atoms';
 export { Drawer, type DrawerProps } from './molecules';
-export { AppShell } from './templates';
+export { AppShell, type AppShellProps, type ShellStatus } from './templates';

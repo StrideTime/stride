@@ -1,6 +1,6 @@
 ---
 title: Surfaces (screens & routes)
-updated: 2026-05-21
+updated: 2026-05-30
 status: current
 owner: jaren
 ---
@@ -19,6 +19,7 @@ __root.tsx                     providers (QueryClient, i18n, theme)
 ├── login.tsx       /login         ┐  unauthenticated — placeholder; the auth/first-run shape is open (open-questions Q11); v1 invite-only
 ├── signup.tsx      /signup        ┘
 ├── onboarding.tsx  /onboarding       placeholder — connect Jira/Linear → pick projects → first sync; shape TBD
+├── workspaces.new.tsx /workspaces/new   focused full-screen flow to create a workspace (name → plan → connect a source); entered from the workspace switcher, not the app shell
 │
 └── _auth.tsx       app-shell layout (requires auth + a workspace) — left rail: Today · Backlog · Schedule · Insights, with ⚙ Settings pinned at the bottom
     ├── index.tsx           /              Today — renders a session-first or schedule-first variant per the working mode
@@ -75,7 +76,7 @@ The workspace's spec list. Find, break down, schedule.
 > **Simplified 2026-05-21.** The Schedule was two levels — a week overview that you
 > navigated *into* a day canvas. It is now a **single day view**. Cut: the week view, the
 > separate day-canvas route, untimed "day assignments" (every block has a real time), and
-> the TimeBudget UI. See [`data-model.md`](data-model.md) and the
+> time budgets. See [`data-model.md`](data-model.md) and the
 > [`open-questions.md`](open-questions.md) changelog.
 
 One surface: a 24-hour day canvas at `/schedule`. The viewed date is a `?date=` search param (defaults to today). It is a planning surface, not a passive calendar clone.
@@ -100,8 +101,6 @@ One surface: a 24-hour day canvas at `/schedule`. The viewed date is a `?date=` 
 > design below is the spec for when it returns. See [`mvp.md`](mvp.md).
 
 Insights is a focused query surface, not a dashboard wall. The user picks a scope, then sees a short readout, formatted top-down with minimal chrome: a one-line takeaway, a single metrics block (four stats as a divided strip with deltas, feeding one interactive area chart for the selected stat), then two borderless lanes — a patterns or status list, and a computed "suggested next steps" list.
-
-Time-budget insights compare desired time against planned/actual time by schedule type, depending on the user's active time-accounting mode. Users can budget selected types only; unbudgeted types can still appear as context. A user has one active budget basis at a time — daily or weekly — so category goals stay consistent. Budget targets are always private and shown only in Me scope.
 
 Scopes are **role-gated** (roles are additive — Member ⊂ Team Admin ⊂ Workspace Admin); the scope tabs only show what the viewer's role can see:
 
@@ -154,6 +153,7 @@ Content (the same in both presentations):
 ## Not standalone surfaces (handled elsewhere)
 
 - **Onboarding** — placeholder route `/onboarding` (connect Jira/Linear → pick projects → first sync → land on Today). Whether it's a gated route before the app shell or a step inside it is open ([`open-questions.md`](open-questions.md) Q11); v1 is invite-only (no public self-serve signup).
-- **Settings** — a `/settings` section reached via the ⚙ gear at the bottom of the left rail. The global app rail stays visible and Settings adds a secondary settings sidebar. First implementation uses `?section=…` deep links rather than nested routes. Sections are organized by ownership scope: **My workspace settings** (default), **Personal** account-wide settings, **Workspace admin** settings, and **Team admin** settings nested under the selected workspace/team context. Admin-only sections are hidden when the user lacks access. Source connections are workspace-pooled; team admins can add a source connection to that pool from team settings without broad workspace-admin access. Each Stride Team has exactly one primary source mapping, and each external Jira board / Linear Team / GitHub repo maps to only one Stride Team per workspace. Calendar connections are personal and opted into per workspace.
+- **Create workspace** — focused full-screen route `/workspaces/new`, entered from the **Create workspace** action in the workspace switcher (the switcher is the multi-workspace context; per-workspace Settings is the single-workspace context, so creation lives in the switcher, not Settings). It runs without the app shell — a three-step flow: **name** the workspace (you become its workspace admin) → **pick a plan** → **connect a source** (or skip). The plan step is a *visualization* of how paid tiers will look (Free / Team / Enterprise, monthly–annual toggle); **billing is not live in v1** (deferred per [`mvp.md`](mvp.md) and the 2026-05-12 open-questions decision), so the step is a preview and the flow lands you in the new workspace without charging.
+- **Settings** — a `/settings` section reached via the ⚙ gear at the bottom of the left rail. The global app rail stays visible and Settings adds a secondary settings sidebar. First implementation uses `?section=…` deep links rather than nested routes. Sections are organized by ownership scope: **My workspace settings** (default), **Personal** account-wide settings, **Workspace admin** settings, and **Team admin** settings nested under the selected workspace/team context. Admin-only sections are hidden when the user lacks access. Source connections are workspace-pooled: one Jira account, one Linear account, and one GitHub organization per workspace. Team Source mapping first chooses which source type the team uses, then chooses the source unit inside that connected account or organization: a Jira board, Linear team, or GitHub repository. Each Stride Team has exactly one primary source mapping, and each external Jira board / Linear Team / GitHub repo maps to only one Stride Team per workspace. Multiple GitHub repositories per Stride Team is an open question, not current behavior. Team General settings cover the Stride team name plus workflow and breakdown behavior. Source-owned identifiers and source-to-team assignment live in Source mapping, not Team General. Team defaults do not set member working hours, working mode, notification timing, presence, or focus status. Calendar connections are personal and opted into per workspace.
 - **"Needs attention"** — surfaced inline in Backlog, not its own page.
 - **Performance metrics dashboard / "Activity"** — folded into Insights and the Spec view's History tab; not a separate page.

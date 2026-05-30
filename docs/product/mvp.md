@@ -1,6 +1,6 @@
 ---
 title: MVP — v1 scope
-updated: 2026-05-21
+updated: 2026-05-27
 status: current
 owner: jaren
 ---
@@ -68,8 +68,8 @@ Execution before reflection. Each step ships incrementally:
   no source-mapped status. Project management lives in Jira; Actions make the *execution*
   of work captureable.
 - **Schedule** — a **single day view** (`/schedule`, date as `?date=`): one 24-hour
-  canvas, no week view, no untimed day-assignments, no TimeBudget UI (simplified
-  2026-05-21). The Plan/Sessions toggle is session-first only. In v1 because both dogfood
+  canvas, no week view, no untimed day-assignments, no time budgets (simplified
+  2026-05-27). The Plan/Sessions toggle is session-first only. In v1 because both dogfood
   users need it. See [`surfaces.md`](surfaces.md).
 - **Today** — two mode variants behind one route: session-first (`SessionToday`) centers
   on a hero (next Action → live timer → check-in) plus a compact "Later today";
@@ -117,9 +117,9 @@ user must be able to see what was captured. See [`principles.md`](principles.md)
   the team-facing UI and flows are deferred.)*
 - **Offline mutation queue** — single user, one device; simple persistence is enough for
   v1. The durable SQLite queue is post-MVP.
-- **TimeBudget, ScheduledEventType customization, ActionDayAssignment** — the elaborate
-  planning/budgeting model is deferred; v1 Schedule uses a minimal fixed set of block
-  types.
+- **ScheduledEventType customization and ActionDayAssignment** — custom schedule types are
+  deferred; v1 Schedule uses a minimal fixed set of block types. Untimed day assignments
+  were cut entirely when Schedule became a single day view.
 - **LLM features** — AI break down, AI insights/summaries. Architecture stays LLM-ready;
   nothing LLM ships.
 - **Comments** — Comments tab + reply-write-back to source.
