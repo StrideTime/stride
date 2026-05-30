@@ -14,6 +14,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as WorkspacesNewRouteImport } from './routes/workspaces.new'
 import { Route as AuthTrayRouteImport } from './routes/_auth/tray'
 import { Route as AuthSettingsRouteImport } from './routes/_auth/settings'
 import { Route as AuthScheduleRouteImport } from './routes/_auth/schedule'
@@ -46,6 +47,11 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthRoute,
+} as any)
+const WorkspacesNewRoute = WorkspacesNewRouteImport.update({
+  id: '/workspaces/new',
+  path: '/workspaces/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthTrayRoute = AuthTrayRouteImport.update({
   id: '/tray',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof AuthScheduleRoute
   '/settings': typeof AuthSettingsRoute
   '/tray': typeof AuthTrayRoute
+  '/workspaces/new': typeof WorkspacesNewRoute
   '/backlog/actions': typeof AuthBacklogActionsRoute
   '/backlog/specs': typeof AuthBacklogSpecsRoute
   '/specs/$specId': typeof AuthSpecsSpecIdRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/schedule': typeof AuthScheduleRoute
   '/settings': typeof AuthSettingsRoute
   '/tray': typeof AuthTrayRoute
+  '/workspaces/new': typeof WorkspacesNewRoute
   '/': typeof AuthIndexRoute
   '/backlog/actions': typeof AuthBacklogActionsRoute
   '/backlog/specs': typeof AuthBacklogSpecsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/_auth/schedule': typeof AuthScheduleRoute
   '/_auth/settings': typeof AuthSettingsRoute
   '/_auth/tray': typeof AuthTrayRoute
+  '/workspaces/new': typeof WorkspacesNewRoute
   '/_auth/': typeof AuthIndexRoute
   '/_auth/backlog/actions': typeof AuthBacklogActionsRoute
   '/_auth/backlog/specs': typeof AuthBacklogSpecsRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/tray'
+    | '/workspaces/new'
     | '/backlog/actions'
     | '/backlog/specs'
     | '/specs/$specId'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/tray'
+    | '/workspaces/new'
     | '/'
     | '/backlog/actions'
     | '/backlog/specs'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_auth/schedule'
     | '/_auth/settings'
     | '/_auth/tray'
+    | '/workspaces/new'
     | '/_auth/'
     | '/_auth/backlog/actions'
     | '/_auth/backlog/specs'
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
+  WorkspacesNewRoute: typeof WorkspacesNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/workspaces/new': {
+      id: '/workspaces/new'
+      path: '/workspaces/new'
+      fullPath: '/workspaces/new'
+      preLoaderRoute: typeof WorkspacesNewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_auth/tray': {
       id: '/_auth/tray'
@@ -322,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,
+  WorkspacesNewRoute: WorkspacesNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

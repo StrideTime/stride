@@ -54,8 +54,7 @@ scope expansion.
 
 Iterate on what real usage reveals. Add features only when actual behaviour demands them:
 Linear sync when the second user asks; richer Schedule when a user actually wants to plan
-in Stride; the elaborate planning model (TimeBudget, custom ScheduledEventTypes) only if
-it earns its way in.
+in Stride; custom ScheduledEventTypes only if they earn their way in.
 
 ## 6–12 months — the team layer
 
@@ -70,7 +69,7 @@ use makes it real.
 Now there is real captured signal to reflect on. Operational insights return **inline
 first** (inside Today, the Tray, the Spec view — they change a decision in the moment).
 The reflective Insights surface returns only when real users articulate what they want to
-see. The time-budget model lives here.
+see.
 
 ## Beyond 18 months
 

@@ -1,4 +1,4 @@
-import { CaretDown, Check } from '@phosphor-icons/react';
+import { CaretDown, Check, Info } from '@phosphor-icons/react';
 import { Select as BaseSelect } from '@base-ui-components/react/select';
 import type { ReactNode } from 'react';
 
@@ -16,11 +16,22 @@ type SelectProps = {
   options: SelectOption[];
   onChange: (value: string) => void;
   className?: string;
+  hideTriggerLabel?: boolean;
+  infoText?: string;
 };
 
-export function Select({ label, value, options, onChange, className }: SelectProps) {
+export function Select({
+  label,
+  value,
+  options,
+  onChange,
+  className,
+  hideTriggerLabel = false,
+  infoText,
+}: SelectProps) {
   const selectedOption = options.find(option => option.value === value);
   const rootClassName = [styles.root, className].filter(Boolean).join(' ');
+  const showLabelRow = Boolean(infoText && label);
 
   return (
     <BaseSelect.Root
@@ -30,13 +41,21 @@ export function Select({ label, value, options, onChange, className }: SelectPro
       }}
     >
       <div className={rootClassName}>
+        {showLabelRow ? (
+          <span className={styles.labelRow}>
+            <span className={styles.label}>{label}</span>
+            {infoText ? <InfoTooltip label={infoText} /> : null}
+          </span>
+        ) : null}
         <BaseSelect.Trigger className={styles.trigger} aria-label={label}>
           <span className={styles.valueLayout}>
-            <span className={styles.label}>{label}</span>
+            {label && !hideTriggerLabel && !showLabelRow ? (
+              <span className={styles.label}>{label}</span>
+            ) : null}
             {selectedOption?.leading ? (
               <span className={styles.leading}>{selectedOption.leading}</span>
             ) : null}
-            <BaseSelect.Value />
+            <span>{selectedOption?.label ?? value}</span>
           </span>
           <BaseSelect.Icon className={styles.icon}>
             <CaretDown size={13} weight="bold" />
@@ -44,7 +63,12 @@ export function Select({ label, value, options, onChange, className }: SelectPro
         </BaseSelect.Trigger>
       </div>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner align="start" alignItemWithTrigger={false} sideOffset={6}>
+        <BaseSelect.Positioner
+          align="start"
+          alignItemWithTrigger={false}
+          sideOffset={6}
+          className={styles.positioner}
+        >
           <BaseSelect.Popup className={styles.popup}>
             <BaseSelect.List className={styles.list}>
               {options.map(option => (
@@ -69,5 +93,13 @@ export function Select({ label, value, options, onChange, className }: SelectPro
         </BaseSelect.Positioner>
       </BaseSelect.Portal>
     </BaseSelect.Root>
+  );
+}
+
+function InfoTooltip({ label }: { label: string }) {
+  return (
+    <span className={styles.infoTooltip} data-tooltip={label} aria-label={label} tabIndex={0}>
+      <Info size={13} weight="bold" aria-hidden="true" />
+    </span>
   );
 }

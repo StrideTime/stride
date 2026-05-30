@@ -6,11 +6,9 @@ const settingsSectionIds = [
   'my-workspace',
   'my-calendar',
   'my-notifications',
-  'my-time-budgets',
-  'my-event-types',
   'account',
   'appearance',
-  'personal-connections',
+  'my-statuses',
   'your-data',
   'workspace-general',
   'workspace-connections',
@@ -38,5 +36,5 @@ export const Route = createFileRoute('/_auth/settings')({
 function SettingsPage() {
   const { section } = Route.useSearch();
 
-  return <SettingsView section={section ?? 'my-workspace'} />;
+  return <SettingsView section={section} />;
 }
