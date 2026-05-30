@@ -148,9 +148,110 @@ The current stack gives more control and portability:
 - Durable Objects + WebSockets for realtime later.
 - Workers Analytics Engine and external observability for custom analytics.
 
+Cloudflare runtime services should be adapter choices, not product abstractions. Define
+small app-owned ports for runtime capabilities such as realtime and background jobs, then
+implement Cloudflare adapters first. For jobs, source sync, notification delivery, export,
+and calendar polling should be represented as product-level jobs such as
+`syncSourceConnection`, `sendNotification`, `exportWorkspaceData`, and `pollCalendar`, not
+as Cloudflare-specific queue message shapes throughout the codebase. This keeps future
+movement to Vercel cron, Inngest, Trigger.dev, BullMQ, or another worker system
+manageable.
+
+Hyperdrive should also be treated as an infrastructure adapter detail. App code should
+talk to a generic Postgres/Drizzle database client and should not import Cloudflare
+Hyperdrive-specific APIs outside database bootstrap/configuration. If Stride later moves
+to another runtime with a normal Postgres connection pool, the repository and service
+layers should remain unchanged.
+
+API contracts should not expose Cloudflare-specific concepts. Internal or public DTOs
+should not include Durable Object IDs, Cloudflare queue names, Worker route assumptions,
+Hyperdrive details, or Cloudflare event IDs. Clients should see Stride domain concepts and
+stable product events, not runtime-provider implementation details.
+
 This maps well to Stride's long-term needs, especially source sync, SQL/reporting,
 auditing, and migration optionality. The cost is that Stride must build the application
 platform pieces itself.
+
+### Source sync and write-back stance
+
+Source-owned field edits should be modeled as pending sync requests, not immediate
+confirmed source changes. For fields such as source title, description, assignee,
+priority, labels, or status, Stride should separate the last confirmed source value from
+the desired local value and sync status. The API request should validate permissions,
+record the desired change in Postgres, enqueue a product-level source-sync job, and return
+quickly. A queue consumer then calls Jira/Linear/GitHub, records success/failure/conflict,
+and emits product events for client invalidation.
+
+Inbound source changes should use source webhooks where available, with polling as a
+fallback. Webhook endpoints should validate the provider signature, persist the raw event
+or normalized source event, enqueue processing, and return quickly. Queue consumers then
+fetch or transform the source data, update Stride's canonical Postgres rows, record source
+events/audit history, and publish product events such as `spec.synced`,
+`sourceMutation.succeeded`, `sourceMutation.failed`, or `sourceSync.completed`.
+
+The queue is for durable async work and retry. Durable Objects/WebSockets are only for
+live client delivery after Postgres has been updated.
+
+Keep long-lived product history separate from short-lived operational sync/debug records.
+Queue messages are infrastructure and disappear after successful acknowledgement. Postgres
+operational rows such as `source_mutations`, `source_webhook_events`, and job attempts are
+for idempotency, retries, debugging, and conflict handling; they should have explicit
+retention policies. Successful operational records can be purged or compacted by a
+scheduled cleanup job after a short window, while failed/conflict records should be kept
+longer for recovery. Product history/audit/source-activity rows are separate domain data
+and can be retained longer because they answer user-facing questions such as what happened
+to a Spec, Action, Session, or source item.
+
+Recommended retention shape:
+
+- Queue messages: short-lived infrastructure; acknowledge and remove after successful
+  processing.
+- Successful source mutations/job attempts: keep roughly 7–30 days, then purge or
+  compact.
+- Processed raw webhook payloads: keep roughly 7–14 days; store payload hashes or compact
+  normalized summaries longer if useful for dedupe/debugging.
+- Failed or conflicted operational records: keep roughly 90 days or until resolved.
+- User-visible product history, audit, provenance, and source activity summaries: retain
+  longer, subject to data-ownership and deletion rules.
+
+The Spec History tab should be backed by clean normalized product history, not raw
+webhook/job detail. This history is broader than source sync. It should include meaningful
+changes to Specs, Actions, Sessions, ownership/assignment, source-mapped fields, and
+Stride-native fields. Examples include source status changes, title/description edits,
+assignee changes, label changes, action creation/deletion, estimate changes, action done
+state changes, session start/end/check-in, source write-back success/failure, and source
+activity summaries. Raw webhook IDs, queue attempts, provider payloads, and retry details
+belong in operational tables/logs unless they are transformed into a user-relevant event.
+
+### Realtime stance
+
+Stride should prefer explicit application events over database-level change streams for
+app-facing realtime. Mutations and sync jobs should write product-semantic events such as
+`action.started`, `session.ended`, `schedule.changed`, and `sourceSync.completed`, then
+notify the live delivery layer. This keeps permissions, invalidation, retries, and UI
+meaning under application control instead of exposing raw row-change semantics to clients.
+
+Define a small internal realtime port early, before fully implementing Durable Object
+WebSocket delivery:
+
+```ts
+interface RealtimePublisher {
+  publish(event: ProductEvent): Promise<void>
+}
+```
+
+The portable abstraction is the `ProductEvent`, not Durable Objects. Cloudflare can be the
+first adapter, but the rest of the app should only know that it emitted `action.started`,
+`schedule.changed`, or `sourceSync.completed`. If Stride later moves to Vercel, Fly,
+Railway, Ably, Pusher, Redis pub/sub, or a dedicated socket service, the realtime adapter
+can be replaced without rewriting product logic.
+
+Neon/Postgres logical replication and CDC may be useful later for analytics, search,
+indexing, or data pipelines, but should not be the first app realtime mechanism. Postgres
+`LISTEN`/`NOTIFY` also fits poorly as the primary mechanism from Cloudflare Workers
+because it assumes long-lived database connections, while Workers are ephemeral request
+handlers. Hyperdrive makes Postgres access from Workers viable; it does not make Workers
+an always-on Postgres subscription server.
 
 ### What it takes to approximate Convex reactivity
 
@@ -169,7 +270,12 @@ client mutation
   -> clients invalidate TanStack Query keys and refetch
 ```
 
-This gives realtime invalidation, not true Convex-style live query tracking.
+This gives realtime invalidation, not true Convex-style live query tracking. Stride should
+explicitly avoid recreating Convex live queries on Cloudflare. The Cloudflare/Postgres path
+should commit to a simpler model: optimistic UI, product-semantic events, WebSocket
+delivery through Durable Objects, and targeted TanStack Query invalidation/refetch.
+Convex remains a benchmark for user experience polish, not a backend architecture to
+secretly rebuild.
 
 Core pieces:
 
@@ -360,27 +466,65 @@ Public API:
 
 This preserves frontend/product velocity while keeping external integrations safe.
 
+## Implementation guardrails
+
+If Stride proceeds with Cloudflare + Neon, keep the platform coupling intentional:
+
+- Keep product logic in services/use cases that depend on Stride domain concepts, not
+  Cloudflare runtime concepts.
+- Treat Durable Objects as the first realtime delivery adapter, not the realtime
+  abstraction. Define `ProductEvent` and a small `RealtimePublisher` port first.
+- Treat Cloudflare Queues/Cron as background-job adapters. Model jobs as app-owned tasks
+  such as `syncSourceConnection`, `exportWorkspaceData`, `sendNotification`, and
+  `pollCalendar`.
+- Treat Hyperdrive as database bootstrap/configuration. Repositories and services should
+  depend on Postgres + Drizzle, not Hyperdrive APIs.
+- Keep Cloudflare-specific identifiers, queue names, Durable Object IDs, and event IDs out
+  of internal/public API DTOs.
+- Prefer optimistic UI plus targeted invalidation/refetch over true live query
+  dependency tracking.
+- Use Neon/Postgres as the portable system of record. Do not store canonical business data
+  in Cloudflare-only runtime services.
+- Let Cloudflare-specific code live at the app/runtime edge: deployment entrypoints,
+  bindings, queue consumers, cron handlers, Durable Object websocket fanout, and database
+  bootstrap.
+
 ## Current read
 
 Convex is strongest if the priority is product discovery and fast iteration on the real
 execution loop. It gives Stride the most important magic immediately: reactive shared
-state, simple mutations, and less cache/realtime plumbing.
+state, simple mutations, and less cache/realtime plumbing. After this review, Convex
+should be treated as a benchmark and possible escape hatch rather than the preferred
+platform. Its live-query model is valuable, but Stride's MVP realtime needs can be met
+with a simpler optimistic/invalidation model without giving up Postgres portability.
 
 Cloudflare + Neon is strongest if the priority is long-term control, SQL portability,
-explicit source-sync architecture, and lower platform lock-in. It is the more durable
-architecture, but only if the extra platform work does not slow product discovery too
-much.
+explicit source-sync architecture, and lower platform lock-in. It remains the preferred
+platform direction after this review, provided Stride does not try to recreate Convex live
+queries and keeps realtime intentionally simple.
+
+Cloudflare Workers + D1 is a credible Cloudflare-native simplification, but it is not the
+current preference. D1 removes Neon/Hyperdrive and keeps the app/database surface inside
+Cloudflare, which may reduce early operational overhead. The tradeoff is stronger
+Cloudflare data-platform lock-in and SQLite/D1 constraints instead of standard Postgres
+portability. For Stride, Neon/Postgres remains the safer default because long-term support,
+Drizzle/Postgres compatibility, database maturity, and the ability to move away from
+Cloudflare later are more important than minimizing provider count.
 
 Railway + Postgres remains a possible middle path: less edge-native than Cloudflare, less
 magical than Convex, but conventional, portable, and code-defined.
 
 The practical recommendation from this discussion:
 
-1. If choosing Convex, call it a backend pivot and protect the product boundary with
+1. Prefer Cloudflare + Neon for now because it preserves Postgres portability, explicit
+   infrastructure, future public API optionality, and a clearer escape hatch from
+   Cloudflare.
+2. Treat Convex as a benchmark and future escape hatch, not the preferred platform. If
+   choosing Convex later, call it a backend pivot and protect the product boundary with
    domain types, app-owned IDs, use-case functions, and export discipline.
-2. If staying Cloudflare + Neon, do not try to clone Convex. Build optimistic UI plus
+3. If staying Cloudflare + Neon, do not try to clone Convex. Build optimistic UI plus
    WebSocket invalidation only when realtime is truly needed.
-3. Preserve TanStack Start SSR for web and SPA mode for desktop either way.
-4. Make the decision with a small vertical spike: user/workspace, spec list, action CRUD,
+4. Preserve TanStack Start SSR for web and SPA mode for desktop either way.
+5. Validate the path with a small vertical spike: user/workspace, spec list, action CRUD,
    start/end session, one sync-like background job, one export path, and one optimistic
    realtime update.
