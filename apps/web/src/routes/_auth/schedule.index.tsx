@@ -16,7 +16,7 @@ function todayKey() {
   return `${year}-${month}-${day}`;
 }
 
-export const Route = createFileRoute('/_auth/schedule')({
+export const Route = createFileRoute('/_auth/schedule/')({
   validateSearch: (search: Record<string, unknown>): ScheduleSearch => ({
     date: typeof search.date === 'string' ? search.date : undefined,
     view: search.view === 'sessions' ? 'sessions' : 'schedule',

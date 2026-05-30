@@ -1,6 +1,6 @@
 ---
 title: Data model (conceptual)
-updated: 2026-05-21
+updated: 2026-05-27
 status: draft
 owner: jaren
 ---
@@ -19,8 +19,7 @@ Workspace (tenant — solo or team; RLS-isolated)
   │                 └── Action   Stride-native; 1+ per Spec
   │                       └── Session   actual timed work on an Action
   ├── ScheduledEventType    category for planned/actual calendar time; seeded defaults + user custom types
-  ├── ScheduledEvent        planned time block; may point to an Action or be generic/external
-  └── TimeBudget            optional duration goals for selected ScheduledEventTypes
+  └── ScheduledEvent        planned time block; may point to an Action or be generic/external
 
 Standalone Action — no parent Spec; a personal task (title + estimate only)
   └── Session
@@ -76,14 +75,14 @@ Actual timed work against an Action. Sessions are execution/history, not plannin
 - on end: `feeling` (icons: frown / neutral / smile / target), `note` (optional free text), `markDone` (whether it also closed the Action)
 - the variance nudge surfaces only when `elapsedMin` ≳ 1.5–2× `action.estimateMin`
 
-> **v1 scope note (updated 2026-05-21).** **ScheduledEventType** customization and
-> **TimeBudget** are the elaborate planning/budgeting model and are **deferred from MVP**
-> ([`mvp.md`](mvp.md)) — v1 Schedule uses a minimal fixed set of block types and no
-> budgets. **ActionDayAssignment was cut entirely** when the Schedule became a single day
-> view: every scheduled block has a real start time, so "intend to work on this Action
-> today, unplaced" no longer exists as a concept. The ScheduledEventType / TimeBudget model
-> below is the post-MVP spec; the ActionDayAssignment slot is kept only to record the
-> removal.
+> **v1 scope note (updated 2026-05-27).** **ScheduledEventType** customization is
+> deferred from MVP ([`mvp.md`](mvp.md)) — v1 Schedule uses a minimal fixed set of block
+> types. **TimeBudget was cut** rather than deferred; goals by calendar category add
+> settings complexity without helping the thin execution loop. **ActionDayAssignment was
+> cut entirely** when the Schedule became a single day view: every scheduled block has a
+> real start time, so "intend to work on this Action today, unplaced" no longer exists as a
+> concept. The ScheduledEventType model below is the post-MVP spec; the
+> ActionDayAssignment slot is kept only to record the removal.
 
 ### ScheduledEventType
 A category for schedule blocks and time insights. Accounts are seeded with default types, and users can add or modify the types they use.
@@ -114,25 +113,6 @@ Rules:
 - External events are source-owned and fixed in Stride. They can be locally classified. For recurring external events, applying a classification to the series means this and future occurrences only.
 - A single Action may have multiple ScheduledEvents.
 - ScheduledEvent duration does not mutate `Action.estimateMin`.
-
-### TimeBudget
-An optional goal for how much time a user wants to spend in selected ScheduledEventTypes. Budgets are planning/insight targets, not blockers.
-- `period` — `daily | weekly`; a user has one active budget mode at a time
-- `totalMin` — optional total time commitment for the active period, e.g. 8h/day or 40h/week
-- `targets[]` — `{ typeId, durationMin, direction, tolerance? }` for only the types the user chooses to budget
-- `direction` — `atMost | atLeast | target`; caps, floors, and intended allocations need different feedback
-- `effectiveFrom`, `effectiveTo?` — backend can preserve budget history even if the first frontend mostly shows current/future impact
-
-Rules:
-- Targets are duration-based, not percentage-based inputs.
-- Budget targets are always private and visible only to the individual user. They do not appear in Team/Org insights, even aggregated, for now.
-- Unbudgeted types still appear in insights as unbudgeted planned/actual time.
-- Switching daily ↔ weekly may auto-convert values, but the exact UX is deferred.
-- Category targets may also be represented as percentages of `totalMin`; persisted targets should retain duration for aggregation, while UI may display percentage allocation.
-- `target` budgets use a tolerance band for on-track status, defaulting around ±10% unless configured otherwise later.
-- `atMost` and `atLeast` budgets can use quiet warning thresholds before a limit is missed; weekly budgets use elapsed-period pacing for soft feedback.
-- Budget reporting uses the same planned-vs-actual source-of-truth behavior as the user's time-accounting mode and the active Schedule view.
-- If a referenced ScheduledEventType is archived, historical budget records keep the reference, but active budget editing hides/removes that target going forward.
 
 ### ActionDayAssignment — removed 2026-05-21
 **Cut entirely.** This was an untimed intent to work on an Action on a specific day, used
@@ -185,7 +165,7 @@ Time accounting follows the user's **Working mode** — a personal, account-leve
 - **Schedule-first (planned-time)** — planned schedule time counts toward time spent as the day plays out.
 - **Session-first (explicit sessions)** — the schedule is a guide; recorded Sessions are the source of truth for actual time.
 
-Budgets and insights follow the selected accounting mode. The `actions` schedule type is budgeted/accounted for like any other type; action-linked details do not create a separate budget rule.
+Insights follow the selected accounting mode. The `actions` schedule type is accounted for like any other type; action-linked details do not create a separate rule.
 
 Remaining time for the scheduling tray:
 

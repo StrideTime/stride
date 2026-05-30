@@ -18,9 +18,15 @@
   outline-offset: 2px;
 }
 
-.leading {
+.leading,
+.trailing {
   display: inline-grid;
+  flex: 0 0 auto;
   place-items: center;
+}
+
+.trailing {
+  color: var(--color-text-muted);
 }
 
 .input {

@@ -4,6 +4,17 @@
   height: 100vh;
   min-height: 0;
   overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.page input,
+.page textarea,
+.page select,
+.page [contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .mainContent {
@@ -64,6 +75,8 @@
 }
 
 .canvas {
+  --lane-left: 112px;
+  --lane-right: 16px;
   position: relative;
   min-height: calc(var(--hour-height) * 24);
 }
@@ -79,7 +92,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  left: 112px;
+  left: var(--lane-left);
   height: 1px;
   background: var(--color-border-strong);
   content: '';
@@ -91,7 +104,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  left: 112px;
+  left: var(--lane-left);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
@@ -106,9 +119,13 @@
 .hourLabel {
   position: absolute;
   top: 0;
-  left: var(--space-3);
-  width: 76px;
+  /* Right-anchored just left of the day column so every label is single-line
+     and identically aligned, leaving room for the ghost indicator bar. */
+  right: calc(100% - var(--lane-left) + 16px);
+  /* Above the layer-comparison indicators so the time always stays legible. */
+  z-index: 4;
   text-align: right;
+  white-space: nowrap;
   transform: translateY(-50%);
 }
 
@@ -119,8 +136,8 @@
 .nowLine {
   position: absolute;
   z-index: 20;
-  right: var(--space-3);
-  left: 112px;
+  right: var(--lane-right);
+  left: var(--lane-left);
   height: 2px;
   background: var(--color-danger);
   pointer-events: none;
@@ -220,8 +237,8 @@
 
 .contextBlock {
   z-index: 3;
-  right: var(--space-3);
-  left: 112px;
+  right: var(--lane-right);
+  left: var(--lane-left);
   pointer-events: none;
 }
 
@@ -272,7 +289,9 @@
   position: absolute;
   top: 3px;
   bottom: 3px;
-  left: calc(-14px - (var(--ghost-column, 0) * 10px));
+  /* Stack overlapping indicators rightward inside the gutter gap (toward the
+     day column) so they never march left under the time labels. */
+  left: calc(-14px + (var(--ghost-column, 0) * 8px));
   width: 5px;
   min-height: 18px;
   border-radius: 999px;
@@ -412,11 +431,10 @@
 }
 
 .floatingAddBlock,
-.floatingAddBlockOpen,
-.floatingAddSessionBlock {
+.floatingAddBlockOpen {
   position: fixed;
   right: calc(360px + var(--space-5));
-  bottom: var(--space-5);
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom));
   z-index: 100;
   display: grid;
   grid-template-rows: 0 42px;
@@ -434,15 +452,6 @@
 .floatingAddBlock:hover,
 .floatingAddBlock:focus-within {
   width: 118px;
-}
-
-.floatingAddSessionBlock {
-  grid-template-rows: 42px;
-}
-
-.floatingAddSessionBlock:hover,
-.floatingAddSessionBlock:focus-within {
-  width: 136px;
 }
 
 .floatingAddBlockOpen {
@@ -507,13 +516,15 @@
   color: color-mix(in oklch, var(--add-option-fg) 72%, var(--color-text-muted));
 }
 
-.floatingAddOption[data-event-type='focus'] {
+.floatingAddOption[data-event-type='focus'],
+.floatingAddOption[data-event-type='research'] {
   --add-option-border: var(--color-success);
   --add-option-bg: color-mix(in oklch, var(--color-success) 18%, var(--color-surface-raised));
   --add-option-fg: var(--color-success);
 }
 
-.floatingAddOption[data-event-type='break'] {
+.floatingAddOption[data-event-type='break'],
+.floatingAddOption[data-event-type='learning'] {
   --add-option-border: oklch(74% 0.11 205);
   --add-option-bg: color-mix(in oklch, oklch(74% 0.11 205) 16%, var(--color-surface-raised));
   --add-option-fg: oklch(79% 0.1 205);
@@ -525,10 +536,46 @@
   --add-option-fg: oklch(76% 0.08 255);
 }
 
-.floatingAddOption[data-event-type='meeting'] {
+.floatingAddOption[data-event-type='meeting'],
+.floatingAddOption[data-event-type='personal'] {
   --add-option-border: var(--color-attention-warn-text);
   --add-option-bg: var(--color-attention-warn-bg);
   --add-option-fg: var(--color-attention-warn-text);
+}
+
+.floatingAddOption[data-event-type='session'] {
+  --add-option-border: var(--color-accent);
+  --add-option-bg: var(--color-accent-subtle);
+  --add-option-fg: var(--color-accent);
+}
+
+.floatingAddTrayOption {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 30px;
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.floatingAddTrayOption span {
+  flex: 1;
+  text-align: left;
+}
+
+.floatingAddTrayOption:hover,
+.floatingAddTrayOption:focus-visible {
+  background: color-mix(in oklch, var(--color-accent-subtle) 80%, var(--color-accent));
+  outline: none;
 }
 
 .floatingAddButton {
@@ -549,9 +596,7 @@
 
 .floatingAddBlock:hover .floatingAddButton span,
 .floatingAddBlock:focus-within .floatingAddButton span,
-.floatingAddBlockOpen .floatingAddButton span,
-.floatingAddSessionBlock:hover .floatingAddButton span,
-.floatingAddSessionBlock:focus-within .floatingAddButton span {
+.floatingAddBlockOpen .floatingAddButton span {
   max-width: 92px;
   margin-left: var(--space-2);
   opacity: 1;
@@ -572,6 +617,33 @@
   border-color: var(--add-option-border);
   background: color-mix(in oklch, var(--add-option-bg) 84%, var(--color-bg));
   outline: none;
+}
+
+.mobileAddButton {
+  position: fixed;
+  right: var(--space-4);
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  box-shadow: var(--shadow-soft);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileAddButton:active {
+  transform: scale(0.97);
 }
 
 .trayDragOverlay,
@@ -695,9 +767,110 @@
 }
 
 
+.placingHint {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .page {
     grid-template-columns: 1fr;
+  }
+
+  .mainContent {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .topBar {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .unscheduledPanel {
+    margin-left: var(--space-4);
+    margin-right: var(--space-4);
+  }
+
+  .layout {
+    padding-right: 0;
+  }
+
+  .canvasShell {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .floatingAddBlock,
+  .floatingAddBlockOpen {
+    right: var(--space-5);
+  }
+
+  .deleteBlockButton {
+    width: 34px;
+    height: 34px;
+    opacity: 1;
+    transform: none;
+  }
+
+  .deleteBlockButton:hover,
+  .deleteBlockButton:focus-visible {
+    transform: none;
+  }
+
+  .activeBlockMicro .deleteBlockButton,
+  .activeBlockTiny .deleteBlockButton {
+    width: 30px;
+    height: 30px;
+    transform: translateY(-50%);
+  }
+
+  .activeBlockMicro .deleteBlockButton:hover,
+  .activeBlockMicro .deleteBlockButton:focus-visible,
+  .activeBlockTiny .deleteBlockButton:hover,
+  .activeBlockTiny .deleteBlockButton:focus-visible {
+    transform: translateY(-50%);
+  }
+
+  .placingHint {
+    position: fixed;
+    right: var(--space-4);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+    left: var(--space-4);
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--color-text);
+    color: var(--color-shell);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .placingHintText {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--text-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .placingHintCancel {
+    flex: none;
+    padding: var(--space-1) var(--space-3);
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-shell) 22%, transparent);
+    color: var(--color-shell);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .canvasPlacing {
+    cursor: copy;
   }
 }
 
@@ -711,47 +884,55 @@
 
   .mainContent {
     grid-template-rows: none;
-    padding: var(--space-5) var(--space-4) calc(var(--space-6) + 76px + env(safe-area-inset-bottom));
+    padding: var(--space-5) 0 calc(var(--space-6) + 76px + env(safe-area-inset-bottom));
   }
 
   .topBar,
   .unscheduledPanel,
   .layout {
-    padding-right: 0;
     margin-right: 0;
   }
 
   .canvasShell {
     max-height: calc(100dvh - 270px);
     overflow: auto;
+    /* Keep calendar scrolling (and drag auto-scroll) from chaining out to the
+       app shell, which otherwise rubber-bands / pull-to-refreshes mid-drag. */
+    overscroll-behavior: contain;
+  }
+
+  .floatingAddBlock,
+  .floatingAddBlockOpen {
+    right: var(--space-4);
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .placingHint {
+    bottom: calc(72px + env(safe-area-inset-bottom));
   }
 }
 
 @media (max-width: 640px) {
+  .mainContent {
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-3)
+      calc(var(--space-3) + 64px + env(safe-area-inset-bottom));
+  }
+
+  .canvasShell {
+    max-height: calc(100dvh - 196px);
+  }
+
   .topBar {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);
-    align-items: center;
-    padding-right: 48px;
+    align-items: stretch;
+    padding-right: 0;
   }
 
-  .topBar > :first-child {
-    min-width: 40px;
-    padding-right: var(--space-2);
-    padding-left: var(--space-2);
-  }
-
-  .topBar > :first-child span {
-    display: none;
-  }
-
-  .topBar > :nth-child(2) {
-    justify-self: stretch;
-  }
-
-  .topBar > :nth-child(3) {
-    grid-column: 1 / -1;
+  .topBar > * {
+    min-width: 0;
     width: 100%;
   }
 
@@ -766,20 +947,12 @@
   }
 
   .canvas {
+    --lane-left: 68px;
+    --lane-right: var(--space-2);
     min-width: 0;
   }
 
-  .hourRow::before,
-  .hourRowOff::before,
-  .hourRow::after,
-  .hourRowOff::after,
-  .nowLine {
-    left: 64px;
-  }
-
   .hourLabel {
-    left: var(--space-2);
-    width: 44px;
     font-size: var(--text-xs);
   }
 

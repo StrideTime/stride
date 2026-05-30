@@ -249,6 +249,14 @@ export const backlogSpecs: BacklogSpec[] = [
         plannedMin: 0,
       },
       {
+        id: 'a-16',
+        title: 'Sketch tray no-estimate timer state',
+        assignee: 'You',
+        description: 'Validate the simple live-session state before an estimate exists.',
+        loggedMin: 0,
+        plannedMin: 0,
+      },
+      {
         id: 'a-15',
         title: 'Draft blocker nudge states',
         assignee: 'You',

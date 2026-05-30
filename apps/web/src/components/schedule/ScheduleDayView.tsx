@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   useDraggable,
   useDroppable,
@@ -14,36 +15,31 @@ import {
   type DragStartEvent,
   type Modifier,
 } from '@dnd-kit/core';
-import {
-  CalendarBlankIcon,
-  CoffeeIcon,
-  DotsSixVerticalIcon,
-  PlusIcon,
-  TargetIcon,
-  TrashIcon,
-  TrayIcon,
-} from '@phosphor-icons/react';
+import { DotsSixVerticalIcon, PlusIcon, TrashIcon, TrayIcon } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import { Typography } from '@stride/ui';
 
 import { useAppMode } from '../app-mode';
 import {
   formatTime,
+  getGenericBlockIcon,
+  getGenericBlockTitle,
   MiniWeekStrip,
   ModeToggle,
   ScheduleBlockCard,
   ScheduleDateNavigator,
   ScheduleTray,
   toScheduleBlock,
+  type GenericBlockType,
   type SelectedScheduleBlock,
+  type TrayState,
 } from './ScheduleShared';
 import {
-  actualBlocks,
-  plannedBlocks,
   type ScheduleAction,
   type ScheduleBlock,
   type ScheduleMode,
 } from './schedule.mock';
+import { updateScheduleBlocks as storeUpdateScheduleBlocks, useScheduleState } from './scheduleStore';
 import styles from './ScheduleDayView.module.css';
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -59,7 +55,14 @@ const cursorCenteredDragOverlay: Modifier = ({
   overlayNodeRect,
   transform,
 }) => {
-  if (!(activatorEvent instanceof PointerEvent) || !activeNodeRect || !overlayNodeRect) {
+  // `PointerEvent` is undefined during SSR; dnd-kit still applies modifiers on
+  // the server render, so guard the global before the `instanceof` check.
+  if (
+    typeof PointerEvent === 'undefined' ||
+    !(activatorEvent instanceof PointerEvent) ||
+    !activeNodeRect ||
+    !overlayNodeRect
+  ) {
     return transform;
   }
 
@@ -85,7 +88,14 @@ export function ScheduleDayView({
     scheduleFirst ? 'plan' : view === 'sessions' ? 'actual' : 'plan'
   );
   const navigate = useNavigate();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    // Desktop: start dragging after a small movement.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // Touch: require a deliberate press-and-hold so a quick swipe scrolls
+    // instead of accidentally dragging a block. Small movement during the
+    // hold cancels (treated as a scroll).
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } })
+  );
   const canvasShellRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragOffsetMinRef = useRef(0);
@@ -99,9 +109,19 @@ export function ScheduleDayView({
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<SelectedScheduleBlock | null>(null);
   const [newBlockTitleFocusId, setNewBlockTitleFocusId] = useState<string | null>(null);
+  const [trayState, setTrayState] = useState<TrayState>('hidden');
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [plannedScheduleBlocks, setPlannedScheduleBlocks] = useState(plannedBlocks);
-  const [actualScheduleBlocks, setActualScheduleBlocks] = useState(actualBlocks);
+  const [placingAction, setPlacingAction] = useState<ScheduleAction | null>(null);
+  const [placingBlockType, setPlacingBlockType] = useState<GenericBlockType | null>(null);
+  const isMobile = useIsMobile();
+  const isDragging = Boolean(activeDrag || activeGenericDrag);
+  const isPlacing = Boolean(placingAction || placingBlockType);
+  const placingLabel = placingAction
+    ? placingAction.title
+    : placingBlockType
+      ? getGenericBlockTitle(placingBlockType)
+      : null;
+  const { plan: plannedScheduleBlocks, actual: actualScheduleBlocks } = useScheduleState();
   const scheduleBlocks = mode === 'plan' ? plannedScheduleBlocks : actualScheduleBlocks;
   const contextScheduleBlocks = mode === 'plan' ? actualScheduleBlocks : plannedScheduleBlocks;
   const activeBlocks = useMemo(
@@ -147,6 +167,18 @@ export function ScheduleDayView({
       },
       replace: true,
     });
+  }
+
+  function handleOpenBlock(block: SelectedScheduleBlock) {
+    if (isMobile) {
+      navigate({
+        to: '/schedule/block/$blockId',
+        params: { blockId: block.id },
+      });
+      return;
+    }
+
+    handleSelectBlock(block);
   }
 
   function handleClearSelection() {
@@ -210,6 +242,12 @@ export function ScheduleDayView({
     const data = event.active.data.current;
     activeDragDataRef.current = data ?? null;
     lastClientPointerRef.current = getEventPointer(event.activatorEvent);
+    // Confirm the drag has "locked in" with a haptic tick (no-op where unsupported).
+    triggerHaptic(18);
+    // Only compress a fully-open tray so it doesn't cover the calendar mid-drag;
+    // a hidden tray (e.g. dragging a calendar block) stays out of the way.
+    setTrayState(prev => (prev === 'full' ? 'peek' : prev));
+    setAddMenuOpen(false);
 
     setActiveDrag((data?.action ?? data?.block ?? null) as ScheduleAction | ScheduleBlock | null);
     setActiveGenericDrag(data?.type === 'generic' ? data.blockType as GenericBlockType : null);
@@ -289,6 +327,7 @@ export function ScheduleDayView({
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    triggerHaptic(12);
     const data = event.active.data.current ?? activeDragDataRef.current;
     const activeDragAtDrop = activeDrag;
     const pointer = lastClientPointerRef.current
@@ -301,6 +340,7 @@ export function ScheduleDayView({
     setActiveGenericDrag(null);
     setDropPreview(null);
     setDraggingBlockId(null);
+    setTrayState('hidden');
     activeDragDataRef.current = null;
     lastClientPointerRef.current = null;
 
@@ -316,20 +356,10 @@ export function ScheduleDayView({
       const startMin = dropPreview
         ? dropPreview.startMin
         : clampStart(getEventStartMinutes(schedulePointer, canvasRef.current, 0), durationMin);
-      const block = toScheduleBlock(action, date);
 
       dragOffsetMinRef.current = 0;
       lastSchedulePointerRef.current = null;
-      const newBlock = {
-        ...block,
-        id: `${mode}-${block.id}-${startMin}`,
-        startMin,
-        durationMin,
-      };
-
-      updateScheduleBlocks(blocks => [...blocks, newBlock]);
-      handleSelectBlock({ ...newBlock, layer: mode });
-      setNewBlockTitleFocusId(newBlock.id);
+      addActionBlock(action, startMin);
       return;
     }
 
@@ -346,7 +376,6 @@ export function ScheduleDayView({
       updateScheduleBlocks(blocks => [...blocks, block]);
       handleSelectBlock({ ...block, layer: mode });
       setNewBlockTitleFocusId(block.id);
-      setAddMenuOpen(false);
       return;
     }
 
@@ -409,6 +438,71 @@ export function ScheduleDayView({
     updateScheduleBlocks(blocks => [...blocks, block]);
     handleSelectBlock({ ...block, layer: mode });
     setNewBlockTitleFocusId(block.id);
+    setAddMenuOpen(false);
+    // On mobile the block is added from the bottom drawer; close it so the new
+    // block (with its title focused for editing) is visible on the calendar.
+    setTrayState('hidden');
+  }
+
+  function addActionBlock(action: ScheduleAction, startMin: number) {
+    const durationMin = 60;
+    const block = toScheduleBlock(action, date);
+    const newBlock = {
+      ...block,
+      id: `${mode}-${block.id}-${startMin}`,
+      startMin,
+      durationMin,
+    };
+
+    updateScheduleBlocks(blocks => [...blocks, newBlock]);
+    handleSelectBlock({ ...newBlock, layer: mode });
+    setNewBlockTitleFocusId(newBlock.id);
+  }
+
+  function handlePickAction(action: ScheduleAction) {
+    setPlacingAction(action);
+    setPlacingBlockType(null);
+    setTrayState('hidden');
+  }
+
+  function handlePickGenericBlock(type: GenericBlockType) {
+    setPlacingBlockType(type);
+    setPlacingAction(null);
+    setAddMenuOpen(false);
+    setTrayState('hidden');
+  }
+
+  function handlePlaceAtPointer(clientX: number, clientY: number) {
+    if (!canvasRef.current) {
+      return;
+    }
+
+    if (placingAction) {
+      const startMin = clampStart(
+        getEventStartMinutes({ x: clientX, y: clientY }, canvasRef.current, 0),
+        60
+      );
+
+      addActionBlock(placingAction, startMin);
+      setPlacingAction(null);
+      setTrayState('hidden');
+      return;
+    }
+
+    if (placingBlockType) {
+      const durationMin = getGenericBlockDuration(placingBlockType);
+      const startMin = clampStart(
+        getEventStartMinutes({ x: clientX, y: clientY }, canvasRef.current, 0),
+        durationMin
+      );
+      const block = createGenericBlock(placingBlockType, date, mode, startMin);
+
+      updateScheduleBlocks(blocks => [...blocks, block]);
+      handleSelectBlock({ ...block, layer: mode });
+      setNewBlockTitleFocusId(block.id);
+      setPlacingBlockType(null);
+      setTrayState('hidden');
+    }
   }
 
   function handleRenameBlock(blockId: string, title: string) {
@@ -467,18 +561,23 @@ export function ScheduleDayView({
   }
 
   function updateScheduleBlocks(updater: (blocks: ScheduleBlock[]) => ScheduleBlock[]) {
-    if (mode === 'plan') {
-      setPlannedScheduleBlocks(updater);
-      return;
-    }
-
-    setActualScheduleBlocks(updater);
+    storeUpdateScheduleBlocks(mode, updater);
   }
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
+      // Gentle, edge-only auto-scroll confined to the calendar's own scroll
+      // container. Without `canScroll`, dnd-kit also scrolls the app shell and
+      // window — which raced the whole page (and triggered pull-to-refresh)
+      // when a drag drifted toward the bottom. Low acceleration + a small
+      // trigger zone keep the dragged block tracking the finger.
+      autoScroll={{
+        acceleration: 3,
+        threshold: { x: 0, y: 0.1 },
+        canScroll: element => element === canvasShellRef.current,
+      }}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragCancel={() => {
@@ -488,6 +587,7 @@ export function ScheduleDayView({
         setActiveDrag(null);
         setActiveGenericDrag(null);
         setDraggingBlockId(null);
+        setTrayState('hidden');
         activeDragDataRef.current = null;
         setDropPreview(null);
       }}
@@ -523,7 +623,9 @@ export function ScheduleDayView({
             newBlockTitleFocusId={newBlockTitleFocusId}
             draggingBlockId={draggingBlockId}
             dropPreview={dropPreview}
-            onSelectBlock={handleSelectBlock}
+            isPlacing={isPlacing}
+            onPlaceAtPointer={handlePlaceAtPointer}
+            onSelectBlock={handleOpenBlock}
             onClearSelection={handleClearSelection}
             onRenameBlock={handleRenameBlock}
             onDeleteBlock={handleDeleteBlock}
@@ -533,22 +635,48 @@ export function ScheduleDayView({
             }}
           />
         </div>
+        {isPlacing ? (
+          <div className={styles.placingHint} role="status">
+            <span className={styles.placingHintText}>
+              Tap a time to place <strong>{placingLabel}</strong>
+            </span>
+            <button
+              className={styles.placingHintCancel}
+              type="button"
+              onClick={() => {
+                setPlacingAction(null);
+                setPlacingBlockType(null);
+                setTrayState('hidden');
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : null}
         <ScheduleTray
           mode={mode}
-          selectedBlock={selectedBlock}
+          selectedBlock={isMobile ? null : selectedBlock}
           showAdjustInSchedule={false}
+          trayState={trayState}
+          dragging={isDragging}
+          onChangeTrayState={setTrayState}
+          onPickAction={isMobile ? handlePickAction : undefined}
+          onPickGenericBlock={isMobile ? handlePickGenericBlock : undefined}
           onRenameBlock={handleRenameBlock}
           onLinkAction={handleLinkAction}
           onChangeRecurrence={handleChangeRecurrence}
           onDeleteBlock={handleDeleteBlock}
           onClearSelection={handleClearSelection}
         />
-        <FloatingAddBlock
-          mode={mode}
-          open={addMenuOpen}
-          onOpenChange={setAddMenuOpen}
-          onAddBlock={handleAddGenericBlock}
-        />
+        {!isPlacing && !isDragging && (!isMobile || trayState === 'hidden') ? (
+          <FloatingAddBlock
+            mode={mode}
+            open={addMenuOpen}
+            onOpenChange={setAddMenuOpen}
+            onAddBlock={handleAddGenericBlock}
+            onOpenTray={isMobile ? () => setTrayState('full') : undefined}
+          />
+        ) : null}
       </section>
       <DragOverlay zIndex={9999} dropAnimation={null} modifiers={[cursorCenteredDragOverlay]}>
         {activeDrag && 'estimateMin' in activeDrag ? (
@@ -559,7 +687,7 @@ export function ScheduleDayView({
             </Typography>
           </div>
         ) : null}
-        {activeDrag && !('estimateMin' in activeDrag) ? (
+        {!isMobile && activeDrag && !('estimateMin' in activeDrag) ? (
           <div className={styles.blockDragOverlay}>
             <ScheduleBlockCard
               block={activeDrag}
@@ -581,6 +709,139 @@ export function ScheduleDayView({
   );
 }
 
+function FloatingAddBlock({
+  mode,
+  open,
+  onOpenChange,
+  onAddBlock,
+  onOpenTray,
+}: {
+  mode: ScheduleMode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddBlock: (type: GenericBlockType) => void;
+  onOpenTray?: () => void;
+}) {
+  const addBlockRef = useRef<HTMLDivElement>(null);
+  const isSession = mode === 'actual';
+  const types: GenericBlockType[] = isSession
+    ? ['session']
+    : ['focus', 'research', 'learning', 'buffer', 'break', 'meeting', 'personal'];
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!addBlockRef.current?.contains(event.target as Node)) {
+        onOpenChange(false);
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [onOpenChange, open]);
+
+  // Mobile: a single, always-labelled button that opens the bottom drawer in
+  // one tap. Deliberately not the hover/focus-expand desktop pill — on touch
+  // that made the first tap reveal the label and a second tap open the drawer.
+  if (onOpenTray) {
+    return (
+      <button
+        className={styles.mobileAddButton}
+        type="button"
+        aria-label={isSession ? 'Add session' : 'Add event'}
+        onClick={onOpenTray}
+      >
+        <PlusIcon size={20} weight="bold" />
+        <span>{isSession ? 'Add session' : 'Add event'}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div ref={addBlockRef} className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
+      <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
+        {onOpenTray ? (
+          <button
+            className={styles.floatingAddTrayOption}
+            type="button"
+            disabled={!open}
+            onClick={() => {
+              onOpenTray();
+              onOpenChange(false);
+            }}
+          >
+            <TrayIcon size={15} weight="bold" />
+            <span>{isSession ? 'Log sessions' : 'Plan work'}</span>
+          </button>
+        ) : null}
+        {types.map(type => (
+          <DraggableAddBlockOption
+            key={type}
+            type={type}
+            disabled={!open}
+            onAdd={() => {
+              onAddBlock(type);
+              onOpenChange(false);
+            }}
+          />
+        ))}
+      </div>
+      {!open ? (
+        <button
+          className={styles.floatingAddButton}
+          type="button"
+          aria-label={isSession ? 'Add session' : 'Add event'}
+          aria-expanded={open}
+          onClick={() => onOpenChange(true)}
+        >
+          <PlusIcon size={20} weight="bold" />
+          <span>{isSession ? 'Add session' : 'Add event'}</span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function DraggableAddBlockOption({
+  type,
+  disabled,
+  onAdd,
+}: {
+  type: GenericBlockType;
+  disabled: boolean;
+  onAdd: () => void;
+}) {
+  const draggableOption = useDraggable({
+    id: `generic:${type}`,
+    data: { type: 'generic', blockType: type },
+    disabled,
+  });
+  const Icon = getGenericBlockIcon(type);
+
+  return (
+    <button
+      ref={draggableOption.setNodeRef}
+      className={styles.floatingAddOption}
+      data-event-type={type}
+      type="button"
+      disabled={disabled}
+      {...draggableOption.attributes}
+      {...draggableOption.listeners}
+      onClick={event => {
+        event.preventDefault();
+        onAdd();
+      }}
+    >
+      <Icon size={15} />
+      <span>{getGenericBlockTitle(type)}</span>
+      <DotsSixVerticalIcon className={styles.floatingAddDragIcon} size={15} weight="bold" />
+    </button>
+  );
+}
+
 type DropPreview = {
   block: ScheduleBlock;
   startMin: number;
@@ -593,8 +854,6 @@ type ResizeState = {
   durationMin: number;
 };
 
-type GenericBlockType = 'session' | 'break' | 'focus' | 'meeting' | 'buffer' | 'research' | 'learning' | 'personal';
-
 type DayCanvasProps = {
   mode: ScheduleMode;
   canvasRef: React.RefObject<HTMLDivElement | null>;
@@ -605,6 +864,8 @@ type DayCanvasProps = {
   newBlockTitleFocusId: string | null;
   draggingBlockId: string | null;
   dropPreview: DropPreview | null;
+  isPlacing: boolean;
+  onPlaceAtPointer: (clientX: number, clientY: number) => void;
   onSelectBlock: (block: SelectedScheduleBlock) => void;
   onClearSelection: () => void;
   onRenameBlock: (blockId: string, title: string) => void;
@@ -623,6 +884,8 @@ function DayCanvas({
   newBlockTitleFocusId,
   draggingBlockId,
   dropPreview,
+  isPlacing,
+  onPlaceAtPointer,
   onSelectBlock,
   onClearSelection,
   onRenameBlock,
@@ -640,14 +903,23 @@ function DayCanvas({
             canvasRef.current = node;
             droppable.setNodeRef(node);
           }}
-          className={styles.canvas}
+          className={[styles.canvas, isPlacing ? styles.canvasPlacing : null]
+            .filter(Boolean)
+            .join(' ')}
           style={{ '--hour-height': `${HOUR_HEIGHT}px` } as React.CSSProperties}
-          onClick={onClearSelection}
+          onClick={event => {
+            if (isPlacing) {
+              onPlaceAtPointer(event.clientX, event.clientY);
+              return;
+            }
+
+            onClearSelection();
+          }}
         >
           {HOURS.map(hour => (
             <div key={hour} className={isWorkingHour(hour) ? styles.hourRow : styles.hourRowOff}>
               <div className={styles.hourLabel}>
-                <Typography size="xs" color="muted">{formatTime(hour * 60)}</Typography>
+                <Typography size="xs" color="muted">{formatHourLabel(hour)}</Typography>
               </div>
             </div>
           ))}
@@ -743,133 +1015,6 @@ function DayCanvas({
         </div>
       </div>
     </div>
-  );
-}
-
-function FloatingAddBlock({
-  mode,
-  open,
-  onOpenChange,
-  onAddBlock,
-}: {
-  mode: ScheduleMode;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddBlock: (type: GenericBlockType) => void;
-}) {
-  const addBlockRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!addBlockRef.current?.contains(event.target as Node)) {
-        onOpenChange(false);
-      }
-    }
-
-    window.addEventListener('pointerdown', handlePointerDown);
-    return () => window.removeEventListener('pointerdown', handlePointerDown);
-  }, [onOpenChange, open]);
-
-  if (mode === 'actual') {
-    return <DraggableAddSessionButton onAdd={() => onAddBlock('session')} />;
-  }
-
-  return (
-    <div ref={addBlockRef} className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
-      <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
-        {(['focus', 'research', 'learning', 'buffer', 'break', 'meeting', 'personal'] as const).map(type => (
-          <DraggableAddBlockOption
-            key={type}
-            type={type}
-            disabled={!open}
-            onAdd={() => {
-              onAddBlock(type);
-              onOpenChange(false);
-            }}
-          />
-        ))}
-      </div>
-      {!open ? (
-        <button
-          className={styles.floatingAddButton}
-          type="button"
-          aria-label="Add event"
-          aria-expanded={open}
-          onClick={() => onOpenChange(true)}
-        >
-          <PlusIcon size={20} weight="bold" />
-          <span>Add event</span>
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function DraggableAddSessionButton({ onAdd }: { onAdd: () => void }) {
-  const draggableButton = useDraggable({
-    id: 'generic:session',
-    data: { type: 'generic', blockType: 'session' },
-  });
-
-  return (
-    <div className={styles.floatingAddSessionBlock}>
-      <button
-        ref={draggableButton.setNodeRef}
-        className={styles.floatingAddButton}
-        type="button"
-        aria-label="Add session"
-        {...draggableButton.attributes}
-        {...draggableButton.listeners}
-        onClick={event => {
-          event.preventDefault();
-          onAdd();
-        }}
-      >
-        <PlusIcon size={20} weight="bold" />
-        <span>Add session</span>
-      </button>
-    </div>
-  );
-}
-
-function DraggableAddBlockOption({
-  type,
-  disabled,
-  onAdd,
-}: {
-  type: Exclude<GenericBlockType, 'session'>;
-  disabled: boolean;
-  onAdd: () => void;
-}) {
-  const draggableOption = useDraggable({
-    id: `generic:${type}`,
-    data: { type: 'generic', blockType: type },
-    disabled,
-  });
-  const Icon = getGenericBlockIcon(type);
-
-  return (
-    <button
-      ref={draggableOption.setNodeRef}
-      className={styles.floatingAddOption}
-      data-event-type={type}
-      type="button"
-      disabled={disabled}
-      {...draggableOption.attributes}
-      {...draggableOption.listeners}
-      onClick={event => {
-        event.preventDefault();
-        onAdd();
-      }}
-    >
-      <Icon size={15} />
-      <span>{getGenericBlockTitle(type)}</span>
-      <DotsSixVerticalIcon className={styles.floatingAddDragIcon} size={15} weight="bold" />
-    </button>
   );
 }
 
@@ -1012,6 +1157,22 @@ function ResizeHandle({
   );
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 1180px)');
+    const update = () => setIsMobile(query.matches);
+
+    update();
+    query.addEventListener('change', update);
+
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  return isMobile;
+}
+
 function getPointerMinutes(event: Event, canvas: HTMLDivElement) {
   const pointerY = 'clientY' in event && typeof event.clientY === 'number' ? event.clientY : 0;
   const rect = canvas.getBoundingClientRect();
@@ -1078,19 +1239,46 @@ function isWorkingHour(hour: number) {
   return hour >= 8 && hour < 18;
 }
 
-function getGenericBlockTitle(type: GenericBlockType) {
-  const titles: Record<GenericBlockType, string> = {
-    session: 'Session',
-    break: 'Break',
-    focus: 'Focus',
-    meeting: 'Meeting',
-    buffer: 'Buffer',
-    research: 'Research',
-    learning: 'Learning',
-    personal: 'Personal',
-  };
+// Compact on-the-hour label ("9 AM", "12 PM") — drops the ":00" so the time
+// gutter stays narrow and legible beside the layer-comparison indicators.
+function formatHourLabel(hour: number) {
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour} ${period}`;
+}
 
-  return titles[type];
+// A hidden <label><input switch></label>; toggling it is the only way to get a
+// system haptic on iOS Safari (17.4+), which exposes no Vibration API.
+let iosHapticSwitch: HTMLLabelElement | null = null;
+
+function getIosHapticSwitch() {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  if (iosHapticSwitch) {
+    return iosHapticSwitch;
+  }
+  const label = document.createElement('label');
+  label.setAttribute('aria-hidden', 'true');
+  // Must stay rendered (not display:none) for the toggle to fire a haptic.
+  label.style.cssText =
+    'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.setAttribute('switch', '');
+  label.appendChild(input);
+  document.body.appendChild(label);
+  iosHapticSwitch = label;
+  return label;
+}
+
+// Best-effort haptic tick. Uses the Vibration API where available (Android),
+// and falls back to the iOS <input switch> toggle. No-ops where neither works.
+function triggerHaptic(durationMs: number) {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    navigator.vibrate(durationMs);
+  }
+  getIosHapticSwitch()?.click();
 }
 
 function getGenericBlockDuration(_type: GenericBlockType) {
@@ -1111,21 +1299,6 @@ function createGenericBlock(
     startMin,
     durationMin: getGenericBlockDuration(type),
   };
-}
-
-function getGenericBlockIcon(type: GenericBlockType) {
-  const icons: Record<GenericBlockType, typeof TargetIcon> = {
-    session: TargetIcon,
-    break: CoffeeIcon,
-    focus: TargetIcon,
-    meeting: CalendarBlankIcon,
-    buffer: TrayIcon,
-    research: TargetIcon,
-    learning: CoffeeIcon,
-    personal: CalendarBlankIcon,
-  };
-
-  return icons[type];
 }
 
 function scrollBlockIntoFocus(block: ScheduleBlock, canvasShell: HTMLDivElement | null) {
@@ -1177,13 +1350,12 @@ function contextBlockStyle(startMin: number, durationMin: number, column: number
 }
 
 function columnStyle(column: number, columnCount: number) {
-  const gutter = 8;
-  const leftBase = 112;
-  const rightPad = 16;
-  const widthExpression = `calc((100% - ${leftBase + rightPad}px - ${(columnCount - 1) * gutter}px) / ${columnCount})`;
+  const gutter = 6;
+  const widthExpression =
+    `calc((100% - var(--lane-left) - var(--lane-right) - ${(columnCount - 1) * gutter}px) / ${columnCount})`;
 
   return {
-    left: `calc(${leftBase}px + (${widthExpression} + ${gutter}px) * ${column})`,
+    left: `calc(var(--lane-left) + (${widthExpression} + ${gutter}px) * ${column})`,
     width: widthExpression,
   };
 }

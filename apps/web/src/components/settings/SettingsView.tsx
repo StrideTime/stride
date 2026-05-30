@@ -1,25 +1,26 @@
 import { useMemo, useState, type ElementType, type ReactNode } from 'react';
 
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
   ArrowLeft,
+  ArrowRight,
   Bell,
   Briefcase,
   CalendarDots,
   CaretDown,
+  Timer,
   CaretLeft,
   CaretRight,
   CheckCircle,
-  Clock,
   Database,
   GearSix,
   GithubLogo,
-  House,
-  LinkSimple,
   MagnifyingGlass,
   PaintBrush,
-  PlugsConnected,
+  PencilSimple,
+  Plug,
+  Plus,
   ShieldCheck,
   SlidersHorizontal,
   Smiley,
@@ -28,28 +29,23 @@ import {
   Target,
   Trash,
   User,
+  X,
   UsersThree,
 } from '@phosphor-icons/react';
 import { Badge, Button, Popover, Select, TextInput, Typography } from '@stride/ui';
 
-import { useAppMode, type AppMode } from '../app-mode';
+import { useAppMode } from '../app-mode';
+import { useStatuses, type StatusColor } from '../statuses';
 import styles from './SettingsView.module.css';
-import {
-  captureRecords,
-  checkInRecords,
-  sessionRecords,
-  type Feeling,
-} from './yourData.mock';
+import { captureRecords, checkInRecords, sessionRecords, type Feeling } from './yourData.mock';
 
 export type SettingsSectionId =
   | 'my-workspace'
   | 'my-calendar'
   | 'my-notifications'
-  | 'my-time-budgets'
-  | 'my-event-types'
   | 'account'
   | 'appearance'
-  | 'personal-connections'
+  | 'my-statuses'
   | 'your-data'
   | 'workspace-general'
   | 'workspace-connections'
@@ -97,17 +93,30 @@ const workspaceOptions: WorkspaceOption[] = [
 
 const teamsByWorkspace: Record<string, TeamOption[]> = {
   acme: [
-    { id: 'platform', name: 'Platform', source: 'Acme Jira', role: 'teamAdmin' },
+    {
+      id: 'platform',
+      name: 'Platform',
+      source: 'Acme Jira',
+      role: 'teamAdmin',
+    },
     { id: 'app', name: 'App', source: 'Linear Engineering', role: 'member' },
-    { id: 'infra', name: 'Infrastructure', source: 'GitHub Org', role: 'workspaceAdmin' },
+    {
+      id: 'infra',
+      name: 'Infrastructure',
+      source: 'GitHub Org',
+      role: 'workspaceAdmin',
+    },
   ],
   orbit: [
-    { id: 'product', name: 'Product', source: 'Linear Product', role: 'teamAdmin' },
+    {
+      id: 'product',
+      name: 'Product',
+      source: 'Linear Product',
+      role: 'teamAdmin',
+    },
     { id: 'design', name: 'Design', source: 'Not mapped', role: 'member' },
   ],
-  personal: [
-    { id: 'personal', name: 'Personal', source: 'No source', role: 'member' },
-  ],
+  personal: [{ id: 'personal', name: 'Personal', source: 'No source', role: 'member' }],
 };
 
 const ROLE_RANK: Record<Role, number> = {
@@ -118,69 +127,57 @@ const ROLE_RANK: Record<Role, number> = {
 
 const groups: SettingsGroup[] = [
   {
-    id: 'my-settings',
-    label: 'My workspace settings',
-    helper: 'Your defaults for Acme Platform.',
-    sections: [
-      {
-        id: 'my-workspace',
-        label: 'Overview',
-        description: 'Working hours, tracking, and workspace-specific preferences.',
-        icon: SlidersHorizontal,
-      },
-      {
-        id: 'my-calendar',
-        label: 'Calendar',
-        description: 'Opt into calendar sync for this workspace.',
-        icon: CalendarDots,
-      },
-      {
-        id: 'my-notifications',
-        label: 'Notifications',
-        description: 'Overrides for nudges and summaries in this workspace.',
-        icon: Bell,
-      },
-      {
-        id: 'my-time-budgets',
-        label: 'Time budgets',
-        description: 'Daily and weekly budget targets.',
-        icon: Clock,
-      },
-      {
-        id: 'my-event-types',
-        label: 'Event types',
-        description: 'Custom schedule types for this workspace.',
-        icon: CalendarDots,
-      },
-    ],
-  },
-  {
     id: 'personal',
     label: 'Personal',
     helper: 'Account-wide settings across every workspace.',
     sections: [
       {
         id: 'account',
-        label: 'Account',
-        description: 'Identity, email, password, and devices.',
+        label: 'Profile',
+        description: '',
         icon: User,
       },
       {
         id: 'appearance',
         label: 'Appearance',
-        description: 'Theme and interface preferences.',
+        description: '',
         icon: PaintBrush,
       },
       {
-        id: 'personal-connections',
-        label: 'Personal connections',
-        description: 'Calendar accounts you can opt into per workspace.',
-        icon: LinkSimple,
+        id: 'my-statuses',
+        label: 'My statuses',
+        description: '',
+        icon: Smiley,
+      },
+    ],
+  },
+  {
+    id: 'my-settings',
+    label: 'My workspace settings',
+    helper: 'Your defaults for Acme Platform.',
+    sections: [
+      {
+        id: 'my-workspace',
+        label: 'Work preferences',
+        description: '',
+        icon: SlidersHorizontal,
+      },
+      {
+        id: 'my-calendar',
+        label: 'Calendar',
+        description: '',
+        icon: CalendarDots,
+      },
+      {
+        id: 'my-notifications',
+        label: 'Notifications',
+        description: '',
+        icon: Bell,
       },
       {
         id: 'your-data',
-        label: 'Your data',
-        description: 'See, export, and delete everything Stride has captured about you.',
+        label: 'Privacy and data',
+        description: '',
         icon: Database,
       },
     ],
@@ -194,19 +191,19 @@ const groups: SettingsGroup[] = [
       {
         id: 'workspace-general',
         label: 'General',
-        description: 'Workspace name, roles, defaults, and policies.',
+        description: '',
         icon: Briefcase,
       },
       {
         id: 'workspace-connections',
         label: 'Source connections',
-        description: 'Workspace pool of Jira, Linear, and GitHub connections.',
-        icon: PlugsConnected,
+        description: '',
+        icon: Plug,
       },
       {
         id: 'workspace-members',
         label: 'Members',
-        description: 'Invites, workspace roles, and membership state.',
+        description: '',
         icon: UsersThree,
       },
     ],
@@ -219,34 +216,32 @@ const groups: SettingsGroup[] = [
     sections: [
       {
         id: 'team-general',
-        label: 'Team defaults',
-        description: 'Default working hours and onboarding seeds for new members.',
+        label: 'General',
+        description: '',
         icon: GearSix,
       },
       {
         id: 'team-members',
         label: 'Members',
-        description: 'Invite people to the selected team or add workspace members.',
+        description: '',
         icon: UsersThree,
       },
       {
         id: 'team-source',
         label: 'Source mapping',
-        description: 'Choose one unclaimed external team, board, or repo.',
+        description: '',
         icon: ShieldCheck,
       },
     ],
   },
 ];
 
-const allSections = groups.flatMap(group => group.sections);
+const allSections = groups.flatMap((group) => group.sections);
 
-function canAccess(group: SettingsGroup, workspaceRole: Role, teamRole: Role) {
+function canAccess(group: SettingsGroup, workspaceRole: Role) {
   if (!group.minimumRole) return true;
 
-  const effectiveRole = group.minimumRole === 'teamAdmin' ? teamRole : workspaceRole;
-
-  return ROLE_RANK[effectiveRole] >= ROLE_RANK[group.minimumRole];
+  return ROLE_RANK[workspaceRole] >= ROLE_RANK[group.minimumRole];
 }
 
 function roleLabel(role: Role) {
@@ -257,35 +252,38 @@ function roleLabel(role: Role) {
 }
 
 type SettingsViewProps = {
-  section: SettingsSectionId;
+  section?: SettingsSectionId;
 };
 
 export function SettingsView({ section }: SettingsViewProps) {
-  const navigate = useNavigate();
   const [workspaceId, setWorkspaceId] = useState('acme');
   const [teamId, setTeamId] = useState('platform');
-  const currentWorkspace = workspaceOptions.find(workspace => workspace.id === workspaceId) ?? workspaceOptions[0]!;
-  const teamOptions = teamsByWorkspace[currentWorkspace.id] ?? [];
-  const currentTeam = teamOptions.find(team => team.id === teamId) ?? teamOptions[0]!;
-  const visibleGroups = groups.filter(group => canAccess(group, currentWorkspace.role, currentTeam.role));
-  const activeSection = allSections.find(item => item.id === section) ?? allSections[0]!;
+  const currentWorkspace =
+    workspaceOptions.find((workspace) => workspace.id === workspaceId) ?? workspaceOptions[0]!;
+  const adminTeams = (teamsByWorkspace[currentWorkspace.id] ?? []).filter(
+    (team) => ROLE_RANK[team.role] >= ROLE_RANK.teamAdmin
+  );
+  const currentTeam = adminTeams.find((team) => team.id === teamId) ?? adminTeams[0];
+  const visibleGroups = groups.filter((group) =>
+    group.id === 'team-admin' ? adminTeams.length > 0 : canAccess(group, currentWorkspace.role)
+  );
+  const hasSelection = section != null;
+  const activeSection =
+    allSections.find((item) => item.id === section) ??
+    allSections.find((item) => item.id === 'my-workspace') ??
+    allSections[0]!;
 
   const selectWorkspace = (nextWorkspaceId: string) => {
-    const nextTeams = teamsByWorkspace[nextWorkspaceId] ?? [];
+    const nextAdminTeams = (teamsByWorkspace[nextWorkspaceId] ?? []).filter(
+      (team) => ROLE_RANK[team.role] >= ROLE_RANK.teamAdmin
+    );
 
     setWorkspaceId(nextWorkspaceId);
-    setTeamId(nextTeams[0]?.id ?? '');
-  };
-
-  const setSection = (nextSection: SettingsSectionId) => {
-    navigate({
-      to: '/settings',
-      search: { section: nextSection },
-    });
+    setTeamId(nextAdminTeams[0]?.id ?? '');
   };
 
   return (
-    <section className={styles.page}>
+    <section className={`${styles.page} ${hasSelection ? styles.pageDetail : styles.pageMenu}`}>
       <aside className={styles.sidebar} aria-label="Settings sections">
         <div className={styles.sidebarHeader}>
           <Link to="/" className={styles.backLink} aria-label="Back to app">
@@ -294,55 +292,64 @@ export function SettingsView({ section }: SettingsViewProps) {
           <Typography as="h1" size="lg" weight="bold" className={styles.title}>
             Settings
           </Typography>
-        </div>
-
-        <div className={styles.scopePanel}>
           <CompactPicker
-            label="Workspace"
+            icon={Briefcase}
             value={currentWorkspace.name}
-            meta={roleLabel(currentWorkspace.role)}
-            options={workspaceOptions.map(workspace => ({
+            options={workspaceOptions.map((workspace) => ({
               value: workspace.id,
               label: workspace.name,
               meta: roleLabel(workspace.role),
             }))}
             onSelect={selectWorkspace}
-          />
-
-          <CompactPicker
-            label="Team"
-            value={currentTeam.name}
-            meta={roleLabel(currentTeam.role)}
-            options={teamOptions.map(team => ({
-              value: team.id,
-              label: team.name,
-              meta: `${team.source} · ${roleLabel(team.role)}`,
-            }))}
-            onSelect={setTeamId}
+            footer={
+              <Link to="/workspaces/new" className={styles.scopeMenuAction}>
+                <Plus size={14} weight="bold" aria-hidden="true" />
+                Create workspace
+              </Link>
+            }
           />
         </div>
 
         <nav className={styles.nav}>
-          {visibleGroups.map(group => (
+          {visibleGroups.map((group) => (
             <div className={styles.navGroup} key={group.id}>
-              <Typography as="p" size="xs" weight="semibold" color="muted" className={styles.groupLabel}>
-                {group.label}
-              </Typography>
+              <div className={styles.groupHeader}>
+                <Typography
+                  as="p"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.groupLabel}
+                >
+                  {group.label}
+                </Typography>
+                {group.id === 'team-admin' && currentTeam ? (
+                  <CompactPicker
+                    value={currentTeam.name}
+                    options={adminTeams.map((team) => ({
+                      value: team.id,
+                      label: team.name,
+                      meta: `${team.source} · ${roleLabel(team.role)}`,
+                    }))}
+                    onSelect={setTeamId}
+                  />
+                ) : null}
+              </div>
               <div className={styles.navItems}>
-                {group.sections.map(item => {
+                {group.sections.map((item) => {
                   const Icon = item.icon;
-                  const isActive = activeSection.id === item.id;
+                  const isActive = item.id === section;
 
                   return (
-                    <button
+                    <Link
                       className={isActive ? `${styles.navItem} ${styles.active}` : styles.navItem}
                       key={item.id}
-                      onClick={() => setSection(item.id)}
-                      type="button"
+                      to="/settings"
+                      search={{ section: item.id }}
                     >
                       <Icon aria-hidden="true" size={16} weight={isActive ? 'fill' : 'regular'} />
                       <span>{item.label}</span>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -353,18 +360,20 @@ export function SettingsView({ section }: SettingsViewProps) {
 
       <main className={styles.content}>
         <div className={styles.mobileBackstop}>
-          <Link to="/" className={styles.backLink}>
-            <House size={15} weight="bold" aria-hidden="true" />
-            <span>App home</span>
+          <Link to="/settings" search={{}} className={styles.mobileBackButton}>
+            <CaretLeft size={15} weight="bold" aria-hidden="true" />
+            <span>All settings</span>
           </Link>
         </div>
         <header className={styles.contentHeader}>
           <Typography as="h2" size="2xl" weight="bold">
             {activeSection.label}
           </Typography>
-          <Typography as="p" size="base" color="muted" className={styles.description}>
-            {activeSection.description}
-          </Typography>
+          {activeSection.description ? (
+            <Typography as="p" size="base" color="muted" className={styles.description}>
+              {activeSection.description}
+            </Typography>
+          ) : null}
         </header>
 
         <SectionContent section={activeSection.id} />
@@ -385,16 +394,12 @@ function SectionContent({ section }: SectionContentProps) {
       return <CalendarSection />;
     case 'my-notifications':
       return <NotificationsSection />;
-    case 'my-time-budgets':
-      return <TimeBudgetsSection />;
-    case 'my-event-types':
-      return <EventTypesSection />;
     case 'account':
       return <AccountSection />;
     case 'appearance':
       return <AppearanceSection />;
-    case 'personal-connections':
-      return <PersonalConnectionsSection />;
+    case 'my-statuses':
+      return <MyStatusesSection />;
     case 'your-data':
       return <YourDataSection />;
     case 'workspace-general':
@@ -412,200 +417,523 @@ function SectionContent({ section }: SectionContentProps) {
   }
 }
 
+type WorkingHoursRow = {
+  id: string;
+  day: string;
+  start: string;
+  end: string;
+};
+
+type SimpleOption = {
+  value: string;
+  label: string;
+};
+
+const dayOptions: SimpleOption[] = [
+  { value: 'Monday', label: 'Monday' },
+  { value: 'Tuesday', label: 'Tuesday' },
+  { value: 'Wednesday', label: 'Wednesday' },
+  { value: 'Thursday', label: 'Thursday' },
+  { value: 'Friday', label: 'Friday' },
+  { value: 'Saturday', label: 'Saturday' },
+  { value: 'Sunday', label: 'Sunday' },
+];
+
+const fallbackTimeZones = [
+  'UTC',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/New_York',
+  'Europe/London',
+  'Europe/Paris',
+  'Asia/Tokyo',
+  'Australia/Sydney',
+];
+
+function formatTimeZone(zone: string) {
+  const [region = zone, ...rest] = zone.split('/');
+  return {
+    value: zone,
+    label: rest.join(' / ').replaceAll('_', ' ') || region,
+    meta: rest.length > 0 ? region.replaceAll('_', ' ') : 'Standard',
+  };
+}
+
+const timeZoneOptions = (
+  typeof Intl.supportedValuesOf === 'function'
+    ? Intl.supportedValuesOf('timeZone')
+    : fallbackTimeZones
+).map(formatTimeZone);
+
 function MyWorkspaceSection() {
   const { mode, setMode } = useAppMode();
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('17:00');
   const [timezone, setTimezone] = useState('America/Denver');
+  const [workingHours, setWorkingHours] = useState<WorkingHoursRow[]>([
+    { id: 'hours-1', day: 'Monday', start: '09:00', end: '17:00' },
+    { id: 'hours-2', day: 'Tuesday', start: '09:00', end: '17:00' },
+    { id: 'hours-3', day: 'Wednesday', start: '09:00', end: '17:00' },
+    { id: 'hours-4', day: 'Thursday', start: '09:00', end: '17:00' },
+    { id: 'hours-5', day: 'Friday', start: '09:00', end: '17:00' },
+  ]);
+
+  const updateWorkingHours = (id: string, patch: Partial<WorkingHoursRow>) => {
+    setWorkingHours((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const addWorkingHours = () => {
+    setWorkingHours((rows) => [
+      ...rows,
+      {
+        id: `hours-${Date.now()}`,
+        day: 'Monday',
+        start: '09:00',
+        end: '17:00',
+      },
+    ]);
+  };
+
+  const removeWorkingHours = (id: string) => {
+    setWorkingHours((rows) => (rows.length === 1 ? rows : rows.filter((row) => row.id !== id)));
+  };
 
   return (
-    <div className={styles.stack}>
-      <div className={styles.formPanel}>
+    <div className={styles.overviewStack}>
+      <section className={styles.overviewSection}>
         <div className={styles.panelHeader}>
-          <Typography as="h3" size="lg" weight="semibold">Working hours</Typography>
-          <Typography as="p" size="sm" color="muted">
-            Used for schedule capacity in this workspace.
+          <Typography as="h3" size="lg" weight="semibold">
+            Working hours
           </Typography>
         </div>
-        <div className={styles.formGrid}>
-          <div className={styles.fieldGroup}>
-            <Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>
-              Start
-            </Typography>
-            <TextInput type="time" value={startTime} onChange={event => setStartTime(event.target.value)} />
-          </div>
-          <div className={styles.fieldGroup}>
-            <Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>
-              End
-            </Typography>
-            <TextInput type="time" value={endTime} onChange={event => setEndTime(event.target.value)} />
-          </div>
-          <Select
+        <div className={styles.workingHoursEditor}>
+          <SearchableSelect
             label="Timezone"
             value={timezone}
+            options={timeZoneOptions}
             onChange={setTimezone}
-            options={[
-              { value: 'America/Denver', label: 'Mountain time' },
-              { value: 'America/Los_Angeles', label: 'Pacific time' },
-              { value: 'America/New_York', label: 'Eastern time' },
-            ]}
+          />
+          <div className={styles.workingHoursList}>
+            {workingHours.map((row) => (
+              <div className={styles.workingHoursRow} key={row.id}>
+                <Select
+                  label=""
+                  value={row.day}
+                  onChange={(value) => updateWorkingHours(row.id, { day: value })}
+                  options={dayOptions}
+                />
+                <div className={styles.fieldGroup}>
+                  <Typography
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    color="muted"
+                    className={styles.fieldLabel}
+                  >
+                    Start
+                  </Typography>
+                  <TextInput
+                    type="time"
+                    value={row.start}
+                    onChange={(event) => updateWorkingHours(row.id, { start: event.target.value })}
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <Typography
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    color="muted"
+                    className={styles.fieldLabel}
+                  >
+                    End
+                  </Typography>
+                  <TextInput
+                    type="time"
+                    value={row.end}
+                    onChange={(event) => updateWorkingHours(row.id, { end: event.target.value })}
+                  />
+                </div>
+                <button
+                  aria-label="Remove working hours row"
+                  className={styles.removeHoursButton}
+                  disabled={workingHours.length === 1}
+                  onClick={() => removeWorkingHours(row.id)}
+                  type="button"
+                >
+                  <Trash size={15} aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className={styles.addWorkingHoursButton}
+            icon={<Plus size={14} weight="bold" />}
+            onClick={addWorkingHours}
+          >
+            Add day
+          </Button>
+        </div>
+      </section>
+
+      <section className={styles.overviewSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Working mode
+          </Typography>
+        </div>
+        <div className={styles.workModeGrid}>
+          <WorkModeOption
+            active={mode === 'session-first'}
+            icon={<Timer size={24} weight="bold" aria-hidden="true" />}
+            label="Session-first"
+            summary="Start and stop sessions. Sessions count as time worked."
+            onSelect={() => setMode('session-first')}
+          />
+          <WorkModeOption
+            active={mode === 'schedule-first'}
+            icon={<CalendarDots size={24} weight="bold" aria-hidden="true" />}
+            label="Schedule-first"
+            summary="Work time comes from what is scheduled on your calendar."
+            onSelect={() => setMode('schedule-first')}
           />
         </div>
-      </div>
-
-      <ChoicePanel
-        title="Working mode"
-        value={mode}
-        onChange={value => setMode(value as AppMode)}
-        options={[
-          ['session-first', 'Session-first', 'You start and stop timed sessions. Recorded sessions are the source of truth for time spent, and Today centers on what to run next.'],
-          ['schedule-first', 'Schedule-first', 'You plan your day on the calendar. Planned blocks count as worked time as the day plays out, and Today shows the day timeline.'],
-        ]}
-      />
-
-      <div className={styles.actionRow}>
-        <Button variant="secondary">Reset to team defaults</Button>
-        <Button variant="primary">Save changes</Button>
-      </div>
-    </div>
-  );
-}
-
-function EventTypesSection() {
-  return (
-    <div className={styles.stack}>
-      <section className={styles.formPanel}>
-        <div className={styles.sectionToolbarInline}>
-          <Typography as="h3" size="lg" weight="semibold">Event types</Typography>
-          <Button variant="secondary" size="sm">Add type</Button>
-        </div>
-        <div className={styles.typeEditorList}>
-          <EventTypeRow name="Actions" tone="accent" />
-          <EventTypeRow name="Meetings" tone="warning" />
-          <EventTypeRow name="Research" tone="cyan" />
-          <EventTypeRow name="Focus" tone="success" />
-          <EventTypeRow name="Buffers" tone="slate" />
-        </div>
-      </section>
-      <SaveRow />
-    </div>
-  );
-}
-
-function TimeBudgetsSection() {
-  const [budgetSpan, setBudgetSpan] = useState('week');
-  const [budgetGoal, setBudgetGoal] = useState('aim');
-  const [allocationMode, setAllocationMode] = useState('percent');
-
-  return (
-    <div className={styles.stack}>
-      <section className={styles.formPanel}>
-        <div className={styles.sectionToolbarInline}>
-          <Typography as="h3" size="lg" weight="semibold">Time budgets</Typography>
-          <Button variant="secondary" size="sm">New budget</Button>
-        </div>
-        <div className={styles.budgetTabs}>
-          <button className={styles.budgetTabActive} type="button">Work week <Badge variant="success">Active</Badge></button>
-          <button type="button">Launch week</button>
-          <button type="button">Light week</button>
-        </div>
-        <div className={styles.budgetEditor}>
-          <div className={styles.formGrid}>
-            <Select label="Span" value={budgetSpan} onChange={setBudgetSpan} options={[{ value: 'day', label: 'Daily' }, { value: 'week', label: 'Weekly' }]} />
-            <Select label="Goal" value={budgetGoal} onChange={setBudgetGoal} options={[{ value: 'max', label: 'No more than' }, { value: 'min', label: 'At least' }, { value: 'aim', label: 'Aim for' }]} />
-            <Select label="Allocation" value={allocationMode} onChange={setAllocationMode} options={[{ value: 'percent', label: 'Percent of total' }, { value: 'duration', label: 'Duration by type' }]} />
+        {mode === 'session-first' ? (
+          <div className={styles.workModeConditional}>
+            <ToggleRow
+              title="End-of-session check-in"
+              detail="Ask how the session went before closing it."
+              defaultOn
+            />
           </div>
-          {allocationMode === 'percent' ? (
-            <div className={styles.budgetAllocationHeader}>
-              <div className={styles.fieldGroup}>
-                <Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Total hours</Typography>
-                <TextInput type="number" defaultValue="40" min="0" />
-              </div>
-            </div>
-          ) : null}
-          <BudgetRow name="Actions" value={allocationMode === 'percent' ? '55' : '22'} unit={allocationMode === 'percent' ? '%' : 'h'} tone="accent" />
-          <BudgetRow name="Meetings" value={allocationMode === 'percent' ? '20' : '8'} unit={allocationMode === 'percent' ? '%' : 'h'} tone="warning" />
-          <BudgetRow name="Research" value={allocationMode === 'percent' ? '20' : '8'} unit={allocationMode === 'percent' ? '%' : 'h'} tone="cyan" />
-          <BudgetRow name="Focus" value={allocationMode === 'percent' ? '15' : '6'} unit={allocationMode === 'percent' ? '%' : 'h'} tone="success" />
-        </div>
+        ) : null}
       </section>
-      <SaveRow />
     </div>
   );
 }
 
 function NotificationsSection() {
-  const [mode, setMode] = useState('minimal');
   const [summaryTime, setSummaryTime] = useState('17:00');
 
   return (
-    <div className={styles.stack}>
-      <ChoicePanel
-        title="Workspace nudges"
-        value={mode}
-        onChange={setMode}
-        options={[
-          ['silent', 'Silent', 'No workspace nudges.'],
-          ['minimal', 'Minimal', 'Recommended check-ins only.'],
-          ['active', 'Active', 'More frequent planning and session prompts.'],
-        ]}
-      />
-      <div className={styles.formPanel}>
-        <div className={styles.formGridTwo}>
+    <div className={styles.plainStack}>
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Sessions &amp; focus
+          </Typography>
+        </div>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="Session start reminder"
+            detail="Nudge me to start a session I planned but haven't begun."
+            defaultOn
+          />
+          <ToggleRow
+            title="Idle session check"
+            detail="Ask if I'm still working when a running session goes quiet."
+            defaultOn
+          />
+          <ToggleRow
+            title="Variance nudge"
+            detail="Warn me when a session runs far past its estimate."
+            defaultOn
+          />
+          <ToggleRow
+            title="Break reminder"
+            detail="Suggest a break after a long unbroken stretch of focus."
+          />
+          <ToggleRow
+            title="Session recap"
+            detail="Show a quick recap of time and progress when a session ends."
+            defaultOn
+          />
+        </div>
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Schedule &amp; meetings
+          </Typography>
+        </div>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="Meeting prompts"
+            detail="Show a tray prompt a few minutes before calendar meetings."
+            defaultOn
+          />
+          <ToggleRow
+            title="Meeting start ping"
+            detail="Ping me right when a meeting is starting."
+            defaultOn
+          />
+          <ToggleRow
+            title="Upcoming block reminder"
+            detail="Remind me before a scheduled work block begins."
+          />
+          <ToggleRow
+            title="Schedule conflicts"
+            detail="Flag when two blocks or a meeting and a block overlap."
+            defaultOn
+          />
+          <ToggleRow
+            title="Unplanned day nudge"
+            detail="Remind me to plan a day that still has open time."
+          />
+        </div>
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Work &amp; specs
+          </Typography>
+        </div>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="New work assigned"
+            detail="Tell me when work is assigned to me from a source."
+            defaultOn
+          />
+          <ToggleRow
+            title="Spec ready to plan"
+            detail="Notify me when a new spec lands and is ready to break down."
+            defaultOn
+          />
+          <ToggleRow
+            title="Due-date reminder"
+            detail="Flag actions as their due date approaches."
+            defaultOn
+          />
+          <ToggleRow
+            title="Stale spec reminder"
+            detail="Remind me about specs sitting untouched for a while."
+          />
+          <ToggleRow
+            title="Blocked action alert"
+            detail="Let me know when something I'm waiting on becomes unblocked."
+          />
+        </div>
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Summaries &amp; progress
+          </Typography>
+        </div>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="Daily summary"
+            detail="A recap of the day sent at the end of your workday."
+            defaultOn
+          />
+          <ToggleRow
+            title="Weekly review"
+            detail="A wider look back at your week, sent Friday afternoon."
+            defaultOn
+          />
+          <ToggleRow
+            title="Streaks & milestones"
+            detail="Celebrate personal streaks and milestones as you hit them."
+          />
+          <ToggleRow
+            title="Goal progress"
+            detail="Check in on progress toward goals you've set for yourself."
+          />
+        </div>
+        <div className={styles.inlineSelect}>
           <Select
-            label="Daily summary"
+            label="Send daily summary at"
             value={summaryTime}
             onChange={setSummaryTime}
             options={[
               { value: '16:00', label: '4:00 PM' },
               { value: '17:00', label: '5:00 PM' },
               { value: '18:00', label: '6:00 PM' },
+              { value: '19:00', label: '7:00 PM' },
             ]}
           />
-          <ToggleRow title="Meeting prompts" detail="Show tray prompts before calendar meetings." defaultOn />
         </div>
-      </div>
-      <SaveRow />
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Workspace &amp; team
+          </Typography>
+        </div>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="Workspace announcements"
+            detail="Messages and changes from workspace admins."
+            defaultOn
+          />
+          <ToggleRow
+            title="Invitations & role changes"
+            detail="When you're added to a team or your role changes."
+            defaultOn
+          />
+          <ToggleRow
+            title="Aggregate team insights"
+            detail="When new aggregate patterns are published for your team."
+          />
+        </div>
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Delivery
+          </Typography>
+        </div>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="Desktop tray"
+            detail="Show notifications in the desktop app tray."
+            defaultOn
+          />
+          <ToggleRow title="Email" detail="Send notifications to your account email." />
+          <ToggleRow title="Mobile push" detail="Push notifications to the mobile app." defaultOn />
+          <ToggleRow
+            title="Quiet hours"
+            detail="Hold non-urgent notifications outside your working hours."
+            defaultOn
+          />
+        </div>
+      </section>
     </div>
   );
 }
+
+type AccentColor = 'blue' | 'violet' | 'cyan' | 'green' | 'amber';
+
+const accentOptions: { value: AccentColor; label: string }[] = [
+  { value: 'blue', label: 'Blue' },
+  { value: 'violet', label: 'Violet' },
+  { value: 'cyan', label: 'Cyan' },
+  { value: 'green', label: 'Green' },
+  { value: 'amber', label: 'Amber' },
+];
 
 function AppearanceSection() {
   const [theme, setTheme] = useState('dark');
-  const [density, setDensity] = useState('default');
+  const [accent, setAccent] = useState<AccentColor>('blue');
+
+  const changeTheme = (nextTheme: string) => {
+    setTheme(nextTheme);
+    if (typeof document === 'undefined') return;
+
+    if (nextTheme === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.dataset.theme = nextTheme;
+  };
 
   return (
-    <div className={styles.stack}>
-      <ChoicePanel
-        title="Theme"
-        value={theme}
-        onChange={setTheme}
-        options={[
-          ['dark', 'Dark', 'Current default for Stride.'],
-          ['light', 'Light', 'Use the light token set.'],
-          ['system', 'System', 'Follow OS preference.'],
-        ]}
-      />
-      <ChoicePanel
-        title="Density"
-        value={density}
-        onChange={setDensity}
-        options={[
-          ['default', 'Default', 'Balanced for planning and scanning.'],
-          ['compact', 'Compact', 'Tighter lists and lower row height.'],
-        ]}
-      />
-      <SaveRow />
+    <div className={styles.plainStack}>
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Theme
+          </Typography>
+        </div>
+        <div className={styles.themeGrid}>
+          <ThemeOption
+            active={theme === 'dark'}
+            label="Dark"
+            tone="dark"
+            onSelect={() => changeTheme('dark')}
+          />
+          <ThemeOption
+            active={theme === 'light'}
+            label="Light"
+            tone="light"
+            onSelect={() => changeTheme('light')}
+          />
+          <ThemeOption
+            active={theme === 'system'}
+            label="System"
+            tone="system"
+            onSelect={() => changeTheme('system')}
+          />
+        </div>
+      </section>
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Accent color
+          </Typography>
+        </div>
+        <AccentSelector accent={accent} onChange={setAccent} />
+      </section>
     </div>
   );
 }
 
-function PersonalConnectionsSection() {
+const STATUS_NAME_MAX_LENGTH = 24;
+
+function MyStatusesSection() {
+  const { statuses, currentStatusId, addStatus, updateStatus, removeStatus } = useStatuses();
+
   return (
-    <div className={styles.stack}>
-      <ConnectionRow name="Google Calendar" detail="alex@acme.test · available to opt into per workspace" status="Connected" />
-      <ConnectionRow name="Google Calendar" detail="Connect another calendar account" status="Available" />
-      <div className={styles.actionRow}><Button variant="primary">Connect calendar</Button></div>
+    <div className={styles.overviewStack}>
+      <section className={styles.overviewSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Statuses
+          </Typography>
+        </div>
+        <div className={styles.statusEditor}>
+          <div className={styles.statusList}>
+            {statuses.map((status) => (
+              <div className={styles.statusRow} key={status.id}>
+                <StatusAppearancePicker
+                  color={status.color}
+                  icon={status.icon}
+                  onColorChange={(value) =>
+                    updateStatus(status.id, { color: value as StatusColor })
+                  }
+                  onIconChange={(value) => updateStatus(status.id, { icon: value })}
+                />
+                <label
+                  className={styles.statusNameField}
+                  data-value={status.label || 'Status name'}
+                >
+                  <input
+                    className={styles.statusNameInput}
+                    aria-label="Status name"
+                    placeholder="Status name"
+                    maxLength={STATUS_NAME_MAX_LENGTH}
+                    value={status.label}
+                    onChange={(event) => updateStatus(status.id, { label: event.target.value })}
+                  />
+                </label>
+                <div className={styles.statusRowActions}>
+                  {status.id === currentStatusId ? <Badge variant="success">Current</Badge> : null}
+                  <button
+                    aria-label={`Remove ${status.label} status`}
+                    className={styles.statusRemove}
+                    disabled={statuses.length === 1}
+                    onClick={() => removeStatus(status.id)}
+                    type="button"
+                  >
+                    <Trash size={15} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className={styles.statusAddButton}
+            icon={<Plus size={14} weight="bold" />}
+            onClick={addStatus}
+          >
+            Add status
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -635,11 +963,6 @@ const whenFormat = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',
   minute: '2-digit',
 });
-const sinceFormat = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-});
 
 function formatWhen(iso: string) {
   return whenFormat.format(new Date(iso));
@@ -657,21 +980,29 @@ function GuaranteeNote({ body }: { body: string }) {
   return (
     <div className={styles.guaranteeNote}>
       <ShieldCheck size={17} weight="fill" aria-hidden="true" />
-      <Typography as="p" size="sm" color="muted">{body}</Typography>
+      <Typography as="p" size="sm" color="muted">
+        {body}
+      </Typography>
     </div>
   );
 }
 
 function FeelingTag({ feeling }: { feeling: Feeling | null }) {
   if (!feeling) {
-    return <Typography as="span" size="xs" color="muted">Not logged</Typography>;
+    return (
+      <Typography as="span" size="xs" color="muted">
+        Not logged
+      </Typography>
+    );
   }
   const meta = FEELING_META[feeling];
   const Icon = meta.icon;
   return (
     <span className={styles.feelingTag}>
       <Icon size={15} weight="fill" aria-hidden="true" />
-      <Typography as="span" size="xs" weight="semibold">{meta.label}</Typography>
+      <Typography as="span" size="xs" weight="semibold">
+        {meta.label}
+      </Typography>
     </span>
   );
 }
@@ -707,8 +1038,12 @@ function DataTable({
   if (rows.length === 0) {
     return (
       <div className={styles.dataEmpty}>
-        <Typography as="p" size="sm" weight="semibold">{emptyTitle}</Typography>
-        <Typography as="p" size="sm" color="muted">{emptyBody}</Typography>
+        <Typography as="p" size="sm" weight="semibold">
+          {emptyTitle}
+        </Typography>
+        <Typography as="p" size="sm" color="muted">
+          {emptyBody}
+        </Typography>
       </div>
     );
   }
@@ -718,7 +1053,7 @@ function DataTable({
   return (
     <div className={styles.dataTable} role="table">
       <div className={`${styles.dataHead} ${gridClassName}`} role="row">
-        {columns.map(column => (
+        {columns.map((column) => (
           <Typography
             as="span"
             key={column}
@@ -732,12 +1067,16 @@ function DataTable({
         ))}
         <span aria-hidden="true" />
       </div>
-      {rows.map(row => (
+      {rows.map((row) =>
         confirmId === row.id ? (
           <div className={styles.dataConfirm} key={row.id} role="row">
-            <Typography as="p" size="sm">{row.confirmText}</Typography>
+            <Typography as="p" size="sm">
+              {row.confirmText}
+            </Typography>
             <div className={styles.confirmActions}>
-              <Button size="sm" variant="ghost" onClick={() => onConfirm(null)}>Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={() => onConfirm(null)}>
+                Cancel
+              </Button>
               <Button
                 size="sm"
                 variant="danger"
@@ -767,7 +1106,7 @@ function DataTable({
             </button>
           </div>
         )
-      ))}
+      )}
     </div>
   );
 }
@@ -780,7 +1119,6 @@ function YourDataSection() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [dangerConfirm, setDangerConfirm] = useState<DataCategory | null>(null);
   const [exportState, setExportState] = useState<'idle' | 'working' | 'done'>('idle');
 
   const counts: Record<DataCategory, number> = {
@@ -788,56 +1126,60 @@ function YourDataSection() {
     checkins: checkins.length,
     captures: captures.length,
   };
-  const totalCount = counts.sessions + counts.checkins + counts.captures;
-
-  const earliest = useMemo(() => {
-    const stamps = [
-      ...sessions.map(record => record.at),
-      ...checkins.map(record => record.at),
-      ...captures.map(record => record.at),
-    ];
-    if (stamps.length === 0) return null;
-    return stamps.reduce((min, at) => (at < min ? at : min));
-  }, [sessions, checkins, captures]);
-
   const normalizedQuery = query.trim().toLowerCase();
 
   const allRows = useMemo<DataTableRow[]>(() => {
     if (category === 'sessions') {
       return sessions
-        .filter(record => normalizedQuery === ''
-          || record.actionTitle.toLowerCase().includes(normalizedQuery)
-          || (record.specKey?.toLowerCase().includes(normalizedQuery) ?? false))
-        .map(record => ({
+        .filter(
+          (record) =>
+            normalizedQuery === '' ||
+            record.actionTitle.toLowerCase().includes(normalizedQuery) ||
+            (record.specKey?.toLowerCase().includes(normalizedQuery) ?? false)
+        )
+        .map((record) => ({
           id: record.id,
           deleteLabel: `Delete session on ${record.actionTitle}`,
           confirmText: 'Delete this session? Its logged time and check-in are removed with it.',
           cells: [
-            <Typography key="when" as="span" size="sm" color="muted">{formatWhen(record.at)}</Typography>,
+            <Typography key="when" as="span" size="sm" color="muted">
+              {formatWhen(record.at)}
+            </Typography>,
             <span key="action" className={styles.titleCell}>
               <Typography as="span" size="sm" weight="semibold" className={styles.truncate}>
                 {record.actionTitle}
               </Typography>
-              {record.specKey
-                ? <span className={styles.specKey}>{record.specKey}</span>
-                : <Typography as="span" size="xs" color="muted">Personal</Typography>}
+              {record.specKey ? (
+                <span className={styles.specKey}>{record.specKey}</span>
+              ) : (
+                <Typography as="span" size="xs" color="muted">
+                  Personal
+                </Typography>
+              )}
             </span>,
-            <Typography key="duration" as="span" size="sm">{formatDuration(record.durationMin)}</Typography>,
+            <Typography key="duration" as="span" size="sm">
+              {formatDuration(record.durationMin)}
+            </Typography>,
             <FeelingTag key="felt" feeling={record.feeling} />,
           ],
         }));
     }
     if (category === 'checkins') {
       return checkins
-        .filter(record => normalizedQuery === ''
-          || record.note.toLowerCase().includes(normalizedQuery)
-          || record.onAction.toLowerCase().includes(normalizedQuery))
-        .map(record => ({
+        .filter(
+          (record) =>
+            normalizedQuery === '' ||
+            record.note.toLowerCase().includes(normalizedQuery) ||
+            record.onAction.toLowerCase().includes(normalizedQuery)
+        )
+        .map((record) => ({
           id: record.id,
           deleteLabel: `Delete check-in from ${formatWhen(record.at)}`,
           confirmText: 'Delete this check-in? The session it belongs to stays.',
           cells: [
-            <Typography key="when" as="span" size="sm" color="muted">{formatWhen(record.at)}</Typography>,
+            <Typography key="when" as="span" size="sm" color="muted">
+              {formatWhen(record.at)}
+            </Typography>,
             <FeelingTag key="felt" feeling={record.feeling} />,
             <span key="note" className={styles.noteCell}>
               <Typography as="span" size="sm" className={styles.truncate}>
@@ -851,17 +1193,26 @@ function YourDataSection() {
         }));
     }
     return captures
-      .filter(record => normalizedQuery === ''
-        || record.text.toLowerCase().includes(normalizedQuery)
-        || record.kind.toLowerCase().includes(normalizedQuery))
-      .map(record => ({
+      .filter(
+        (record) =>
+          normalizedQuery === '' ||
+          record.text.toLowerCase().includes(normalizedQuery) ||
+          record.kind.toLowerCase().includes(normalizedQuery)
+      )
+      .map((record) => ({
         id: record.id,
         deleteLabel: `Delete capture from ${formatWhen(record.at)}`,
         confirmText: 'Delete this capture?',
         cells: [
-          <Typography key="when" as="span" size="sm" color="muted">{formatWhen(record.at)}</Typography>,
-          <Badge key="kind" variant={record.kind === 'Insight' ? 'accent' : 'neutral'}>{record.kind}</Badge>,
-          <Typography key="text" as="span" size="sm" className={styles.truncate}>{record.text}</Typography>,
+          <Typography key="when" as="span" size="sm" color="muted">
+            {formatWhen(record.at)}
+          </Typography>,
+          <Badge key="kind" variant={record.kind === 'Insight' ? 'accent' : 'neutral'}>
+            {record.kind}
+          </Badge>,
+          <Typography key="text" as="span" size="sm" className={styles.truncate}>
+            {record.text}
+          </Typography>,
         ],
       }));
   }, [category, sessions, checkins, captures, normalizedQuery]);
@@ -886,20 +1237,10 @@ function YourDataSection() {
   };
 
   const deleteRow = (id: string) => {
-    if (category === 'sessions') setSessions(rows => rows.filter(record => record.id !== id));
-    else if (category === 'checkins') setCheckins(rows => rows.filter(record => record.id !== id));
-    else setCaptures(rows => rows.filter(record => record.id !== id));
-  };
-
-  const deleteAll = (target: DataCategory) => {
-    if (target === 'sessions') setSessions([]);
-    else if (target === 'checkins') setCheckins([]);
-    else setCaptures([]);
-    setDangerConfirm(null);
-    if (target === category) {
-      setPage(0);
-      setConfirmId(null);
-    }
+    if (category === 'sessions') setSessions((rows) => rows.filter((record) => record.id !== id));
+    else if (category === 'checkins')
+      setCheckins((rows) => rows.filter((record) => record.id !== id));
+    else setCaptures((rows) => rows.filter((record) => record.id !== id));
   };
 
   const exportData = () => {
@@ -911,7 +1252,7 @@ function YourDataSection() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'stride-your-data.json';
+      link.download = 'stride-privacy-and-data.json';
       link.click();
       URL.revokeObjectURL(url);
       setExportState('done');
@@ -924,9 +1265,18 @@ function YourDataSection() {
     captures: ['When', 'Kind', 'Note'],
   };
   const emptyByCategory: Record<DataCategory, [string, string]> = {
-    sessions: ['No sessions recorded', 'When you run a timed session it lands here, fully under your control.'],
-    checkins: ['No check-ins recorded', 'A check-in is the quick how-did-it-go you log when a session ends.'],
-    captures: ['No captures recorded', 'Captures are quick notes you take during a session with the capture shortcut.'],
+    sessions: [
+      'No sessions recorded',
+      'When you run a timed session it lands here, fully under your control.',
+    ],
+    checkins: [
+      'No check-ins recorded',
+      'A check-in is the quick how-did-it-go you log when a session ends.',
+    ],
+    captures: [
+      'No captures recorded',
+      'Captures are quick notes you take during a session with the capture shortcut.',
+    ],
   };
   const gridByCategory: Record<DataCategory, string> = {
     sessions: 'gridSessions',
@@ -936,219 +1286,389 @@ function YourDataSection() {
   const filteredEmpty = normalizedQuery !== '' && allRows.length === 0;
 
   return (
-    <div className={styles.stack}>
-      <div className={styles.formPanel}>
-        <div className={styles.dataIntro}>
-          <Database size={22} weight="fill" aria-hidden="true" className={styles.dataIntroIcon} />
+    <div className={styles.plainStack}>
+      <section className={styles.plainSection}>
+        <div className={styles.toggleList}>
+          <ToggleRow
+            title="Share focus status"
+            detail="Let teammates see when you're focused or free."
+          />
+          <ToggleRow
+            title="Show live session indicator"
+            detail="Show teammates you're in a work block."
+          />
+        </div>
+        <GuaranteeNote body="Team reports show aggregate patterns only. Your individual sessions, check-ins, and captures stay private." />
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.dataHeader}>
           <div className={styles.panelHeader}>
-            <Typography as="h3" size="lg" weight="semibold">Everything Stride has captured</Typography>
-            <Typography as="p" size="sm" color="muted">
-              Your sessions, check-ins, and captures all live here. Read them, export them,
-              or delete any of them whenever you want. A delete is permanent and drops the
-              data from every Stride report at once.
+            <Typography as="h3" size="lg" weight="semibold">
+              Your records
             </Typography>
           </div>
+          <div className={styles.dataExport}>
+            {exportState === 'done' ? (
+              <span className={styles.exportDone}>
+                <CheckCircle size={16} weight="fill" aria-hidden="true" />
+                <Typography as="span" size="xs" color="muted">
+                  Downloaded
+                </Typography>
+              </span>
+            ) : null}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={exportData}
+              disabled={exportState === 'working'}
+            >
+              {exportState === 'working' ? 'Exporting…' : 'Export JSON'}
+            </Button>
+          </div>
         </div>
-        <GuaranteeNote body="In team reports, individual session detail is never shown to anyone. That is built into how Stride works, not a setting you have to trust." />
-      </div>
 
-      <div className={styles.dataTabs}>
-        {DATA_CATEGORIES.map(value => (
-          <button
-            aria-pressed={value === category}
-            className={value === category ? `${styles.dataTab} ${styles.dataTabActive}` : styles.dataTab}
-            key={value}
-            onClick={() => selectCategory(value)}
-            type="button"
-          >
-            {CATEGORY_LABEL[value]}
-            <span className={styles.dataTabCount}>{counts[value]}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.dataToolbar}>
-        <Typography as="p" size="xs" color="muted">
-          {totalCount === 0
-            ? 'No records yet.'
-            : `${counts.sessions} sessions · ${counts.checkins} check-ins · ${counts.captures} captures${earliest ? ` · since ${sinceFormat.format(new Date(earliest))}` : ''}`}
-        </Typography>
-        <label className={styles.dataSearch}>
-          <MagnifyingGlass size={15} aria-hidden="true" />
-          <input
-            aria-label={`Search ${CATEGORY_LABEL[category].toLowerCase()}`}
-            onChange={event => updateQuery(event.target.value)}
-            placeholder={`Search ${CATEGORY_LABEL[category].toLowerCase()}`}
-            value={query}
-          />
-        </label>
-      </div>
-
-      <DataTable
-        columns={columnsByCategory[category]}
-        gridClass={gridByCategory[category]}
-        rows={visibleRows}
-        confirmId={confirmId}
-        onConfirm={setConfirmId}
-        onDelete={deleteRow}
-        emptyTitle={filteredEmpty ? `Nothing matches “${query.trim()}”` : emptyByCategory[category][0]}
-        emptyBody={filteredEmpty ? 'Try a different search.' : emptyByCategory[category][1]}
-      />
-
-      {allRows.length > 0 ? (
-        <div className={styles.dataFooter}>
-          <Typography as="span" size="xs" color="muted">
-            {`Showing ${rangeStart}–${rangeEnd} of ${allRows.length}`}
-          </Typography>
-          {pageCount > 1 ? (
-            <div className={styles.pager}>
+        <div className={styles.dataToolbar}>
+          <div className={styles.dataTabs}>
+            {DATA_CATEGORIES.map((value) => (
               <button
-                aria-label="Previous page"
-                className={styles.pagerButton}
-                disabled={safePage === 0}
-                onClick={() => setPage(value => Math.max(0, value - 1))}
+                aria-pressed={value === category}
+                className={
+                  value === category ? `${styles.dataTab} ${styles.dataTabActive}` : styles.dataTab
+                }
+                key={value}
+                onClick={() => selectCategory(value)}
                 type="button"
               >
-                <CaretLeft size={14} aria-hidden="true" />
+                {CATEGORY_LABEL[value]}
+                <span className={styles.dataTabCount}>{counts[value]}</span>
               </button>
-              <Typography as="span" size="xs" color="muted">{`${safePage + 1} / ${pageCount}`}</Typography>
-              <button
-                aria-label="Next page"
-                className={styles.pagerButton}
-                disabled={safePage >= pageCount - 1}
-                onClick={() => setPage(value => Math.min(pageCount - 1, value + 1))}
-                type="button"
-              >
-                <CaretRight size={14} aria-hidden="true" />
-              </button>
-            </div>
-          ) : null}
+            ))}
+          </div>
+          <label className={styles.dataSearch}>
+            <MagnifyingGlass size={15} aria-hidden="true" />
+            <input
+              aria-label={`Search ${CATEGORY_LABEL[category].toLowerCase()}`}
+              onChange={(event) => updateQuery(event.target.value)}
+              placeholder={`Search ${CATEGORY_LABEL[category].toLowerCase()}`}
+              value={query}
+            />
+          </label>
         </div>
-      ) : null}
 
-      <div className={styles.formPanel}>
-        <div className={styles.panelHeader}>
-          <Typography as="h3" size="lg" weight="semibold">Export your data</Typography>
-          <Typography as="p" size="sm" color="muted">
-            Download every session, check-in, and capture as one JSON file.
-          </Typography>
-        </div>
-        <div className={styles.exportRow}>
-          <Button variant="secondary" onClick={exportData} disabled={exportState === 'working'}>
-            {exportState === 'working'
-              ? 'Preparing…'
-              : exportState === 'done'
-                ? 'Export again'
-                : 'Export everything (JSON)'}
-          </Button>
-          {exportState === 'done' ? (
-            <span className={styles.exportDone}>
-              <CheckCircle size={16} weight="fill" aria-hidden="true" />
-              <Typography as="span" size="sm" color="muted">Downloaded as stride-your-data.json</Typography>
-            </span>
-          ) : null}
-        </div>
-      </div>
+        <DataTable
+          columns={columnsByCategory[category]}
+          gridClass={gridByCategory[category]}
+          rows={visibleRows}
+          confirmId={confirmId}
+          onConfirm={setConfirmId}
+          onDelete={deleteRow}
+          emptyTitle={
+            filteredEmpty ? `Nothing matches “${query.trim()}”` : emptyByCategory[category][0]
+          }
+          emptyBody={filteredEmpty ? 'Try a different search.' : emptyByCategory[category][1]}
+        />
 
-      <div className={`${styles.formPanel} ${styles.dangerPanel}`}>
-        <div className={styles.panelHeader}>
-          <Typography as="h3" size="lg" weight="semibold">Delete data</Typography>
-          <Typography as="p" size="sm" color="muted">
-            Remove a whole category at once. This cannot be undone.
-          </Typography>
-        </div>
-        <div className={styles.dangerList}>
-          {DATA_CATEGORIES.map(value => (
-            <div className={styles.dangerRow} key={value}>
-              {dangerConfirm === value ? (
-                <>
-                  <Typography as="span" size="sm">
-                    {`Delete all ${counts[value]} ${CATEGORY_LABEL[value].toLowerCase()}? This is permanent.`}
-                  </Typography>
-                  <div className={styles.confirmActions}>
-                    <Button size="sm" variant="ghost" onClick={() => setDangerConfirm(null)}>Cancel</Button>
-                    <Button size="sm" variant="danger" onClick={() => deleteAll(value)}>Delete all</Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className={styles.dangerLabel}>
-                    <Typography as="span" size="sm" weight="semibold">{CATEGORY_LABEL[value]}</Typography>
-                    <Typography as="span" size="xs" color="muted">
-                      {`${counts[value]} record${counts[value] === 1 ? '' : 's'}`}
-                    </Typography>
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={counts[value] === 0}
-                    onClick={() => setDangerConfirm(value)}
-                  >
-                    Delete all
-                  </Button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+        {allRows.length > 0 ? (
+          <div className={styles.dataFooter}>
+            <Typography as="span" size="xs" color="muted">
+              {`Showing ${rangeStart}–${rangeEnd} of ${allRows.length}`}
+            </Typography>
+            {pageCount > 1 ? (
+              <div className={styles.pager}>
+                <button
+                  aria-label="Previous page"
+                  className={styles.pagerButton}
+                  disabled={safePage === 0}
+                  onClick={() => setPage((value) => Math.max(0, value - 1))}
+                  type="button"
+                >
+                  <CaretLeft size={14} aria-hidden="true" />
+                </button>
+                <Typography
+                  as="span"
+                  size="xs"
+                  color="muted"
+                >{`${safePage + 1} / ${pageCount}`}</Typography>
+                <button
+                  aria-label="Next page"
+                  className={styles.pagerButton}
+                  disabled={safePage >= pageCount - 1}
+                  onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
+                  type="button"
+                >
+                  <CaretRight size={14} aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }
 
 function WorkspaceGeneralSection() {
+  const [invitePermission, setInvitePermission] = useState('workspace-and-team-admins');
+  const [grantTeamAdminPermission, setGrantTeamAdminPermission] = useState('workspace-admins');
+  const [sourceRequestPermission, setSourceRequestPermission] = useState('team-admins');
+  const [unmappedSourceUnits, setUnmappedSourceUnits] = useState('admin-review');
+  const [crossTeamMoves, setCrossTeamMoves] = useState('destination-team-admin');
+  const [awaitingApprovalItems, setAwaitingApprovalItems] = useState('backlog-attention');
+
   return (
-    <div className={styles.stack}>
-      <div className={styles.formPanel}>
-        <div className={styles.formGridTwo}>
-          <div className={styles.fieldGroup}>
-            <Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Name</Typography>
-            <TextInput defaultValue="Acme" />
+    <div className={styles.adminSurface}>
+      <section className={styles.adminBlock}>
+        <div className={styles.workspaceIdentityGrid}>
+          <button
+            className={styles.workspaceLogoButton}
+            type="button"
+            aria-label="Change workspace logo"
+          >
+            <span className={styles.workspaceLogoPreview} aria-hidden="true">
+              <span className={styles.workspaceLogoInitial}>A</span>
+              <Typography
+                as="span"
+                size="xs"
+                weight="semibold"
+                className={styles.workspaceLogoOverlay}
+              >
+                Change
+              </Typography>
+            </span>
+          </button>
+          <div className={styles.identityFields}>
+            <div className={styles.fieldGroup}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                Workspace name
+              </Typography>
+              <TextInput defaultValue="Acme" />
+            </div>
+            <div className={styles.fieldGroup}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                Workspace address
+              </Typography>
+              <TextInput defaultValue="acme" trailing=".stridetime.app" />
+            </div>
           </div>
-          <Select
-            label="Default role"
-            value="member"
-            onChange={() => undefined}
-            options={[{ value: 'member', label: 'Member' }, { value: 'teamAdmin', label: 'Team admin' }]}
-          />
         </div>
-      </div>
-      <div className={styles.formPanel}>
-        <div className={styles.panelHeader}>
-          <Typography as="h3" size="lg" weight="semibold">Aggregate insights only</Typography>
+      </section>
+
+      <section className={styles.adminBlock}>
+        <div className={styles.adminBlockHeader}>
+          <Typography as="h3" size="base" weight="semibold">
+            Invites
+          </Typography>
         </div>
-        <GuaranteeNote body="Workspace and team reports only ever show aggregate patterns. Individual session detail is never exposed to admins or teammates. Stride enforces this; it is not a setting that can be turned off." />
-      </div>
-      <SaveRow />
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Who can invite"
+              hideTriggerLabel
+              infoText="Controls who can invite new people into this workspace. Team admins can only invite into teams they manage."
+              value={invitePermission}
+              onChange={setInvitePermission}
+              options={[
+                { value: 'workspace-admins', label: 'Workspace admins only' },
+                {
+                  value: 'workspace-and-team-admins',
+                  label: 'Workspace and team admins',
+                },
+                { value: 'all-members', label: 'All members' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Who can grant Team admin"
+              hideTriggerLabel
+              infoText="Controls who can promote a member to Team admin for a specific team. Workspace admins can always change access."
+              value={grantTeamAdminPermission}
+              onChange={setGrantTeamAdminPermission}
+              options={[
+                { value: 'workspace-admins', label: 'Workspace admins only' },
+                {
+                  value: 'workspace-and-team-admins',
+                  label: 'Workspace and team admins',
+                },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.adminBlock}>
+        <div className={styles.adminBlockHeader}>
+          <Typography as="h3" size="base" weight="semibold">
+            Source requests
+          </Typography>
+        </div>
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Who can request connections"
+              hideTriggerLabel
+              infoText="Controls who can ask to connect Jira, Linear, or GitHub sources to the workspace pool."
+              value={sourceRequestPermission}
+              onChange={setSourceRequestPermission}
+              options={[
+                { value: 'workspace-admins', label: 'Workspace admins only' },
+                { value: 'team-admins', label: 'Team admins' },
+                { value: 'members', label: 'Any member' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Unmapped source units"
+              hideTriggerLabel
+              infoText="Where a source board, team, or repo goes when it is connected but not mapped to a Stride team yet."
+              value={unmappedSourceUnits}
+              onChange={setUnmappedSourceUnits}
+              options={[
+                { value: 'admin-review', label: 'Send to admin review' },
+                { value: 'inbox', label: 'Show in Inbox' },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.adminBlock}>
+        <div className={styles.adminBlockHeader}>
+          <Typography as="h3" size="base" weight="semibold">
+            Review rules
+          </Typography>
+        </div>
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Cross-team moves"
+              hideTriggerLabel
+              infoText="Who reviews a source issue when it moves from one Stride team to another."
+              value={crossTeamMoves}
+              onChange={setCrossTeamMoves}
+              options={[
+                {
+                  value: 'destination-team-admin',
+                  label: 'Destination team admin',
+                },
+                { value: 'workspace-admin', label: 'Workspace admin' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Awaiting approval items"
+              hideTriggerLabel
+              infoText="Where Stride surfaces source changes that need an admin decision before they enter the team's work queue."
+              value={awaitingApprovalItems}
+              onChange={setAwaitingApprovalItems}
+              options={[
+                {
+                  value: 'backlog-attention',
+                  label: 'Show in Backlog attention',
+                },
+                { value: 'inbox', label: 'Show in Inbox' },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
 
+type MemberRecord = {
+  name: string;
+  email: string;
+  detail: string;
+};
+
+type InviteModalState = {
+  scope: 'workspace' | 'team';
+  mode: 'email' | 'existing';
+  initialEmail?: string;
+};
+
+const TEAM_OPTIONS = [
+  { value: 'platform', label: 'Platform' },
+  { value: 'app', label: 'App' },
+  { value: 'infra', label: 'Infrastructure' },
+];
+
 function WorkspaceMembersSection() {
+  const [selectedMember, setSelectedMember] = useState<MemberRecord | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteModal, setInviteModal] = useState<InviteModalState | null>(null);
+  const members: MemberRecord[] = [
+    { name: 'Jaren Lee', email: 'jaren@acme.test', detail: 'Workspace admin' },
+    { name: 'Morgan Chen', email: 'morgan@acme.test', detail: 'Team admin · Platform' },
+    { name: 'Sam Patel', email: 'sam@acme.test', detail: 'Member · App' },
+    { name: 'Nora Kim', email: 'nora@acme.test', detail: 'Member · Infrastructure' },
+  ];
+
   return (
-    <div className={styles.stack}>
-      <div className={styles.compactToolbar}>
-        <TextInput placeholder="teammate@company.com" />
-        <Button variant="primary">Invite</Button>
+    <div className={styles.plainStack}>
+      <div className={styles.membersToolbar}>
+        <TextInput
+          placeholder="teammate@company.com"
+          value={inviteEmail}
+          onChange={(event) => setInviteEmail(event.target.value)}
+        />
+        <Button
+          variant="primary"
+          onClick={() =>
+            setInviteModal({ scope: 'workspace', mode: 'email', initialEmail: inviteEmail })
+          }
+        >
+          Invite
+        </Button>
       </div>
-      <div className={styles.compactList}>
-        <MemberRow name="Jaren Lee" email="jaren@acme.test" detail="Workspace admin" />
-        <MemberRow name="Morgan Chen" email="morgan@acme.test" detail="Team admin · Platform" />
-        <MemberRow name="Sam Patel" email="sam@acme.test" detail="Member · App" />
-        <MemberRow name="Nora Kim" email="nora@acme.test" detail="Member · Infrastructure" />
+      <div className={styles.memberListPlain}>
+        {members.map((member) => (
+          <MemberRow key={member.email} member={member} onOpen={() => setSelectedMember(member)} />
+        ))}
       </div>
+      {selectedMember ? (
+        <MemberAccessModal
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+          scope="workspace"
+        />
+      ) : null}
+      {inviteModal ? (
+        <InviteMemberModal state={inviteModal} onClose={() => setInviteModal(null)} />
+      ) : null}
     </div>
   );
 }
 
 function TeamMembersSection() {
+  const [selectedMember, setSelectedMember] = useState<MemberRecord | null>(null);
+  const [inviteModal, setInviteModal] = useState<InviteModalState | null>(null);
+  const members: MemberRecord[] = [
+    { name: 'Jaren Lee', email: 'jaren@acme.test', detail: 'Team admin' },
+    { name: 'Morgan Chen', email: 'morgan@acme.test', detail: 'Team admin' },
+    { name: 'Priya Shah', email: 'priya@acme.test', detail: 'Member' },
+  ];
+
   return (
-    <div className={styles.stack}>
-      <div className={styles.sectionToolbar}>
-        <div>
-          <Typography as="h3" size="lg" weight="semibold">Platform members</Typography>
-          <Typography as="p" size="sm" color="muted">3 members</Typography>
-        </div>
+    <div className={styles.plainStack}>
+      <div className={styles.membersToolbar}>
+        <TextInput placeholder="Search Platform members" />
         <Popover
           side="bottom"
           align="end"
@@ -1156,122 +1676,792 @@ function TeamMembersSection() {
           triggerClassName={styles.addMemberTrigger}
           popupClassName={styles.inviteMenu}
         >
-          <button className={styles.inviteMenuItem} type="button">
-            <Typography as="span" size="sm" weight="semibold">Add from workspace</Typography>
-            <Typography as="span" size="xs" color="muted">Choose someone already in Acme.</Typography>
+          <button
+            className={styles.inviteMenuItem}
+            onClick={() => setInviteModal({ scope: 'team', mode: 'existing' })}
+            type="button"
+          >
+            <Typography as="span" size="sm" weight="semibold">
+              Add from workspace
+            </Typography>
           </button>
-          <button className={styles.inviteMenuItem} type="button">
-            <Typography as="span" size="sm" weight="semibold">Invite by email</Typography>
-            <Typography as="span" size="xs" color="muted">Invite someone new to Acme and Platform.</Typography>
+          <button
+            className={styles.inviteMenuItem}
+            onClick={() => setInviteModal({ scope: 'team', mode: 'email' })}
+            type="button"
+          >
+            <Typography as="span" size="sm" weight="semibold">
+              Invite by email
+            </Typography>
           </button>
         </Popover>
       </div>
-      <div className={styles.compactList}>
-        <MemberRow name="Jaren Lee" email="jaren@acme.test" detail="Team admin" />
-        <MemberRow name="Morgan Chen" email="morgan@acme.test" detail="Team admin" />
-        <MemberRow name="Priya Shah" email="priya@acme.test" detail="Member" />
+      <div className={styles.memberListPlain}>
+        {members.map((member) => (
+          <MemberRow key={member.email} member={member} onOpen={() => setSelectedMember(member)} />
+        ))}
       </div>
+      {selectedMember ? (
+        <MemberAccessModal
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+          scope="team"
+        />
+      ) : null}
+      {inviteModal ? (
+        <InviteMemberModal state={inviteModal} onClose={() => setInviteModal(null)} />
+      ) : null}
     </div>
   );
 }
+
+type WorkspaceCalendar = {
+  id: string;
+  name: string;
+  meta: string;
+  color: string;
+  on: boolean;
+};
+
+const initialCalendars: WorkspaceCalendar[] = [
+  {
+    id: 'primary',
+    name: 'alex@acme.test',
+    meta: 'Primary',
+    color: 'accent',
+    on: true,
+  },
+  {
+    id: 'platform',
+    name: 'Platform Team',
+    meta: 'Shared',
+    color: 'violet',
+    on: true,
+  },
+  {
+    id: 'personal',
+    name: 'Personal',
+    meta: 'Private',
+    color: 'success',
+    on: false,
+  },
+  {
+    id: 'holidays',
+    name: 'Holidays in United States',
+    meta: 'Read-only',
+    color: 'warning',
+    on: false,
+  },
+];
 
 function CalendarSection() {
-  const [calendar, setCalendar] = useState('work');
+  const [connected, setConnected] = useState(true);
+  const [calendars, setCalendars] = useState(initialCalendars);
+  const syncedCount = calendars.filter((calendar) => calendar.on).length;
+
+  const toggleCalendar = (id: string) => {
+    setCalendars((rows) => rows.map((row) => (row.id === id ? { ...row, on: !row.on } : row)));
+  };
 
   return (
-    <div className={styles.stack}>
-      <div className={styles.formPanel}>
-        <div className={styles.formGridTwo}>
-          <Select
-            label="Calendar"
-            value={calendar}
-            onChange={setCalendar}
-            options={[{ value: 'work', label: 'Work Calendar' }, { value: 'personal', label: 'Personal Calendar' }, { value: 'none', label: 'Do not sync' }]}
-          />
-          <ToggleRow title="Use busy events" detail="Busy events reduce available capacity." defaultOn />
+    <div className={styles.plainStack}>
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Account
+          </Typography>
         </div>
-      </div>
-      <div className={styles.formPanel}>
-        <ToggleRow title="Meeting prompts" detail="Show tray prompt before meetings." defaultOn />
-        <ToggleRow title="Show free events" detail="Keep free events visible on Schedule." />
-      </div>
-      <SaveRow />
+        {connected ? (
+          <div className={styles.calendarAccountRow}>
+            <span className={styles.calendarAccountIcon} aria-hidden="true">
+              <CalendarDots size={18} weight="bold" />
+            </span>
+            <span className={styles.memberIdentity}>
+              <Typography as="span" size="sm" weight="semibold">
+                Google Calendar
+              </Typography>
+              <Typography as="span" size="xs" color="muted">
+                alex@acme.test
+              </Typography>
+            </span>
+            <Badge variant="success">Connected</Badge>
+            <Button variant="ghost" size="sm" onClick={() => setConnected(false)}>
+              Disconnect
+            </Button>
+          </div>
+        ) : (
+          <div className={styles.calendarConnect}>
+            <Button
+              variant="primary"
+              icon={<Plus size={14} weight="bold" />}
+              onClick={() => setConnected(true)}
+            >
+              Connect a calendar
+            </Button>
+          </div>
+        )}
+      </section>
+
+      {connected ? (
+        <section className={styles.plainSection}>
+          <div className={styles.panelHeader}>
+            <Typography as="h3" size="lg" weight="semibold">
+              Calendars on Acme
+            </Typography>
+          </div>
+          <div className={styles.toggleList}>
+            {calendars.map((calendar) => (
+              <button
+                className={styles.toggleRow}
+                key={calendar.id}
+                onClick={() => toggleCalendar(calendar.id)}
+                type="button"
+              >
+                <span className={styles.calendarRowMain}>
+                  <span
+                    className={`${styles.calendarDot} ${styles[`color${calendar.color}`]}`}
+                    aria-hidden="true"
+                  />
+                  <span className={styles.calendarRowText}>
+                    <Typography as="span" size="sm" weight="semibold">
+                      {calendar.name}
+                    </Typography>
+                    <Typography as="span" size="xs" color="muted">
+                      {calendar.meta}
+                    </Typography>
+                  </span>
+                </span>
+                <span
+                  className={calendar.on ? `${styles.switch} ${styles.switchOn}` : styles.switch}
+                  aria-hidden="true"
+                >
+                  <span />
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {connected && syncedCount > 0 ? (
+        <section className={styles.plainSection}>
+          <div className={styles.panelHeader}>
+            <Typography as="h3" size="lg" weight="semibold">
+              On the Schedule
+            </Typography>
+          </div>
+          <div className={styles.toggleList}>
+            <ToggleRow
+              title="Busy events reduce capacity"
+              detail="Busy meetings count against open time."
+              defaultOn
+            />
+            <ToggleRow title="Show free events" detail="Show free events on the Schedule." />
+            <ToggleRow
+              title="Hide event titles"
+              detail="Show synced events as “Busy” instead of their title."
+            />
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
 
+type SourceAccount = {
+  source: 'Jira' | 'Linear' | 'GitHub';
+  name: string;
+  logo: LogoValue;
+  status: string;
+  statusVariant: 'neutral' | 'success';
+  access: string;
+  mapped: string;
+  action: string;
+  owner: string;
+  lastSynced: string;
+};
+
+type SourceUnit = {
+  source: 'Jira' | 'Linear';
+  unit: string;
+  type: string;
+  connection: string;
+  strideTeam: string | null;
+};
+
+type SourceConnectionModalState =
+  | { kind: 'account'; account: SourceAccount }
+  | { kind: 'mapping'; unit: SourceUnit };
+
 function WorkspaceConnectionsSection() {
+  const [modal, setModal] = useState<SourceConnectionModalState | null>(null);
+
+  const accounts: SourceAccount[] = [
+    {
+      source: 'Jira',
+      name: 'Acme Jira',
+      logo: 'J',
+      status: 'Connected',
+      statusVariant: 'success',
+      access: '5 boards',
+      mapped: '4 mapped',
+      action: 'Manage',
+      owner: 'Connected by Maya Chen',
+      lastSynced: '11 minutes ago',
+    },
+    {
+      source: 'Linear',
+      name: 'Linear Engineering',
+      logo: 'L',
+      status: 'Connected',
+      statusVariant: 'success',
+      access: '4 teams',
+      mapped: '2 mapped',
+      action: 'Manage',
+      owner: 'Connected by Luis Romero',
+      lastSynced: '8 minutes ago',
+    },
+    {
+      source: 'GitHub',
+      name: 'Acme GitHub',
+      logo: <GithubLogo size={22} weight="fill" />,
+      status: 'Needs install',
+      statusVariant: 'neutral',
+      access: 'Repository events and checks',
+      mapped: 'Members link identity in onboarding',
+      action: 'Set up',
+      owner: 'Not connected',
+      lastSynced: 'Never',
+    },
+  ];
+
+  const sourceUnits: SourceUnit[] = [
+    {
+      source: 'Jira',
+      unit: 'Core Platform',
+      type: 'Board',
+      connection: 'Acme Jira',
+      strideTeam: 'Platform',
+    },
+    {
+      source: 'Jira',
+      unit: 'Mobile App',
+      type: 'Board',
+      connection: 'Acme Jira',
+      strideTeam: null,
+    },
+    {
+      source: 'Linear',
+      unit: 'Product',
+      type: 'Team',
+      connection: 'Linear Engineering',
+      strideTeam: 'App',
+    },
+    {
+      source: 'Linear',
+      unit: 'Activation',
+      type: 'Team',
+      connection: 'Linear Engineering',
+      strideTeam: null,
+    },
+  ];
+
   return (
-    <div className={styles.stack}>
-      <div className={styles.integrationGrid}>
-        <IntegrationCard name="Acme Jira" detail="4 boards mapped · 1 unmapped" status="Connected" logo="J" />
-        <IntegrationCard name="Linear Engineering" detail="2 teams mapped · 2 unmapped" status="Available" logo="L" />
-        <IntegrationCard name="GitHub Org" detail="No repositories mapped" status="Available" logo={<GithubLogo size={22} weight="fill" />} />
+    <div className={styles.plainStack}>
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Connected accounts
+          </Typography>
+        </div>
+        <div className={styles.sourceConnectionList}>
+          <div className={styles.sourceAccountHeader} aria-hidden="true">
+            <span>Account</span>
+            <span>Access</span>
+            <span>Status</span>
+            <span />
+          </div>
+          {accounts.map((account) => (
+            <SourceConnectionAccountRow
+              account={account}
+              key={account.source}
+              onOpen={() => setModal({ kind: 'account', account })}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Available source teams
+          </Typography>
+        </div>
+        <table className={styles.sourceUnitTable}>
+          <thead>
+            <tr>
+              <th scope="col">Source team</th>
+              <th scope="col">Stride team</th>
+              <th scope="col">Last synced</th>
+              <th scope="col">
+                <span className={styles.visuallyHidden}>Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sourceUnits.map((unit) => (
+              <SourceConnectionUnitRow
+                key={`${unit.source}-${unit.unit}`}
+                onOpen={() => setModal({ kind: 'mapping', unit })}
+                unit={unit}
+              />
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {modal ? <SourceConnectionModal state={modal} onClose={() => setModal(null)} /> : null}
+    </div>
+  );
+}
+
+type SourceConnectionAccountRowProps = {
+  account: SourceAccount;
+  onOpen: () => void;
+};
+
+function SourceConnectionAccountRow({ account, onOpen }: SourceConnectionAccountRowProps) {
+  return (
+    <div className={styles.sourceConnectionRow}>
+      <div className={styles.sourceRowPrimary}>
+        <span className={styles.sourceMark}>{account.logo}</span>
+        <span>
+          <Typography as="span" size="sm" weight="semibold">
+            {account.name}
+          </Typography>
+          <Typography as="span" size="xs" color="muted">
+            {account.source}
+          </Typography>
+        </span>
       </div>
-      <div className={styles.actionRow}><Button variant="primary">Add source connection</Button></div>
+      <div className={styles.sourceConnectionMeta}>
+        <Typography as="span" size="sm">
+          {account.access}
+        </Typography>
+        <Typography as="span" size="xs" color="muted">
+          {account.mapped}
+        </Typography>
+      </div>
+      <Badge variant={account.statusVariant}>{account.status}</Badge>
+      <button className={styles.sourceRowAction} onClick={onOpen} type="button">
+        {account.action}
+      </button>
+    </div>
+  );
+}
+
+type SourceConnectionUnitRowProps = {
+  unit: SourceUnit;
+  onOpen: () => void;
+};
+
+function SourceConnectionUnitRow({ unit, onOpen }: SourceConnectionUnitRowProps) {
+  return (
+    <tr>
+      <td>
+        <div className={styles.sourceUnitName}>
+          <Typography as="span" size="sm" weight="semibold">
+            {unit.unit}
+          </Typography>
+          <Typography as="span" size="xs" color="muted">
+            {unit.source} {unit.type.toLowerCase()}
+          </Typography>
+        </div>
+      </td>
+      <td>
+        {unit.strideTeam ? (
+          <Typography as="span" size="sm" weight="semibold">
+            {unit.strideTeam}
+          </Typography>
+        ) : (
+          <Typography as="span" size="sm" color="muted">
+            Not mapped
+          </Typography>
+        )}
+      </td>
+      <td>
+        <Typography as="span" size="sm" color="muted">
+          {unit.strideTeam ? '11m ago' : 'Never'}
+        </Typography>
+      </td>
+      <td>
+        <button className={styles.sourceRowAction} onClick={onOpen} type="button">
+          {unit.strideTeam ? 'Configure' : 'Map'}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+type SourceConnectionModalProps = {
+  state: SourceConnectionModalState;
+  onClose: () => void;
+};
+
+function SourceConnectionModal({ state, onClose }: SourceConnectionModalProps) {
+  const isAccount = state.kind === 'account';
+  const [selectedTeam, setSelectedTeam] = useState(
+    state.kind === 'mapping' ? (state.unit.strideTeam ?? 'unmapped') : 'unmapped'
+  );
+  const [importScope, setImportScope] = useState('open');
+  const title = isAccount
+    ? state.account.source === 'GitHub'
+      ? 'Set up GitHub'
+      : `Manage ${state.account.name}`
+    : `${state.unit.unit} sync`;
+
+  return (
+    <div className={styles.sourceModalBackdrop} role="presentation" onClick={onClose}>
+      <section
+        aria-label={title}
+        aria-modal="true"
+        className={styles.sourceModal}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <div className={styles.sourceModalHeader}>
+          <div>
+            <Typography as="h3" size="lg" weight="semibold">
+              {title}
+            </Typography>
+          </div>
+          <button className={styles.sourceModalClose} onClick={onClose} type="button">
+            <X size={15} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+
+        {isAccount ? (
+          <div className={styles.sourceModalBody}>
+            {state.account.source === 'GitHub' ? (
+              <>
+                <div className={styles.sourceModalSummary}>
+                  <span className={styles.sourceMark}>{state.account.logo}</span>
+                  <div>
+                    <Typography as="p" size="base" weight="semibold">
+                      GitHub App installation
+                    </Typography>
+                    <Typography as="p" size="sm" color="muted">
+                      Install the workspace app before repositories can be mapped to Stride teams.
+                    </Typography>
+                  </div>
+                  <Badge variant="neutral">Not installed</Badge>
+                </div>
+                <div className={styles.sourceSetupCard}>
+                  <Typography as="p" size="sm" weight="semibold">
+                    What Stride needs
+                  </Typography>
+                  <Typography as="p" size="sm" color="muted">
+                    Repository metadata, issue links, pull request activity, and check results.
+                    Members connect their own GitHub identity during onboarding.
+                  </Typography>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.sourceModalSummary}>
+                  <span className={styles.sourceMark}>{state.account.logo}</span>
+                  <div>
+                    <Typography as="p" size="base" weight="semibold">
+                      {state.account.name}
+                    </Typography>
+                    <Typography as="p" size="sm" color="muted">
+                      {state.account.owner}
+                    </Typography>
+                  </div>
+                  <Badge variant={state.account.statusVariant}>{state.account.status}</Badge>
+                </div>
+                <div className={styles.sourceConnectionFacts}>
+                  <div className={styles.sourceConnectionFact}>
+                    <Typography as="span" size="xs" weight="semibold" color="muted">
+                      Available
+                    </Typography>
+                    <Typography as="span" size="sm" weight="semibold">
+                      {state.account.access}
+                    </Typography>
+                    <Typography as="span" size="xs" color="muted">
+                      {state.account.mapped}
+                    </Typography>
+                  </div>
+                  <div className={styles.sourceConnectionFact}>
+                    <div className={styles.sourceConnectionFactHeader}>
+                      <Typography as="span" size="xs" weight="semibold" color="muted">
+                        Sync health
+                      </Typography>
+                      <button className={styles.sourceInlineAction} type="button">
+                        Sync now
+                      </button>
+                    </div>
+                    <Typography as="span" size="sm" weight="semibold">
+                      Healthy
+                    </Typography>
+                    <Typography as="span" size="xs" color="muted">
+                      Last synced {state.account.lastSynced}
+                    </Typography>
+                  </div>
+                </div>
+                <div className={styles.sourceDangerZone}>
+                  <div>
+                    <Typography as="p" size="sm" weight="semibold">
+                      Disconnect account
+                    </Typography>
+                    <Typography as="p" size="sm" color="muted">
+                      Stop future sync for this account. Existing Stride specs and sessions stay in
+                      place until you delete them from your data.
+                    </Typography>
+                  </div>
+                  <Button variant="danger" size="sm">
+                    Disconnect
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className={styles.sourceModalBody}>
+            <div className={styles.sourceModalSummary}>
+              <div>
+                <Typography as="p" size="base" weight="semibold">
+                  {state.unit.unit}
+                </Typography>
+                <Typography as="p" size="sm" color="muted">
+                  {state.unit.source} {state.unit.type.toLowerCase()}
+                </Typography>
+              </div>
+              <Badge variant={state.unit.strideTeam ? 'success' : 'neutral'}>
+                {state.unit.strideTeam ? 'Mapped' : 'Not mapped'}
+              </Badge>
+            </div>
+
+            <div className={styles.sourceSettingsGrid}>
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Stride team
+                </Typography>
+                <Select
+                  label="Stride team"
+                  hideTriggerLabel
+                  value={selectedTeam}
+                  onChange={setSelectedTeam}
+                  options={[
+                    { value: 'unmapped', label: 'Unmapped' },
+                    { value: 'Platform', label: 'Platform' },
+                    { value: 'App', label: 'App' },
+                    { value: 'Infrastructure', label: 'Infrastructure' },
+                  ]}
+                />
+              </div>
+
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Issue import
+                </Typography>
+                <Select
+                  label="Issue import"
+                  hideTriggerLabel
+                  value={importScope}
+                  onChange={setImportScope}
+                  options={[
+                    { value: 'open', label: 'Open issues' },
+                    { value: 'assigned', label: 'Assigned issues only' },
+                    { value: 'all', label: 'All issues' },
+                  ]}
+                />
+              </div>
+
+              <div className={styles.sourceMappingList}>
+                <div>
+                  <span>
+                    <Typography as="span" size="sm" weight="semibold">
+                      Status mapping
+                    </Typography>
+                    <Typography as="span" size="xs" color="muted">
+                      4 source statuses mapped
+                    </Typography>
+                  </span>
+                  <Button variant="secondary" size="sm">
+                    Review
+                  </Button>
+                </div>
+                <div>
+                  <span>
+                    <Typography as="span" size="sm" weight="semibold">
+                      Priority mapping
+                    </Typography>
+                    <Typography as="span" size="xs" color="muted">
+                      Uses source priority names
+                    </Typography>
+                  </span>
+                  <Button variant="secondary" size="sm">
+                    Review
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className={styles.sourceModalFooter}>
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            className={styles.sourceModalCancelButton}
+          >
+            {isAccount ? 'Close' : 'Cancel'}
+          </Button>
+          {isAccount && state.account.source !== 'GitHub' ? null : (
+            <Button variant="primary" onClick={onClose}>
+              {isAccount
+                ? 'Install GitHub App'
+                : state.unit.strideTeam
+                  ? 'Save changes'
+                  : 'Start sync'}
+            </Button>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
 
 function TeamSourceSection() {
   const [source, setSource] = useState<'jira' | 'linear' | 'github'>('jira');
-  const [entity, setEntity] = useState('platform');
+  const [entity, setEntity] = useState('jira-platform');
   const [cycleLabel, setCycleLabel] = useState('Sprint');
-  const selectedEntity = entity === 'mobile'
-    ? { name: 'Mobile', type: 'Kanban board', cadence: 'Continuous flow' }
-    : { name: 'Platform', type: 'Scrum board', cadence: '2 week sprint' };
+  const sourceUnitLabel = source === 'jira' ? 'Jira board' : source === 'linear' ? 'Linear team' : 'GitHub repository';
+  const sourceUnitInfo =
+    source === 'jira'
+      ? 'Choose one board from the workspace Jira account to map to this Stride team.'
+      : source === 'linear'
+        ? 'Choose one team from the workspace Linear account to map to this Stride team.'
+        : 'Choose one repository from the workspace GitHub organization to map to this Stride team. Multiple repositories per team is still an open product question.';
+  const sourceUnitOptions =
+    source === 'jira'
+      ? [
+          { value: 'jira-platform', label: 'Core Platform board' },
+          { value: 'jira-mobile', label: 'Mobile App board' },
+          { value: 'jira-growth-claimed', label: 'Growth Platform board (mapped)' },
+        ]
+      : source === 'linear'
+        ? [
+            { value: 'linear-product', label: 'Product team' },
+            { value: 'linear-design', label: 'Design team' },
+          ]
+        : [
+            { value: 'github-web', label: 'stride-web' },
+            { value: 'github-api', label: 'stride-api' },
+            { value: 'github-desktop-claimed', label: 'stride-desktop (mapped)' },
+          ];
+  const selectedEntity =
+    source === 'jira'
+      ? entity === 'jira-mobile'
+        ? { type: 'Kanban board', cadence: 'Continuous flow' }
+        : { type: 'Scrum board', cadence: '2 week sprint' }
+      : source === 'linear'
+        ? { type: 'Linear team', cadence: 'Cycle' }
+        : { type: 'Repository', cadence: 'No cadence' };
+
+  const updateSource = (value: string) => {
+    const nextSource = value as 'jira' | 'linear' | 'github';
+
+    setSource(nextSource);
+    setEntity(
+      nextSource === 'jira'
+        ? 'jira-platform'
+        : nextSource === 'linear'
+          ? 'linear-product'
+          : 'github-web'
+    );
+    setCycleLabel(nextSource === 'jira' ? 'Sprint' : nextSource === 'linear' ? 'Cycle' : 'None');
+  };
+
+  const updateEntity = (value: string) => {
+    if (value.includes('claimed')) return;
+
+    setEntity(value);
+    setCycleLabel(value.includes('mobile') || value.includes('linear') ? 'Cycle' : 'Sprint');
+  };
 
   return (
-    <div className={styles.stack}>
-      <div className={styles.mappingHeader}>
-        <Typography as="h3" size="lg" weight="semibold">Source mapping</Typography>
-      </div>
-
-      <div className={styles.formPanel}>
-        <div className={styles.mappingControlsBetter}>
-          <PickerCard
-            label="Source"
-            value={source === 'jira' ? 'Stride' : source === 'linear' ? 'Product' : 'StrideTime'}
-            mark={source === 'github' ? <GithubLogo size={18} weight="fill" /> : source === 'linear' ? 'L' : 'J'}
-            options={[
-              { value: 'jira', label: 'Stride', meta: 'Jira · 2 teams available', mark: 'J' },
-              { value: 'linear', label: 'Product', meta: 'Linear · 1 team available', mark: 'L' },
-              { value: 'github', label: 'StrideTime', meta: 'GitHub · all teams claimed', mark: <GithubLogo size={16} weight="fill" /> },
-              { value: 'add-source', label: 'Add source', meta: 'Connect Jira, Linear, or GitHub', mark: '+' },
-            ]}
-            onSelect={value => {
-              if (value === 'add-source') return;
-              setSource(value as 'jira' | 'linear' | 'github');
-            }}
-          />
-          <PickerCard
-            label="Team"
-            value={entity === 'mobile' ? 'Mobile App' : entity === 'app-claimed' ? 'Growth Platform' : 'Core Platform'}
-            valueChip={entity === 'mobile' ? 'Kanban' : entity === 'app-claimed' ? 'Claimed' : 'Scrum'}
-            mark="↳"
-            options={[
-              { value: 'platform', label: 'Core Platform', meta: 'Scrum · available' },
-              { value: 'mobile', label: 'Mobile App', meta: 'Kanban · available' },
-              { value: 'app-claimed', label: 'Growth Platform', meta: 'Claimed · Growth' },
-              { value: 'infra-claimed', label: 'Infrastructure', meta: 'Claimed · Infrastructure' },
-              { value: 'growth', label: 'Activation', meta: 'Kanban · available' },
-            ]}
-            onSelect={value => {
-              if (value.includes('claimed')) return;
-              setEntity(value);
-              setCycleLabel(value === 'mobile' ? 'Cycle' : 'Sprint');
-            }}
-          />
+    <div className={styles.adminSurface}>
+      <section className={styles.adminBlock}>
+        <div className={styles.adminBlockHeader}>
+          <Typography as="h3" size="base" weight="semibold">
+            Source unit
+          </Typography>
         </div>
-      </div>
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Source type"
+              hideTriggerLabel
+              infoText="Each workspace can connect one Jira account, one Linear account, and one GitHub organization. This chooses which connected source this team maps from."
+              value={source}
+              onChange={updateSource}
+              options={[
+                { value: 'jira', label: 'Jira' },
+                { value: 'linear', label: 'Linear' },
+                { value: 'github', label: 'GitHub' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label={sourceUnitLabel}
+              hideTriggerLabel
+              infoText={sourceUnitInfo}
+              value={entity}
+              onChange={updateEntity}
+              options={sourceUnitOptions}
+            />
+          </div>
+        </div>
+        <div className={styles.sourceFacts}>
+          <div className={styles.sourceFactsInfo}>
+            <Typography as="p" size="sm" weight="semibold">
+              {selectedEntity.type}
+            </Typography>
+            <Typography as="p" size="sm" color="muted">
+              Cadence from source: {selectedEntity.cadence}
+            </Typography>
+          </div>
+          {source === 'github' ? null : (
+            <Select
+              label="Call it"
+              value={cycleLabel}
+              onChange={setCycleLabel}
+              options={[
+                { value: 'Sprint', label: 'Sprint' },
+                { value: 'Cycle', label: 'Cycle' },
+                { value: 'Iteration', label: 'Iteration' },
+              ]}
+            />
+          )}
+        </div>
+      </section>
 
-      <div className={styles.sourceFacts}>
-        <Typography as="p" size="sm" weight="semibold">{selectedEntity.type}</Typography>
-        <Typography as="p" size="sm" color="muted">Cadence from source: {selectedEntity.cadence}</Typography>
-        <Select label="Call it" value={cycleLabel} onChange={setCycleLabel} options={[{ value: 'Sprint', label: 'Sprint' }, { value: 'Cycle', label: 'Cycle' }, { value: 'Iteration', label: 'Iteration' }]} />
-      </div>
-
-      <div className={styles.formPanel}>
+      <section className={styles.adminBlock}>
         <MappingTable
           title="Status"
           rows={[
@@ -1281,9 +2471,9 @@ function TeamSourceSection() {
             ['Done', 'Closed'],
           ]}
         />
-      </div>
+      </section>
 
-      <div className={styles.formPanel}>
+      <section className={styles.adminBlock}>
         <MappingTable
           title="Priority"
           rows={[
@@ -1293,9 +2483,9 @@ function TeamSourceSection() {
             ['Low', 'Low'],
           ]}
         />
-      </div>
+      </section>
 
-      <div className={styles.formPanel}>
+      <section className={styles.adminBlock}>
         <MappingTable
           title="Difficulty"
           rows={[
@@ -1305,113 +2495,344 @@ function TeamSourceSection() {
             ['8+ points', 'Large'],
           ]}
         />
-      </div>
-
-      <SaveRow />
+      </section>
     </div>
   );
 }
 
 function TeamDefaultsSection() {
+  const [newSpecDestination, setNewSpecDestination] = useState('needs-breakdown');
+  const [triageOwner, setTriageOwner] = useState('team-admins');
+  const [missingEstimates, setMissingEstimates] = useState('ask-during-breakdown');
+  const [unassignedWork, setUnassignedWork] = useState('team-inbox');
+  const [readyRule, setReadyRule] = useState('one-action');
+  const [staleNudge, setStaleNudge] = useState('3-days');
+
   return (
-    <div className={styles.stack}>
-      <div className={styles.formPanel}>
-        <div className={styles.formGridTwo}>
-          <div className={styles.fieldGroup}><Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Default start</Typography><TextInput type="time" defaultValue="09:00" /></div>
-          <div className={styles.fieldGroup}><Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Default end</Typography><TextInput type="time" defaultValue="17:00" /></div>
+    <div className={styles.adminSurface}>
+      <section className={styles.adminBlock}>
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Typography
+              as="label"
+              size="xs"
+              weight="semibold"
+              color="muted"
+              className={styles.fieldLabel}
+            >
+              Team name
+            </Typography>
+            <TextInput defaultValue="Platform Engineering" />
+          </div>
         </div>
-      </div>
-      <SaveRow />
+      </section>
+
+      <section className={styles.adminBlock}>
+        <div className={styles.adminBlockHeader}>
+          <Typography as="h3" size="base" weight="semibold">
+            Workflow
+          </Typography>
+        </div>
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="New synced specs"
+              hideTriggerLabel
+              infoText="Where newly synced source issues land before anyone schedules them."
+              value={newSpecDestination}
+              onChange={setNewSpecDestination}
+              options={[
+                { value: 'needs-breakdown', label: 'Send to Needs breakdown' },
+                { value: 'team-inbox', label: 'Send to team inbox' },
+                { value: 'ready', label: 'Mark ready to schedule' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Triage owner"
+              hideTriggerLabel
+              infoText="Who is expected to decide whether a new spec is ready or needs breakdown."
+              value={triageOwner}
+              onChange={setTriageOwner}
+              options={[
+                { value: 'team-admins', label: 'Team admins' },
+                { value: 'source-assignee', label: 'Source assignee' },
+                { value: 'unassigned', label: 'Leave unassigned' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Missing estimates"
+              hideTriggerLabel
+              infoText="How Stride handles specs that arrive without size or time expectations."
+              value={missingEstimates}
+              onChange={setMissingEstimates}
+              options={[
+                { value: 'ask-during-breakdown', label: 'Ask during breakdown' },
+                { value: 'allow-empty', label: 'Allow empty estimates' },
+                { value: 'needs-review', label: 'Mark needs review' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Unassigned source work"
+              hideTriggerLabel
+              infoText="What to do with source issues that belong to the team but no person yet."
+              value={unassignedWork}
+              onChange={setUnassignedWork}
+              options={[
+                { value: 'team-inbox', label: 'Send to team inbox' },
+                { value: 'needs-breakdown', label: 'Send to Needs breakdown' },
+                { value: 'hide-until-assigned', label: 'Hide until assigned' },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.adminBlock}>
+        <div className={styles.adminBlockHeader}>
+          <Typography as="h3" size="base" weight="semibold">
+            Breakdown
+          </Typography>
+        </div>
+        <div className={styles.adminFieldsWide}>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Ready to schedule"
+              hideTriggerLabel
+              infoText="The rule Stride uses before moving a spec out of breakdown."
+              value={readyRule}
+              onChange={setReadyRule}
+              options={[
+                { value: 'one-action', label: 'Has at least one action' },
+                { value: 'estimate-and-action', label: 'Has estimate and action' },
+                { value: 'manual', label: 'Team admin marks ready' },
+              ]}
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <Select
+              label="Stale breakdown nudge"
+              hideTriggerLabel
+              infoText="When Stride should surface a spec that has sat in breakdown too long."
+              value={staleNudge}
+              onChange={setStaleNudge}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: '3-days', label: 'After 3 workdays' },
+                { value: '5-days', label: 'After 5 workdays' },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
 
 function AccountSection() {
   return (
-    <div className={styles.stack}>
-      <div className={styles.formPanel}>
-        <div className={styles.formGridTwo}>
-          <div className={styles.fieldGroup}><Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Name</Typography><TextInput defaultValue="Alex Johnson" /></div>
-          <div className={styles.fieldGroup}><Typography as="label" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Email</Typography><TextInput type="email" defaultValue="alex@acme.test" /></div>
+    <div className={styles.plainStack}>
+      <section className={styles.plainSection}>
+        <div className={styles.profileAvatarRow}>
+          <div className={styles.profileAvatarColumn}>
+            <div className={styles.profileAvatar} aria-hidden="true">
+              AJ
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={styles.profileAvatarEditButton}
+              icon={<PencilSimple size={14} weight="bold" />}
+            >
+              Edit
+            </Button>
+          </div>
+          <div className={styles.profileFields}>
+            <div className={styles.fieldGroup}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                First name
+              </Typography>
+              <TextInput defaultValue="Alex" />
+            </div>
+            <div className={styles.fieldGroup}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                Last name
+              </Typography>
+              <TextInput defaultValue="Johnson" />
+            </div>
+            <div className={styles.fieldGroup}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                Email
+              </Typography>
+              <TextInput type="email" defaultValue="alex@acme.test" />
+            </div>
+            <div className={styles.profilePasswordRow}>
+              <Button variant="secondary" size="sm">
+                Reset password
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className={styles.formPanel}>
-        <ToggleRow title="Trusted device" detail="This browser is remembered for sign-in." defaultOn />
-      </div>
-      <SaveRow />
+      </section>
+      <section className={styles.plainSection}>
+        <div className={styles.panelHeader}>
+          <Typography as="h3" size="lg" weight="semibold">
+            Devices signed in to your account
+          </Typography>
+        </div>
+        <div className={styles.securityList}>
+          <SecuritySessionRow current name="This Mac" detail="Safari · Denver · active now" />
+          <SecuritySessionRow name="Work laptop" detail="Chrome · last active yesterday" />
+          <SecuritySessionRow name="Desktop tray" detail="Tauri app · last active 3 days ago" />
+        </div>
+      </section>
     </div>
   );
 }
 
-type ChoicePanelProps = {
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: ReadonlyArray<readonly [string, string, string]>;
+type ThemeOptionProps = {
+  active: boolean;
+  label: string;
+  tone: 'dark' | 'light' | 'system';
+  onSelect: () => void;
 };
 
-function ChoicePanel({ title, value, onChange, options }: ChoicePanelProps) {
+function ThemeMiniUi() {
   return (
-    <div className={styles.formPanel}>
-      <div className={styles.panelHeader}>
-        <Typography as="h3" size="lg" weight="semibold">{title}</Typography>
-      </div>
-      <div className={styles.optionList}>
-        {options.map(([optionValue, label, detail]) => (
+    <span className={styles.themeMini}>
+      <span />
+      <span />
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
+function ThemeOption({ active, label, tone, onSelect }: ThemeOptionProps) {
+  return (
+    <button
+      aria-pressed={active}
+      className={active ? `${styles.themeOption} ${styles.themeOptionActive}` : styles.themeOption}
+      onClick={onSelect}
+      type="button"
+    >
+      <span className={styles.themePreview} aria-hidden="true">
+        {tone === 'system' ? (
+          <>
+            <span className={`${styles.themeFace} ${styles.themeFacedark}`}>
+              <ThemeMiniUi />
+            </span>
+            <span
+              className={`${styles.themeFace} ${styles.themeFacelight} ${styles.themeFaceSplit}`}
+            >
+              <ThemeMiniUi />
+            </span>
+          </>
+        ) : (
+          <span className={`${styles.themeFace} ${styles[`themeFace${tone}`]}`}>
+            <ThemeMiniUi />
+          </span>
+        )}
+      </span>
+      <Typography as="span" size="sm" weight="semibold">
+        {label}
+      </Typography>
+    </button>
+  );
+}
+
+type AccentSelectorProps = {
+  accent: AccentColor;
+  onChange: (accent: AccentColor) => void;
+};
+
+function AccentSelector({ accent, onChange }: AccentSelectorProps) {
+  return (
+    <div className={styles.accentGrid}>
+      {accentOptions.map((option) => {
+        const isActive = accent === option.value;
+
+        return (
           <button
-            className={value === optionValue ? `${styles.optionRow} ${styles.optionRowActive}` : styles.optionRow}
-            key={optionValue}
-            onClick={() => onChange(optionValue)}
+            aria-label={`${option.label} accent`}
+            aria-pressed={isActive}
+            className={[
+              styles.accentOption,
+              styles[`accentOption${option.value}`],
+              isActive ? styles.accentOptionActive : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            key={option.value}
+            onClick={() => onChange(option.value)}
             type="button"
           >
-            <span>
-              <Typography as="span" size="sm" weight="semibold">{label}</Typography>
-              <Typography as="span" size="xs" color="muted" className={styles.optionDetail}>{detail}</Typography>
-            </span>
-            {value === optionValue ? <Badge variant="accent">Selected</Badge> : null}
+            <span
+              className={`${styles.accentSwatch} ${styles[`accentSwatch${option.value}`]}`}
+              aria-hidden="true"
+            />
+            <Typography as="span" size="sm" weight="semibold" className={styles.accentLabel}>
+              {option.label}
+            </Typography>
+            <span className={styles.accentRadio} aria-hidden="true" />
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-type EventTypeRowProps = {
-  name: string;
-  tone: string;
+type WorkModeOptionProps = {
+  active: boolean;
+  icon: ReactNode;
+  label: string;
+  summary: string;
+  onSelect: () => void;
 };
 
-function EventTypeRow({ name, tone }: EventTypeRowProps) {
-  const dotClassName = [styles.eventDot, styles[`eventDot${tone}`]].filter(Boolean).join(' ');
-
+function WorkModeOption({ active, icon, label, summary, onSelect }: WorkModeOptionProps) {
   return (
-    <div className={styles.eventTypeRow}>
-      <span className={dotClassName} aria-hidden="true" />
-      <Typography as="p" size="sm" weight="semibold">{name}</Typography>
-      <Button variant="ghost" size="sm">Edit</Button>
-    </div>
-  );
-}
-
-type BudgetRowProps = {
-  name: string;
-  value: string;
-  unit: string;
-  tone: string;
-};
-
-function BudgetRow({ name, value, unit, tone }: BudgetRowProps) {
-  const dotClassName = [styles.eventDot, styles[`eventDot${tone}`]].filter(Boolean).join(' ');
-
-  return (
-    <div className={styles.budgetRow}>
-      <span className={dotClassName} aria-hidden="true" />
-      <Typography as="p" size="sm" weight="semibold">{name}</Typography>
-      <div className={styles.budgetValueInput}>
-        <TextInput type="number" defaultValue={value} min="0" />
-        <Typography as="span" size="sm" color="muted" weight="semibold">{unit}</Typography>
-      </div>
-    </div>
+    <button
+      className={
+        active ? `${styles.workModeCard} ${styles.workModeCardActive}` : styles.workModeCard
+      }
+      onClick={onSelect}
+      type="button"
+    >
+      <span className={styles.workModeIcon}>{icon}</span>
+      <span className={styles.workModeHeader}>
+        <Typography as="span" size="base" weight="semibold">
+          {label}
+        </Typography>
+      </span>
+      <Typography as="span" size="sm" color="muted" className={styles.workModeSummary}>
+        {summary}
+      </Typography>
+    </button>
   );
 }
 
@@ -1425,12 +2846,23 @@ function ToggleRow({ title, detail, defaultOn = false }: ToggleRowProps) {
   const [enabled, setEnabled] = useState(defaultOn);
 
   return (
-    <button className={styles.toggleRow} onClick={() => setEnabled(value => !value)} type="button">
+    <button
+      className={styles.toggleRow}
+      onClick={() => setEnabled((value) => !value)}
+      type="button"
+    >
       <span>
-        <Typography as="span" size="sm" weight="semibold">{title}</Typography>
-        <Typography as="span" size="xs" color="muted" className={styles.optionDetail}>{detail}</Typography>
+        <Typography as="span" size="sm" weight="semibold">
+          {title}
+        </Typography>
+        <Typography as="span" size="xs" color="muted" className={styles.optionDetail}>
+          {detail}
+        </Typography>
       </span>
-      <span className={enabled ? `${styles.switch} ${styles.switchOn}` : styles.switch} aria-hidden="true">
+      <span
+        className={enabled ? `${styles.switch} ${styles.switchOn}` : styles.switch}
+        aria-hidden="true"
+      >
         <span />
       </span>
     </button>
@@ -1451,15 +2883,16 @@ type IconOption = {
 
 const allIconOptions: IconOption[] = Object.values(
   Object.entries(PhosphorIcons)
-    .filter(([name, value]) => (
-      /^[A-Z]/.test(name)
-      && !['Icon', 'IconBase', 'IconContext', 'IconWeight'].includes(name)
-      && !name.endsWith('Context')
-      && !name.includes('Logo')
-      && typeof value === 'object'
-      && value !== null
-      && '$$typeof' in value
-    ))
+    .filter(
+      ([name, value]) =>
+        /^[A-Z]/.test(name) &&
+        !['Icon', 'IconBase', 'IconContext', 'IconWeight'].includes(name) &&
+        !name.endsWith('Context') &&
+        !name.includes('Logo') &&
+        typeof value === 'object' &&
+        value !== null &&
+        '$$typeof' in value
+    )
     .reduce<Record<string, IconOption>>((acc, [name, icon]) => {
       const baseName = name.replace(/Icon$/, '');
       const existing = acc[baseName];
@@ -1476,102 +2909,32 @@ function CheckFallbackIcon() {
   return <span className={styles.fallbackIcon}>✓</span>;
 }
 
-type IconPickerProps = {
-  icon: string;
-  onChange: (icon: string) => void;
-};
-
-function IconPicker({ icon, onChange }: IconPickerProps) {
-  const [query, setQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(120);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const iconOptions = useMemo(() => allIconOptions.filter(option => option.icon), []);
-  const selected = iconOptions.find(option => option.name === icon)
-    ?? iconOptions.find(option => option.name === 'CheckCircle')
-    ?? null;
-  const SelectedIcon = selected?.icon ?? CheckFallbackIcon;
-  const normalizedQuery = query.toLowerCase().trim();
-  const filteredOptions = useMemo(
-    () => iconOptions.filter(option => option.name.toLowerCase().includes(normalizedQuery)),
-    [iconOptions, normalizedQuery]
-  );
-  const visibleOptions = filteredOptions.slice(0, visibleCount);
-
-  return (
-    <Popover
-      side="right"
-      align="center"
-      sideOffset={6}
-      trigger={<SelectedIcon size={15} weight="bold" aria-label="Mapping icon" />}
-      triggerClassName={styles.iconTrigger}
-      popupClassName={styles.iconMenu}
-    >
-      <TextInput
-        placeholder="Search Phosphor icons"
-        value={query}
-        onChange={event => {
-          setQuery(event.target.value);
-          setVisibleCount(120);
-        }}
-      />
-      <div
-        className={styles.iconGrid}
-        onScroll={event => {
-          const target = event.currentTarget;
-          const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 72;
-
-          if (!nearBottom || isLoadingMore || visibleCount >= filteredOptions.length) return;
-
-          setIsLoadingMore(true);
-          window.requestAnimationFrame(() => {
-            setVisibleCount(count => Math.min(count + 96, filteredOptions.length));
-            setIsLoadingMore(false);
-          });
-        }}
-      >
-        {visibleOptions.map(option => {
-          const Icon = option.icon;
-
-          return (
-            <button
-              className={icon === option.name ? `${styles.iconOption} ${styles.iconOptionActive}` : styles.iconOption}
-              key={option.name}
-              onClick={() => onChange(option.name)}
-              title={option.name}
-              type="button"
-            >
-              <Icon size={17} weight="bold" aria-hidden />
-            </button>
-          );
-        })}
-      </div>
-    </Popover>
-  );
-}
-
-type ColorPickerProps = {
-  color: string;
-  onChange: (color: string) => void;
-};
-
 const badgeColors = ['accent', 'success', 'warning', 'danger', 'violet', 'cyan', 'slate'] as const;
 
-function ColorPicker({ color, onChange }: ColorPickerProps) {
+type BadgeColorDotProps = {
+  color: string;
+  onChange: (color: string) => void;
+  triggerClassName?: string;
+};
+
+// A single colour swatch that opens a row of colour options. Used as the leading dot inside
+// the text chip and as the corner dot on the icon badge.
+function BadgeColorDot({ color, onChange, triggerClassName }: BadgeColorDotProps) {
   return (
     <Popover
-      side="right"
-      align="center"
-      sideOffset={6}
-      trigger={(
-        <span className={styles.colorTriggerInner} aria-label="Badge color">
-          <span className={`${styles.colorDot} ${styles[`color${color}`]}`} />
-          <CaretDown size={10} weight="bold" aria-hidden="true" />
-        </span>
-      )}
-      triggerClassName={styles.colorTrigger}
-      popupClassName={styles.colorMenu}
+      side="bottom"
+      align="start"
+      sideOffset={8}
+      trigger={
+        <span
+          className={`${styles.badgeSwatchDot} ${styles[`color${color}`]}`}
+          aria-label="Badge color"
+        />
+      }
+      triggerClassName={triggerClassName}
+      popupClassName={styles.badgeColorMenu}
     >
-      {badgeColors.map(option => (
+      {badgeColors.map((option) => (
         <button
           className={`${styles.colorSwatch} ${styles[`color${option}`]} ${color === option ? styles.colorSelected : ''}`}
           aria-label={option}
@@ -1584,11 +2947,320 @@ function ColorPicker({ color, onChange }: ColorPickerProps) {
   );
 }
 
-function SaveRow() {
+type BadgeIconGlyphProps = {
+  icon: string;
+  color: string;
+  onIconChange: (icon: string) => void;
+  onColorChange: (color: string) => void;
+};
+
+// In icon mode the icon itself is the badge — a bare, coloured glyph. Clicking it opens one
+// popover holding both the colour options and the icon search.
+function BadgeIconGlyph({ icon, color, onIconChange, onColorChange }: BadgeIconGlyphProps) {
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(120);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const iconOptions = useMemo(() => allIconOptions.filter((option) => option.icon), []);
+  const selected =
+    iconOptions.find((option) => option.name === icon) ??
+    iconOptions.find((option) => option.name === 'CheckCircle') ??
+    null;
+  const SelectedIcon = selected?.icon ?? CheckFallbackIcon;
+  const normalizedQuery = query.toLowerCase().trim();
+  const filteredOptions = useMemo(
+    () => iconOptions.filter((option) => option.name.toLowerCase().includes(normalizedQuery)),
+    [iconOptions, normalizedQuery]
+  );
+  const visibleOptions = filteredOptions.slice(0, visibleCount);
+  const triggerClassName = [styles.badgeIconTrigger, styles[`editableBadge${color}`]]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={styles.actionRow}>
-      <Button variant="secondary">Cancel</Button>
-      <Button variant="primary">Save changes</Button>
+    <Popover
+      side="bottom"
+      align="start"
+      sideOffset={8}
+      trigger={<SelectedIcon size={22} weight="fill" aria-label="Badge icon and color" />}
+      triggerClassName={triggerClassName}
+      popupClassName={styles.badgeIconMenu}
+    >
+      <div className={styles.appearanceField}>
+        <Typography
+          as="span"
+          size="xs"
+          weight="semibold"
+          color="muted"
+          className={styles.fieldLabel}
+        >
+          Color
+        </Typography>
+        <div className={styles.appearanceColors}>
+          {badgeColors.map((option) => (
+            <button
+              className={`${styles.colorSwatch} ${styles[`color${option}`]} ${color === option ? styles.colorSelected : ''}`}
+              aria-label={option}
+              key={option}
+              onClick={() => onColorChange(option)}
+              type="button"
+            />
+          ))}
+        </div>
+      </div>
+      <div className={styles.appearanceField}>
+        <Typography
+          as="span"
+          size="xs"
+          weight="semibold"
+          color="muted"
+          className={styles.fieldLabel}
+        >
+          Icon
+        </Typography>
+        <TextInput
+          placeholder="Search Phosphor icons"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setVisibleCount(120);
+          }}
+        />
+        <div
+          className={styles.iconGrid}
+          onScroll={(event) => {
+            const target = event.currentTarget;
+            const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 72;
+
+            if (!nearBottom || isLoadingMore || visibleCount >= filteredOptions.length) return;
+
+            setIsLoadingMore(true);
+            window.requestAnimationFrame(() => {
+              setVisibleCount((count) => Math.min(count + 96, filteredOptions.length));
+              setIsLoadingMore(false);
+            });
+          }}
+        >
+          {visibleOptions.map((option) => {
+            const Icon = option.icon;
+
+            return (
+              <button
+                className={
+                  icon === option.name
+                    ? `${styles.iconOption} ${styles.iconOptionActive}`
+                    : styles.iconOption
+                }
+                key={option.name}
+                onClick={() => onIconChange(option.name)}
+                title={option.name}
+                type="button"
+              >
+                <Icon size={17} weight="bold" aria-hidden />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </Popover>
+  );
+}
+
+type StatusAppearancePickerProps = {
+  color: string;
+  icon: string;
+  onColorChange: (color: string) => void;
+  onIconChange: (icon: string) => void;
+};
+
+function StatusAppearancePicker({
+  color,
+  icon,
+  onColorChange,
+  onIconChange,
+}: StatusAppearancePickerProps) {
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(120);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const iconOptions = useMemo(() => allIconOptions.filter((option) => option.icon), []);
+  const selected =
+    iconOptions.find((option) => option.name === icon) ??
+    iconOptions.find((option) => option.name === 'CheckCircle') ??
+    null;
+  const SelectedIcon = selected?.icon ?? CheckFallbackIcon;
+  const normalizedQuery = query.toLowerCase().trim();
+  const filteredOptions = useMemo(
+    () => iconOptions.filter((option) => option.name.toLowerCase().includes(normalizedQuery)),
+    [iconOptions, normalizedQuery]
+  );
+  const visibleOptions = filteredOptions.slice(0, visibleCount);
+
+  return (
+    <Popover
+      side="bottom"
+      align="start"
+      sideOffset={6}
+      trigger={
+        <span
+          className={`${styles.statusAvatar} ${styles[`statusAvatar${color}`]}`}
+          aria-label="Status icon and color"
+        >
+          <SelectedIcon size={20} weight="fill" aria-hidden />
+        </span>
+      }
+      triggerClassName={styles.statusAvatarTrigger}
+      popupClassName={styles.appearanceMenu}
+    >
+      <div className={styles.appearanceField}>
+        <Typography
+          as="span"
+          size="xs"
+          weight="semibold"
+          color="muted"
+          className={styles.fieldLabel}
+        >
+          Color
+        </Typography>
+        <div className={styles.appearanceColors}>
+          {badgeColors.map((option) => (
+            <button
+              className={`${styles.colorSwatch} ${styles[`color${option}`]} ${color === option ? styles.colorSelected : ''}`}
+              aria-label={option}
+              key={option}
+              onClick={() => onColorChange(option)}
+              type="button"
+            />
+          ))}
+        </div>
+      </div>
+      <div className={styles.appearanceField}>
+        <Typography
+          as="span"
+          size="xs"
+          weight="semibold"
+          color="muted"
+          className={styles.fieldLabel}
+        >
+          Icon
+        </Typography>
+        <TextInput
+          placeholder="Search Phosphor icons"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setVisibleCount(120);
+          }}
+        />
+        <div
+          className={styles.iconGrid}
+          onScroll={(event) => {
+            const target = event.currentTarget;
+            const nearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 72;
+
+            if (!nearBottom || isLoadingMore || visibleCount >= filteredOptions.length) return;
+
+            setIsLoadingMore(true);
+            window.requestAnimationFrame(() => {
+              setVisibleCount((count) => Math.min(count + 96, filteredOptions.length));
+              setIsLoadingMore(false);
+            });
+          }}
+        >
+          {visibleOptions.map((option) => {
+            const Icon = option.icon;
+
+            return (
+              <button
+                className={
+                  icon === option.name
+                    ? `${styles.iconOption} ${styles.iconOptionActive}`
+                    : styles.iconOption
+                }
+                key={option.name}
+                onClick={() => onIconChange(option.name)}
+                title={option.name}
+                type="button"
+              >
+                <Icon size={17} weight="bold" aria-hidden />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </Popover>
+  );
+}
+
+type SearchableSelectOption = SimpleOption & {
+  meta?: string;
+};
+
+type SearchableSelectProps = {
+  label: string;
+  value: string;
+  options: SearchableSelectOption[];
+  onChange: (value: string) => void;
+};
+
+function SearchableSelect({ label, value, options, onChange }: SearchableSelectProps) {
+  const [query, setQuery] = useState('');
+  const selected = options.find((option) => option.value === value);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleOptions = options
+    .filter(
+      (option) =>
+        normalizedQuery === '' ||
+        option.label.toLowerCase().includes(normalizedQuery) ||
+        option.value.toLowerCase().includes(normalizedQuery)
+    )
+    .slice(0, 80);
+
+  return (
+    <div className={styles.searchableSelect}>
+      <Typography
+        as="label"
+        size="xs"
+        weight="semibold"
+        color="muted"
+        className={styles.fieldLabel}
+      >
+        {label}
+      </Typography>
+      <Popover
+        sideOffset={4}
+        trigger={
+          <>
+            <span className={styles.searchableValue}>{selected?.label ?? value}</span>
+            <CaretDown size={13} weight="bold" aria-hidden="true" />
+          </>
+        }
+        triggerClassName={styles.searchableTrigger}
+        popupClassName={styles.searchableMenu}
+      >
+        <TextInput
+          placeholder="Search timezones"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <div className={styles.searchableList}>
+          {visibleOptions.map((option) => (
+            <button
+              className={
+                option.value === value
+                  ? `${styles.searchableOption} ${styles.searchableOptionActive}`
+                  : styles.searchableOption
+              }
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setQuery('');
+              }}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </Popover>
     </div>
   );
 }
@@ -1603,129 +3275,47 @@ type PickerOption = {
 };
 
 type CompactPickerProps = {
-  label: string;
   value: string;
-  meta: string;
   options: PickerOption[];
   onSelect: (value: string) => void;
+  icon?: ElementType;
+  footer?: ReactNode;
 };
 
-function CompactPicker({ label, value, meta, options, onSelect }: CompactPickerProps) {
+function CompactPicker({ value, options, onSelect, icon: Icon, footer }: CompactPickerProps) {
   return (
     <Popover
-      sideOffset={3}
-      trigger={(
+      sideOffset={4}
+      trigger={
         <>
-          <span className={styles.scopeCopy}>
-            <span className={styles.scopeLabel}>{label}</span>
-            <span className={styles.scopeName}>{value}</span>
-          </span>
-          <span className={styles.scopeMeta}>{meta}</span>
-          <CaretDown size={14} aria-hidden="true" />
+          {Icon ? (
+            <Icon size={14} weight="bold" aria-hidden="true" className={styles.scopeIcon} />
+          ) : null}
+          <span className={styles.scopeName}>{value}</span>
+          <CaretDown size={12} aria-hidden="true" className={styles.scopeCaret} />
         </>
-      )}
+      }
       triggerClassName={styles.scopeButton}
       popupClassName={styles.scopeMenu}
     >
-      {options.map(option => (
-        <button className={styles.scopeMenuItem} key={option.value} onClick={() => onSelect(option.value)} type="button">
+      {options.map((option) => (
+        <button
+          className={styles.scopeMenuItem}
+          key={option.value}
+          onClick={() => onSelect(option.value)}
+          type="button"
+        >
           <span className={styles.scopeMenuName}>{option.label}</span>
           <span className={styles.scopeMenuMeta}>{option.meta}</span>
         </button>
       ))}
-    </Popover>
-  );
-}
-
-type PickerCardProps = {
-  label: string;
-  value: string;
-  valueChip?: string;
-  mark: LogoValue;
-  options: PickerOption[];
-  onSelect: (value: string) => void;
-};
-
-function PickerCard({ label, value, valueChip, mark, options, onSelect }: PickerCardProps) {
-  return (
-    <Popover
-      sideOffset={4}
-      trigger={(
+      {footer ? (
         <>
-          <span className={styles.pickerMark}>{mark}</span>
-          <span className={styles.pickerCopy}>
-            <span className={styles.pickerLabel}>{label}</span>
-            <span className={styles.pickerValueLine}>
-              <span className={styles.pickerValue}>{value}</span>
-              {valueChip ? <span className={styles.sourceChip}>{valueChip}</span> : null}
-            </span>
-          </span>
-          <CaretDown size={15} aria-hidden="true" />
+          <span className={styles.scopeMenuDivider} aria-hidden="true" />
+          {footer}
         </>
-      )}
-      triggerClassName={styles.pickerButton}
-      popupClassName={styles.pickerMenu}
-    >
-      {options.map(option => {
-        const [chip, detail] = option.meta.split(' · ');
-        const isClaimed = chip === 'Claimed';
-        const showChip = option.value !== 'add-source';
-        const chipClassName = [
-          styles.sourceChip,
-          chip === 'Jira' ? styles.sourceChipJira : undefined,
-          chip === 'Linear' ? styles.sourceChipLinear : undefined,
-          chip === 'GitHub' ? styles.sourceChipGithub : undefined,
-        ].filter(Boolean).join(' ');
-
-        return (
-          <button
-            className={[
-              styles.pickerMenuItem,
-              option.mark ? styles.pickerMenuItemWithMark : undefined,
-              isClaimed ? styles.pickerMenuItemDisabled : undefined,
-            ].filter(Boolean).join(' ')}
-            key={option.value}
-            onClick={() => onSelect(option.value)}
-            type="button"
-          >
-            {option.mark ? <span className={styles.sourceMiniLogo}>{option.mark}</span> : null}
-            <span className={styles.pickerMenuCopy}>
-              <span className={styles.pickerMenuTitleLine}>
-                <Typography as="span" size="sm" weight="semibold">{option.label}</Typography>
-                {showChip ? <span className={chipClassName}>{chip}</span> : null}
-              </span>
-              {showChip && detail ? (
-                <Typography as="span" size="xs" color="muted" className={styles.pickerMenuDetail}>
-                  {isClaimed ? `Claimed by Stride team ${detail}` : detail}
-                </Typography>
-              ) : !showChip ? (
-                <Typography as="span" size="xs" color="muted" className={styles.pickerMenuDetail}>{option.meta}</Typography>
-              ) : null}
-            </span>
-          </button>
-        );
-      })}
+      ) : null}
     </Popover>
-  );
-}
-
-type IntegrationCardProps = {
-  name: string;
-  detail: string;
-  status: string;
-  logo: LogoValue;
-};
-
-function IntegrationCard({ name, detail, status, logo }: IntegrationCardProps) {
-  return (
-    <div className={styles.integrationCard}>
-      <span className={styles.integrationLogo}>{logo}</span>
-      <div>
-        <Typography as="p" size="base" weight="semibold">{name}</Typography>
-        <Typography as="p" size="sm" color="muted">{detail}</Typography>
-      </div>
-      <Badge variant={status === 'Connected' ? 'success' : 'neutral'}>{status}</Badge>
-    </div>
   );
 }
 
@@ -1739,25 +3329,64 @@ function MappingTable({ title, rows }: MappingTableProps) {
 
   return (
     <div className={styles.mappingTable}>
-      <div className={styles.mappingHeaderRow}>
-        <Typography as="h3" size="lg" weight="semibold">{title}</Typography>
+      <div className={styles.mappingTableHead}>
+        <Typography as="h3" size="base" weight="semibold">
+          {title}
+        </Typography>
+        <div className={styles.segmentedControl} role="group" aria-label={`${title} badge display`}>
+          <button
+            aria-pressed={display === 'text'}
+            className={display === 'text' ? styles.segmentActive : undefined}
+            onClick={() => setDisplay('text')}
+            type="button"
+          >
+            Text
+          </button>
+          <button
+            aria-pressed={display === 'icon'}
+            className={display === 'icon' ? styles.segmentActive : undefined}
+            onClick={() => setDisplay('icon')}
+            type="button"
+          >
+            Icon
+          </button>
+        </div>
       </div>
-      <div className={styles.mappingColumns}>
-        <Typography as="p" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Source</Typography>
-        <div className={styles.strideHeaderControls}>
-          <Typography as="p" size="xs" weight="semibold" color="muted" className={styles.fieldLabel}>Stride</Typography>
-          <div className={styles.segmentedControl}>
-            <button className={display === 'text' ? styles.segmentActive : undefined} onClick={() => setDisplay('text')} type="button">Text</button>
-            <button className={display === 'icon' ? styles.segmentActive : undefined} onClick={() => setDisplay('icon')} type="button">Icon</button>
+      <div className={styles.mappingRows}>
+        <div className={`${styles.mappingRow} ${styles.mappingRowHead}`}>
+          <Typography
+            as="span"
+            size="xs"
+            weight="semibold"
+            color="muted"
+            className={styles.fieldLabel}
+          >
+            Source
+          </Typography>
+          <span aria-hidden="true" />
+          <Typography
+            as="span"
+            size="xs"
+            weight="semibold"
+            color="muted"
+            className={styles.fieldLabel}
+          >
+            Stride
+          </Typography>
+        </div>
+        {rows.map(([source, stride], index) => (
+          <div className={styles.mappingRow} key={`${source}-${stride}`}>
+            <MappingBadge label={source} index={index} display="text" />
+            <ArrowRight
+              size={15}
+              weight="regular"
+              aria-hidden="true"
+              className={styles.mappingArrow}
+            />
+            <MappingBadge label={stride} index={index + 1} display={display} editable />
           </div>
-        </div>
+        ))}
       </div>
-      {rows.map(([source, stride], index) => (
-        <div className={styles.mappingColumns} key={`${source}-${stride}`}>
-          <MappingBadge label={source} index={index} display="text" />
-          <MappingBadge label={stride} index={index + 1} display={display} editable />
-        </div>
-      ))}
     </div>
   );
 }
@@ -1770,74 +3399,577 @@ type MappingBadgeProps = {
 };
 
 function MappingBadge({ label, index, display, editable = false }: MappingBadgeProps) {
-  const variants = ['accent', 'success', 'warning', 'danger'] as const;
-  const variant = editable ? variants[index % variants.length] : 'neutral';
   const [value, setValue] = useState(label);
   const [icon, setIcon] = useState('CheckCircle');
   const defaultColors = ['warning', 'accent', 'success', 'slate'];
   const [color, setColor] = useState(defaultColors[index % defaultColors.length] ?? 'accent');
-  const maxLength = display === 'icon' ? 2 : 14;
-  const chipClassName = [styles.editableBadge, styles[`editableBadge${color}`]].filter(Boolean).join(' ');
+
+  if (!editable) {
+    return (
+      <div className={styles.mappingBadgeCell}>
+        <Badge variant="neutral">{label}</Badge>
+      </div>
+    );
+  }
+
+  const colorClass = styles[`editableBadge${color}`];
+
+  if (display === 'icon') {
+    return (
+      <div className={`${styles.mappingBadgeCell} ${styles.mappingBadgeEditable}`}>
+        <BadgeIconGlyph
+          icon={icon}
+          color={color}
+          onIconChange={setIcon}
+          onColorChange={setColor}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className={editable ? `${styles.mappingBadgeCell} ${styles.mappingBadgeEditable}` : styles.mappingBadgeCell}>
-      {editable ? (
-        <>
-          {display === 'icon' ? (
-            <IconPicker icon={icon} onChange={setIcon} />
-          ) : (
-            <span className={chipClassName}>
-              <input
-                aria-label={`Edit ${label}`}
-                maxLength={maxLength}
-                onChange={event => setValue(event.target.value)}
-                value={value}
-              />
-            </span>
-          )}
-          <ColorPicker color={color} onChange={setColor} />
-        </>
-      ) : (
-        <Badge variant={variant}>{label}</Badge>
-      )}
+    <div className={`${styles.mappingBadgeCell} ${styles.mappingBadgeEditable}`}>
+      <span className={`${styles.editableBadge} ${colorClass}`}>
+        <BadgeColorDot
+          color={color}
+          onChange={setColor}
+          triggerClassName={styles.badgeAppearanceTrigger}
+        />
+        <input
+          aria-label={`Edit ${label}`}
+          maxLength={14}
+          onChange={(event) => setValue(event.target.value)}
+          value={value}
+        />
+      </span>
     </div>
   );
 }
 
 type MemberRowProps = {
-  name: string;
-  email: string;
-  detail: string;
+  member: MemberRecord;
+  onOpen: () => void;
 };
 
-function MemberRow({ name, email, detail }: MemberRowProps) {
+type SecuritySessionRowProps = {
+  name: string;
+  detail: string;
+  current?: boolean;
+};
+
+function SecuritySessionRow({ name, detail, current = false }: SecuritySessionRowProps) {
   return (
-    <div className={styles.memberRow}>
-      <div className={styles.memberAvatar} aria-hidden="true">{name.charAt(0)}</div>
-      <div className={styles.memberIdentity}>
-        <Typography as="p" size="sm" weight="semibold">{name}</Typography>
-        <Typography as="p" size="xs" color="muted">{email}</Typography>
-      </div>
-      <Typography as="p" size="xs" color="muted" className={styles.memberRole}>{detail}</Typography>
-      <Button variant="ghost" size="sm">Manage</Button>
+    <div className={styles.securitySessionRow}>
+      <span className={styles.securityDeviceIcon} aria-hidden="true">
+        <GearSix size={16} weight="bold" />
+      </span>
+      <span className={styles.memberIdentity}>
+        <Typography as="span" size="sm" weight="semibold">
+          {name}
+        </Typography>
+        <Typography as="span" size="xs" color="muted">
+          {detail}
+        </Typography>
+      </span>
+      {current ? <Badge variant="success">Current</Badge> : null}
+      {!current ? (
+        <Button variant="secondary" size="sm" className={styles.securitySignOutButton}>
+          Sign out
+        </Button>
+      ) : null}
     </div>
   );
 }
 
-type ConnectionRowProps = {
-  name: string;
-  detail: string;
-  status: string;
-};
+function MemberAccessModal({
+  member,
+  onClose,
+  scope,
+}: {
+  member: MemberRecord;
+  onClose: () => void;
+  scope: 'workspace' | 'team';
+}) {
+  const [isWorkspaceAdmin, setIsWorkspaceAdmin] = useState(
+    member.detail.includes('Workspace admin')
+  );
+  const initialTeams = [
+    member.detail.includes('Platform') || scope === 'team' ? 'platform' : null,
+    member.detail.includes('App') ? 'app' : null,
+    member.detail.includes('Infrastructure') ? 'infra' : null,
+  ].filter(Boolean) as string[];
+  const [selectedTeams, setSelectedTeams] = useState<string[]>(initialTeams);
+  const [teamRoles, setTeamRoles] = useState<Record<string, 'member' | 'teamAdmin'>>({
+    platform: member.detail.includes('Team admin') || scope === 'team' ? 'teamAdmin' : 'member',
+    app: 'member',
+    infra: 'member',
+  });
+  const [teamRole, setTeamRole] = useState(
+    member.detail.includes('Team admin') ? 'teamAdmin' : 'member'
+  );
+  const isWorkspaceScope = scope === 'workspace';
+  const addableTeamOptions = TEAM_OPTIONS.filter((team) => !selectedTeams.includes(team.value));
+  const addTeam = (teamId: string) => {
+    if (!teamId || selectedTeams.includes(teamId)) return;
+    setSelectedTeams((teams) => [...teams, teamId]);
+    setTeamRoles((roles) => ({ ...roles, [teamId]: roles[teamId] ?? 'member' }));
+  };
+  const removeTeam = (teamId: string) => {
+    setSelectedTeams((teams) => teams.filter((id) => id !== teamId));
+  };
+  const teamLabel = (teamId: string) =>
+    TEAM_OPTIONS.find((team) => team.value === teamId)?.label ?? teamId;
 
-function ConnectionRow({ name, detail, status }: ConnectionRowProps) {
   return (
-    <div className={styles.connectionRow}>
-      <div>
-        <Typography as="p" size="base" weight="semibold">{name}</Typography>
-        <Typography as="p" size="sm" color="muted">{detail}</Typography>
+    <div className={styles.sourceModalBackdrop} role="presentation" onClick={onClose}>
+      <section
+        aria-label={`Edit access for ${member.name}`}
+        aria-modal="true"
+        className={styles.sourceModal}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <div className={styles.sourceModalHeader}>
+          <div>
+            <Typography as="h3" size="lg" weight="semibold">
+              {isWorkspaceScope ? 'Edit workspace access' : 'Edit Platform access'}
+            </Typography>
+          </div>
+          <button className={styles.sourceModalClose} onClick={onClose} type="button">
+            <X size={15} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className={styles.sourceModalBody}>
+          <div className={styles.memberAccessSummary}>
+            <div className={styles.memberAvatar} aria-hidden="true">
+              {member.name.charAt(0)}
+            </div>
+            <div>
+              <Typography as="p" size="base" weight="semibold">
+                {member.name}
+              </Typography>
+            </div>
+          </div>
+
+          {isWorkspaceScope ? (
+            <div className={styles.sourceSettingsGrid}>
+              <button
+                aria-pressed={isWorkspaceAdmin}
+                className={styles.memberPermissionToggle}
+                onClick={() => setIsWorkspaceAdmin((value) => !value)}
+                type="button"
+              >
+                <span>
+                  <Typography as="span" size="sm" weight="semibold">
+                    Workspace admin
+                  </Typography>
+                  <Typography as="span" size="xs" color="muted">
+                    Can manage workspace settings, source connections, members, and teams.
+                  </Typography>
+                </span>
+                <span
+                  className={
+                    isWorkspaceAdmin ? `${styles.switch} ${styles.switchOn}` : styles.switch
+                  }
+                  aria-hidden="true"
+                >
+                  <span />
+                </span>
+              </button>
+
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Add team membership
+                </Typography>
+                <Select
+                  label="Add team membership"
+                  hideTriggerLabel
+                  value="add-team"
+                  onChange={addTeam}
+                  options={[{ value: 'add-team', label: 'Choose a team' }, ...addableTeamOptions]}
+                />
+              </div>
+
+              {selectedTeams.length > 0 ? (
+                <div className={styles.memberAccessTable}>
+                  <div>
+                    <Typography
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      color="muted"
+                      className={styles.fieldLabel}
+                    >
+                      Selected team
+                    </Typography>
+                    <Typography
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      color="muted"
+                      className={styles.fieldLabel}
+                    >
+                      Role
+                    </Typography>
+                    <span />
+                  </div>
+                  {selectedTeams.map((teamId) => (
+                    <div key={teamId}>
+                      <Typography as="span" size="sm" weight="semibold">
+                        {teamLabel(teamId)}
+                      </Typography>
+                      <Select
+                        label={`${teamLabel(teamId)} role`}
+                        hideTriggerLabel
+                        value={teamRoles[teamId] ?? 'member'}
+                        onChange={(role) =>
+                          setTeamRoles((roles) => ({
+                            ...roles,
+                            [teamId]: role as 'member' | 'teamAdmin',
+                          }))
+                        }
+                        options={[
+                          { value: 'member', label: 'Member' },
+                          { value: 'teamAdmin', label: 'Team admin' },
+                        ]}
+                      />
+                      <button
+                        className={styles.memberRemoveTeamButton}
+                        onClick={() => removeTeam(teamId)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.memberEmptyTeams}>
+                  <Typography as="p" size="sm" weight="semibold">
+                    No team memberships selected.
+                  </Typography>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={styles.sourceSettingsGrid}>
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Platform role
+                </Typography>
+                <Select
+                  label="Platform role"
+                  hideTriggerLabel
+                  value={teamRole}
+                  onChange={setTeamRole}
+                  options={[
+                    { value: 'member', label: 'Member' },
+                    { value: 'teamAdmin', label: 'Team admin' },
+                  ]}
+                />
+              </div>
+              <div className={styles.mappingPreview}>
+                <Typography as="p" size="sm" weight="semibold">
+                  Team admins manage this team only.
+                </Typography>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.sourceModalFooter}>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={onClose}>
+            Save access
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function InviteMemberModal({ state, onClose }: { state: InviteModalState; onClose: () => void }) {
+  const [email, setEmail] = useState(state.initialEmail ?? '');
+  const [existingMember, setExistingMember] = useState('sam');
+  const [isWorkspaceAdmin, setIsWorkspaceAdmin] = useState(false);
+  const [teamRole, setTeamRole] = useState<'member' | 'teamAdmin'>('member');
+  const [inviteTeam, setInviteTeam] = useState('platform');
+  const [selectedTeams, setSelectedTeams] = useState<string[]>(
+    state.scope === 'team' ? ['platform'] : []
+  );
+  const [teamRoles, setTeamRoles] = useState<Record<string, 'member' | 'teamAdmin'>>({
+    platform: 'member',
+    app: 'member',
+    infra: 'member',
+  });
+  const addableTeamOptions = TEAM_OPTIONS.filter((team) => !selectedTeams.includes(team.value));
+  const addTeam = (teamId: string) => {
+    if (!teamId || selectedTeams.includes(teamId)) return;
+    setSelectedTeams((teams) => [...teams, teamId]);
+  };
+  const removeTeam = (teamId: string) => {
+    setSelectedTeams((teams) => teams.filter((id) => id !== teamId));
+  };
+  const teamLabel = (teamId: string) =>
+    TEAM_OPTIONS.find((team) => team.value === teamId)?.label ?? teamId;
+  const title = state.scope === 'workspace' ? 'Invite to workspace' : 'Add Platform member';
+
+  return (
+    <div className={styles.sourceModalBackdrop} role="presentation" onClick={onClose}>
+      <section
+        aria-label={title}
+        aria-modal="true"
+        className={styles.sourceModal}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <div className={styles.sourceModalHeader}>
+          <div>
+            <Typography as="h3" size="lg" weight="semibold">
+              {title}
+            </Typography>
+          </div>
+          <button className={styles.sourceModalClose} onClick={onClose} type="button">
+            <X size={15} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className={styles.sourceModalBody}>
+          {state.mode === 'existing' ? (
+            <div className={styles.sourceSelectField}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                Workspace member
+              </Typography>
+              <Select
+                label="Workspace member"
+                hideTriggerLabel
+                value={existingMember}
+                onChange={setExistingMember}
+                options={[
+                  { value: 'sam', label: 'Sam Patel' },
+                  { value: 'nora', label: 'Nora Kim' },
+                  { value: 'alex', label: 'Alex Rivera' },
+                ]}
+              />
+            </div>
+          ) : (
+            <div className={styles.sourceSelectField}>
+              <Typography
+                as="label"
+                size="xs"
+                weight="semibold"
+                color="muted"
+                className={styles.fieldLabel}
+              >
+                Email
+              </Typography>
+              <TextInput
+                placeholder="teammate@company.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+          )}
+
+          {state.scope === 'workspace' ? (
+            <>
+              <button
+                aria-pressed={isWorkspaceAdmin}
+                className={styles.memberPermissionToggle}
+                onClick={() => setIsWorkspaceAdmin((value) => !value)}
+                type="button"
+              >
+                <span>
+                  <Typography as="span" size="sm" weight="semibold">
+                    Workspace admin
+                  </Typography>
+                  <Typography as="span" size="xs" color="muted">
+                    Can manage workspace settings, members, source connections, and teams.
+                  </Typography>
+                </span>
+                <span
+                  className={
+                    isWorkspaceAdmin ? `${styles.switch} ${styles.switchOn}` : styles.switch
+                  }
+                  aria-hidden="true"
+                >
+                  <span />
+                </span>
+              </button>
+
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Add team membership
+                </Typography>
+                <Select
+                  label="Add team membership"
+                  hideTriggerLabel
+                  value="add-team"
+                  onChange={addTeam}
+                  options={[{ value: 'add-team', label: 'Choose a team' }, ...addableTeamOptions]}
+                />
+              </div>
+
+              {selectedTeams.length > 0 ? (
+                <div className={styles.memberAccessTable}>
+                  <div>
+                    <Typography
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      color="muted"
+                      className={styles.fieldLabel}
+                    >
+                      Selected team
+                    </Typography>
+                    <Typography
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      color="muted"
+                      className={styles.fieldLabel}
+                    >
+                      Role
+                    </Typography>
+                    <span />
+                  </div>
+                  {selectedTeams.map((teamId) => (
+                    <div key={teamId}>
+                      <Typography as="span" size="sm" weight="semibold">
+                        {teamLabel(teamId)}
+                      </Typography>
+                      <Select
+                        label={`${teamLabel(teamId)} role`}
+                        hideTriggerLabel
+                        value={teamRoles[teamId] ?? 'member'}
+                        onChange={(role) =>
+                          setTeamRoles((roles) => ({
+                            ...roles,
+                            [teamId]: role as 'member' | 'teamAdmin',
+                          }))
+                        }
+                        options={[
+                          { value: 'member', label: 'Member' },
+                          { value: 'teamAdmin', label: 'Team admin' },
+                        ]}
+                      />
+                      <button
+                        className={styles.memberRemoveTeamButton}
+                        onClick={() => removeTeam(teamId)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className={styles.sourceSettingsGrid}>
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Team
+                </Typography>
+                <Select
+                  label="Team"
+                  hideTriggerLabel
+                  value={inviteTeam}
+                  onChange={setInviteTeam}
+                  options={TEAM_OPTIONS}
+                />
+              </div>
+              <div className={styles.sourceSelectField}>
+                <Typography
+                  as="label"
+                  size="xs"
+                  weight="semibold"
+                  color="muted"
+                  className={styles.fieldLabel}
+                >
+                  Role
+                </Typography>
+                <Select
+                  label="Role"
+                  hideTriggerLabel
+                  value={teamRole}
+                  onChange={(role) => setTeamRole(role as 'member' | 'teamAdmin')}
+                  options={[
+                    { value: 'member', label: 'Member' },
+                    { value: 'teamAdmin', label: 'Team admin' },
+                  ]}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.sourceModalFooter}>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={onClose}>
+            {state.scope === 'workspace' ? 'Send invite' : 'Add member'}
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MemberRow({ member, onOpen }: MemberRowProps) {
+  return (
+    <div className={styles.memberRow}>
+      <div className={styles.memberAvatar} aria-hidden="true">
+        {member.name.charAt(0)}
       </div>
-      <Badge variant={status === 'Connected' ? 'success' : 'neutral'}>{status}</Badge>
+      <div className={styles.memberIdentity}>
+        <Typography as="p" size="sm" weight="semibold">
+          {member.name}
+        </Typography>
+        <Typography as="p" size="xs" color="muted">
+          {member.email}
+        </Typography>
+      </div>
+      <Typography as="p" size="xs" color="muted" className={styles.memberRole}>
+        {member.detail}
+      </Typography>
+      <Button variant="secondary" size="sm" onClick={onOpen}>
+        Edit access
+      </Button>
     </div>
   );
 }

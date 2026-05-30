@@ -1,6 +1,6 @@
 ---
 title: Surfaces (screens & routes)
-updated: 2026-05-21
+updated: 2026-05-30
 status: current
 owner: jaren
 ---
@@ -19,6 +19,7 @@ __root.tsx                     providers (QueryClient, i18n, theme)
 ├── login.tsx       /login         ┐  unauthenticated — placeholder; the auth/first-run shape is open (open-questions Q11); v1 invite-only
 ├── signup.tsx      /signup        ┘
 ├── onboarding.tsx  /onboarding       placeholder — connect Jira/Linear → pick projects → first sync; shape TBD
+├── workspaces.new.tsx /workspaces/new   focused full-screen flow to create a workspace (name → plan → connect a source); entered from the workspace switcher, not the app shell
 │
 └── _auth.tsx       app-shell layout (requires auth + a workspace) — left rail: Today · Backlog · Schedule · Insights, with ⚙ Settings pinned at the bottom
     ├── index.tsx           /              Today — renders a session-first or schedule-first variant per the working mode
@@ -75,7 +76,7 @@ The workspace's spec list. Find, break down, schedule.
 > **Simplified 2026-05-21.** The Schedule was two levels — a week overview that you
 > navigated *into* a day canvas. It is now a **single day view**. Cut: the week view, the
 > separate day-canvas route, untimed "day assignments" (every block has a real time), and
-> the TimeBudget UI. See [`data-model.md`](data-model.md) and the
+> time budgets. See [`data-model.md`](data-model.md) and the
 > [`open-questions.md`](open-questions.md) changelog.
 
 One surface: a 24-hour day canvas at `/schedule`. The viewed date is a `?date=` search param (defaults to today). It is a planning surface, not a passive calendar clone.
@@ -101,8 +102,6 @@ One surface: a 24-hour day canvas at `/schedule`. The viewed date is a `?date=` 
 
 Insights is a focused query surface, not a dashboard wall. The user picks a scope, then sees a short readout, formatted top-down with minimal chrome: a one-line takeaway, a single metrics block (four stats as a divided strip with deltas, feeding one interactive area chart for the selected stat), then two borderless lanes — a patterns or status list, and a computed "suggested next steps" list.
 
-Time-budget insights compare desired time against planned/actual time by schedule type, depending on the user's active time-accounting mode. Users can budget selected types only; unbudgeted types can still appear as context. A user has one active budget basis at a time — daily or weekly — so category goals stay consistent. Budget targets are always private and shown only in Me scope.
-
 Scopes are **role-gated** (roles are additive — Member ⊂ Team Admin ⊂ Workspace Admin); the scope tabs only show what the viewer's role can see:
 
 1. **Me** — *every role.* A warm but grounded personal readout: a takeaway, accomplishment stats (focus time, specs closed, actions completed, streak), a "how you work" patterns lane, and suggested next steps. Built to motivate through real captured data — not gamification, not surveillance.
@@ -127,10 +126,12 @@ The always-available menu-bar window. Same web build, route `/tray`, smaller dim
 > (the one mandatory friction point, and it earns its keep). Notifications belong to the
 > OS, not the Tray. **v1 ships the idle + live-session states**; the rest trails.
 
-- **States** — `idle` (a spacious "Up next" hero with an inline "pick something else" picker) · `live session` (a circular **ArcDial** with the timer in the center, minimal chrome, End / Pause, an over-estimate indicator) · `break` (a soft countdown) · `review` (handoff).
-- **Overlays** — a separate **capture window** (⌥Space — Insight vs Next; attaches to a running session, else drops to backlog) — its routing is a round-2 item; a **meeting-join flow** ("Jump into meeting" vs "Keep working" with a snooze-duration picker); start-session and end-session flows.
+- **Mode-specific role** — in **session-first**, the Tray is the session cockpit. In **schedule-first**, the Tray is a quiet day compass: strict wall-clock orientation to the current planned block and what comes next. It does not create a second "active work" truth.
+- **Session-first states** — `idle` shows one recommended action hero plus 2–3 alternatives, with scheduled actions boosted in priority; `live session` shows a circular **ArcDial** with the timer in the center, minimal chrome, an over-estimate indicator, and **End** only (no Pause); `check-in` stays inside the tray and matches the main session completion semantics: feeling, optional note, mark done / keep open.
+- **Schedule-first states** — `scheduled block` shows the current block, time range, block type, subtle progress through the block, and the next block. There is no Start/End session affordance. `free time` shows "Free time", keeps the next block visible, and offers 2–3 priority suggestions because empty schedule space is the one moment where suggestions help rather than compete with the plan.
+- **Overlays** — a separate **capture window** (⌥Space — Insight vs Next) is intentionally separate from the Tray. Capture attaches by context: active Session first, else current schedule block, else generic personal signal. Its routing is a round-2 item. A **meeting-join flow** ("Jump into meeting" vs "Keep working" with a snooze-duration picker) is also post-v1.
 - **Banner** — a dismissible top banner appears *only* for time-sensitive context (meeting in ~2–5m / a just-landed spec); auto-opens once per meeting, not nagging. No notification framing — the OS handles notifications.
-- Chrome notes: no Stride logo in the tray header; an icon-only corner button to open the main window (not a text button); no "Capture" label (it's the separate ⌥Space window).
+- Chrome notes: no Stride logo in the tray header; a small labeled corner button ("Open app" + pop-out icon) to open the main window — the label is kept because an icon alone read as too vague in testing; no "Capture" label (it's the separate ⌥Space window). For browser iteration only, a temporary dev-only **Tray preview** nav item may render the tray content inside the main app shell so mode/context switching stays fast; it is not product navigation.
 
 ## Spec view — `/specs/$specId` (route) + the ad-hoc modal (client state)
 
@@ -152,6 +153,7 @@ Content (the same in both presentations):
 ## Not standalone surfaces (handled elsewhere)
 
 - **Onboarding** — placeholder route `/onboarding` (connect Jira/Linear → pick projects → first sync → land on Today). Whether it's a gated route before the app shell or a step inside it is open ([`open-questions.md`](open-questions.md) Q11); v1 is invite-only (no public self-serve signup).
-- **Settings** — a `/settings` section reached via the ⚙ gear at the bottom of the left rail. The global app rail stays visible and Settings adds a secondary settings sidebar. First implementation uses `?section=…` deep links rather than nested routes. Sections are organized by ownership scope: **My workspace settings** (default), **Personal** account-wide settings, **Workspace admin** settings, and **Team admin** settings nested under the selected workspace/team context. Admin-only sections are hidden when the user lacks access. Source connections are workspace-pooled; team admins can add a source connection to that pool from team settings without broad workspace-admin access. Each Stride Team has exactly one primary source mapping, and each external Jira board / Linear Team / GitHub repo maps to only one Stride Team per workspace. Calendar connections are personal and opted into per workspace.
+- **Create workspace** — focused full-screen route `/workspaces/new`, entered from the **Create workspace** action in the workspace switcher (the switcher is the multi-workspace context; per-workspace Settings is the single-workspace context, so creation lives in the switcher, not Settings). It runs without the app shell — a three-step flow: **name** the workspace (you become its workspace admin) → **pick a plan** → **connect a source** (or skip). The plan step is a *visualization* of how paid tiers will look (Free / Team / Enterprise, monthly–annual toggle); **billing is not live in v1** (deferred per [`mvp.md`](mvp.md) and the 2026-05-12 open-questions decision), so the step is a preview and the flow lands you in the new workspace without charging.
+- **Settings** — a `/settings` section reached via the ⚙ gear at the bottom of the left rail. The global app rail stays visible and Settings adds a secondary settings sidebar. First implementation uses `?section=…` deep links rather than nested routes. Sections are organized by ownership scope: **My workspace settings** (default), **Personal** account-wide settings, **Workspace admin** settings, and **Team admin** settings nested under the selected workspace/team context. Admin-only sections are hidden when the user lacks access. Source connections are workspace-pooled: one Jira account, one Linear account, and one GitHub organization per workspace. Team Source mapping first chooses which source type the team uses, then chooses the source unit inside that connected account or organization: a Jira board, Linear team, or GitHub repository. Each Stride Team has exactly one primary source mapping, and each external Jira board / Linear Team / GitHub repo maps to only one Stride Team per workspace. Multiple GitHub repositories per Stride Team is an open question, not current behavior. Team General settings cover the Stride team name plus workflow and breakdown behavior. Source-owned identifiers and source-to-team assignment live in Source mapping, not Team General. Team defaults do not set member working hours, working mode, notification timing, presence, or focus status. Calendar connections are personal and opted into per workspace.
 - **"Needs attention"** — surfaced inline in Backlog, not its own page.
 - **Performance metrics dashboard / "Activity"** — folded into Insights and the Spec view's History tab; not a separate page.

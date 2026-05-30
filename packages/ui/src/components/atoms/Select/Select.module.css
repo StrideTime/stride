@@ -1,12 +1,99 @@
 .root {
   display: grid;
+  gap: var(--space-2);
   min-width: 0;
+}
+
+.labelRow {
+  position: relative;
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .label {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.infoTooltip {
+  position: relative;
+  display: inline-grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
+.infoTooltip:hover,
+.infoTooltip:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+
+.infoTooltip::after {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 70;
+  width: max-content;
+  max-width: 260px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-shell-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+  content: attr(data-tooltip);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  text-transform: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out;
+  white-space: normal;
+}
+
+.infoTooltip::before {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  z-index: 71;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-strong);
+  background: var(--color-shell-raised);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px) rotate(45deg);
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out;
+}
+
+.infoTooltip:hover::after,
+.infoTooltip:focus-visible::after,
+.infoTooltip:hover::before,
+.infoTooltip:focus-visible::before {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.infoTooltip:hover::before,
+.infoTooltip:focus-visible::before {
+  transform: translate(-50%, 0) rotate(45deg);
 }
 
 .trigger {
@@ -16,10 +103,10 @@
   gap: var(--space-2);
   width: 100%;
   min-width: 118px;
-  height: 34px;
-  border: 1px solid var(--color-border);
+  height: 36px;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   color: var(--color-text);
   cursor: pointer;
   font: inherit;
@@ -27,6 +114,12 @@
   font-weight: 700;
   padding: 0 var(--space-2) 0 var(--space-3);
   text-align: left;
+}
+
+.trigger:hover,
+.trigger[data-popup-open] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
 }
 
 .trigger:focus-visible,
@@ -65,6 +158,11 @@
   transform: rotate(180deg);
 }
 
+.positioner {
+  /* Float above overlays the Select may be nested inside (e.g. the Popover atom's z-index: 20). */
+  z-index: 60;
+}
+
 .popup {
   min-width: var(--anchor-width);
   width: max-content;
@@ -75,7 +173,6 @@
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
   padding: var(--space-1);
-  z-index: 50;
 }
 
 .list {
