@@ -11,6 +11,8 @@ type PopoverProps = {
   sideOffset?: number;
   triggerClassName?: string;
   popupClassName?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function Popover({
@@ -21,11 +23,13 @@ export function Popover({
   sideOffset = 8,
   triggerClassName,
   popupClassName,
+  open,
+  onOpenChange,
 }: PopoverProps) {
   const popupClassNames = [styles.popup, popupClassName].filter(Boolean).join(' ');
 
   return (
-    <BasePopover.Root>
+    <BasePopover.Root open={open} onOpenChange={onOpenChange}>
       <BasePopover.Trigger className={triggerClassName}>
         {trigger}
       </BasePopover.Trigger>

@@ -79,8 +79,17 @@ function StatusBadge({ status, className }: { status: ShellStatus; className?: s
   const bgClass = styles[`dot${status.color}`] ?? '';
 
   return (
-    <span className={`${styles.statusBadge} ${bgClass} ${className ?? ''}`} aria-hidden="true">
+    <span
+      aria-label={`Status: ${status.label}`}
+      className={`${styles.statusBadge} ${bgClass} ${className ?? ''}`}
+      role="img"
+      tabIndex={0}
+    >
       {status.icon ?? null}
+      <span className={styles.statusTooltip} aria-hidden="true">
+        <span className={`${styles.statusTooltipIcon} ${bgClass}`}>{status.icon ?? null}</span>
+        <span className={styles.statusTooltipValue}>{status.label}</span>
+      </span>
     </span>
   );
 }
@@ -100,12 +109,15 @@ const workspaces: Workspace[] = [
 export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShellProps = {}) {
   const pathname = useRouterState({ select: state => state.location.pathname });
   const isSettings = pathname === '/settings';
+  const isSpecRoute = pathname.startsWith('/specs/');
 
   const baseStatuses = statuses && statuses.length > 0 ? statuses : DEFAULT_STATUSES;
   const [customStatuses, setCustomStatuses] = useState<ShellStatus[]>([]);
   const [draftStatus, setDraftStatus] = useState('');
   const allStatuses = [...baseStatuses, ...customStatuses];
   const [selectedStatusId, setSelectedStatusId] = useState<string | undefined>(currentStatusId);
+  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
+  const [desktopStatusOpen, setDesktopStatusOpen] = useState(false);
   const activeStatus =
     allStatuses.find(status => status.id === (selectedStatusId ?? currentStatusId)) ?? allStatuses[0]!;
 
@@ -116,6 +128,8 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
   const handleSelectStatus = (id: string) => {
     setSelectedStatusId(id);
     onSelectStatus?.(id);
+    setMobileAccountOpen(false);
+    setDesktopStatusOpen(false);
   };
 
   const handleAddCustomStatus = () => {
@@ -203,7 +217,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
               </div>
               {workspace.teams ? (
                 <Select
-                  label="Team"
+                  aria-label="Team"
                   value={teamId}
                   onChange={setTeamId}
                   options={workspace.teams.map(team => ({ value: team, label: team }))}
@@ -250,6 +264,8 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
         <header className={styles.mobileHeader}>
           <div className={styles.mobilePill}>
             <Popover
+              open={mobileAccountOpen}
+              onOpenChange={setMobileAccountOpen}
               trigger={(
                 <>
                   <div className={styles.mobileAvatarWrap}>
@@ -309,7 +325,6 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
           <nav className={styles.nav} aria-label="Primary">
             {navItems.map(item => {
               const Icon = item.icon;
-
               return (
                 <div key={item.to} className={styles.navGroup}>
                   <Link
@@ -328,12 +343,16 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                     <div className={styles.subNav}>
                       {item.children.map(child => {
                         const ChildIcon = child.icon;
+                        const isSpecsChildActive = child.href === '/backlog/specs' && isSpecRoute;
+                        const subNavClassName = isSpecsChildActive
+                          ? `${styles.subNavItem} ${styles.subNavActive}`
+                          : styles.subNavItem;
 
                         return (
                           <Link
                             key={child.href}
                             to={child.href}
-                            className={styles.subNavItem}
+                            className={subNavClassName}
                             activeProps={{ className: `${styles.subNavItem} ${styles.subNavActive}` }}
                             activeOptions={{ exact: true }}
                           >
@@ -354,6 +373,8 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
           <div className={styles.accountCard}>
             <Popover
               side="top"
+              open={desktopStatusOpen}
+              onOpenChange={setDesktopStatusOpen}
               trigger={(
                 <>
                   <span className={styles.profileAvatarWrap}>
@@ -362,10 +383,6 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                   </span>
                   <div className={styles.profileCopy}>
                     <Typography size="sm" weight="semibold" color="inverse">Jaren Lee</Typography>
-                    <span className={styles.statusLine}>
-                      <StatusGlyph status={activeStatus} />
-                      <Typography size="xs" color="muted">{activeStatus.label}</Typography>
-                    </span>
                   </div>
                   <CaretDown size={14} className={styles.caretIcon} aria-hidden="true" />
                 </>
@@ -393,7 +410,6 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
         <nav className={styles.mobileNav} aria-label="Primary">
           {navItems.map(item => {
             const Icon = item.icon;
-
             return (
               <Link
                 key={item.to}

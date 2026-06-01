@@ -60,6 +60,20 @@ Today is **two screens behind one route**: `TodayView` reads the working mode ([
 
 The configurable Info Hub and its widget set (`justLanded`, `mentions`, `blockers`, `teammatePulse`, etc.) are **post-MVP** — they need the team layer and live signal. Today is deliberately structured so it cannot accumulate panels again.
 
+## Inbox — changes to review · `/inbox`
+
+A focused intake queue for source-system changes that may affect the user's plan before they
+move into Backlog or Schedule.
+
+- **Tabs:** Needs review, Unblocked, Decisions, All updates. Tabs are descriptive enough on
+  their own; do not add per-tab explanatory copy above the list controls.
+- **Search:** one search field directly under the tabs.
+- **Rows:** each row answers what changed or what the user needs to know. The row itself is
+  clickable; avoid separate row-level call-to-action buttons. Avoid dumping source metadata,
+  actor names, team names, or fields that do not change the user's decision.
+- **Mobile:** rows collapse into focused cards with source key, state chip, time, concise
+  change text, and one clear action.
+
 ## Backlog — every spec, organized · `/backlog`
 
 The workspace's spec list. Find, break down, schedule.
