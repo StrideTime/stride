@@ -11,7 +11,8 @@ type SelectOption = {
 };
 
 type SelectProps = {
-  label: string;
+  label?: string;
+  'aria-label'?: string;
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
@@ -22,6 +23,7 @@ type SelectProps = {
 
 export function Select({
   label,
+  'aria-label': ariaLabel,
   value,
   options,
   onChange,
@@ -47,7 +49,7 @@ export function Select({
             {infoText ? <InfoTooltip label={infoText} /> : null}
           </span>
         ) : null}
-        <BaseSelect.Trigger className={styles.trigger} aria-label={label}>
+        <BaseSelect.Trigger className={styles.trigger} aria-label={ariaLabel ?? label}>
           <span className={styles.valueLayout}>
             {label && !hideTriggerLabel && !showLabelRow ? (
               <span className={styles.label}>{label}</span>
