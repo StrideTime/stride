@@ -471,7 +471,7 @@ export function ScheduleTray({
           showAdjustInSchedule={showAdjustInSchedule}
           onLinkAction={onLinkAction}
           onChangeRecurrence={onChangeRecurrence}
-          onAdjustInSchedule={onAdjustInSchedule}
+          onAdjustInSchedule={onAdjustInSchedule ? () => onAdjustInSchedule(selectedBlock) : undefined}
           onDeleteBlock={onDeleteBlock}
         />
       </ScheduleSideTray>

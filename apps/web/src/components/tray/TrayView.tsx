@@ -617,21 +617,6 @@ function useTrayActions() {
           (spec.assignee === 'You' ? 30 : 0) + (action.estimateMin ? Math.max(0, 90 - action.estimateMin) : 55),
       })));
 
-    const hasNoEstimateFixture = actions.some(action => action.id === 'a-16');
-    const api331 = specs.find(spec => spec.sourceKey === 'API-331');
-    if (!hasNoEstimateFixture && api331) {
-      actions.push({
-        id: 'a-16',
-        title: 'Sketch tray no-estimate timer state',
-        assignee: 'You',
-        description: 'Validate the simple live-session state before an estimate exists.',
-        loggedMin: 0,
-        plannedMin: 0,
-        spec: api331,
-        score: PRIORITY_SCORE[api331.priority] + 95,
-      });
-    }
-
     return actions.sort((left, right) => right.score - left.score);
   }, [specs]);
 }

@@ -1,69 +1,28 @@
 import {
   CaretDown,
-  ClockCountdown,
-  Coffee,
   Gear,
-  House,
-  ListBullets,
   PencilSimple,
   Plus,
-  SquaresFour,
-  Smiley,
-  Target,
-  Tray,
 } from '@phosphor-icons/react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 import { Popover, Select, Typography } from '../../atoms';
+import {
+  defaultShellStatuses,
+  navItems,
+  shellWorkspaces,
+  type ShellStatus,
+} from './AppShell.mock';
 import styles from './AppShell.module.css';
 
-type NavItem = {
-  to: string;
-  label: string;
-  icon: typeof House;
-  badge?: number;
-  children?: Array<{ href: string; label: string; icon: typeof House }>;
-};
-
-export type ShellStatus = {
-  id: string;
-  label: string;
-  color: string;
-  icon?: ReactNode;
-};
+export type { ShellStatus } from './AppShell.mock';
 
 export type AppShellProps = {
   statuses?: ShellStatus[];
   currentStatusId?: string;
   onSelectStatus?: (id: string) => void;
 };
-
-const showTrayPreview =
-  ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV ?? false);
-
-const navItems: NavItem[] = [
-  { to: '/', label: 'Today', icon: House },
-  { to: '/inbox', label: 'Inbox', icon: Tray, badge: 3 },
-  {
-    to: '/backlog/specs',
-    label: 'Backlog',
-    icon: SquaresFour,
-    badge: 7,
-    children: [
-      { href: '/backlog/specs', label: 'Specs', icon: SquaresFour },
-      { href: '/backlog/actions', label: 'Actions', icon: ListBullets },
-    ],
-  },
-  { to: '/schedule', label: 'Schedule', icon: ClockCountdown },
-  ...(showTrayPreview ? [{ to: '/tray', label: 'Tray preview', icon: ClockCountdown }] : []),
-];
-
-const DEFAULT_STATUSES: ShellStatus[] = [
-  { id: 'available', label: 'Available', color: 'success', icon: <Smiley size={18} weight="fill" aria-hidden="true" /> },
-  { id: 'focus', label: 'Focus', color: 'accent', icon: <Target size={18} weight="fill" aria-hidden="true" /> },
-  { id: 'away', label: 'Away', color: 'warning', icon: <Coffee size={18} weight="fill" aria-hidden="true" /> },
-];
 
 function StatusGlyph({ status }: { status: ShellStatus }) {
   const toneClass = styles[`glyph${status.color}`] ?? '';
@@ -94,24 +53,12 @@ function StatusBadge({ status, className }: { status: ShellStatus; className?: s
   );
 }
 
-type Workspace = {
-  mark: string;
-  name: string;
-  org: string;
-  teams?: string[];
-};
-
-const workspaces: Workspace[] = [
-  { mark: 'S', name: 'Stride', org: 'Acme', teams: ['Platform', 'App', 'Design', 'All teams'] },
-  { mark: 'O', name: 'Orbit', org: 'Product', teams: ['Growth', 'Core'] },
-];
-
 export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShellProps = {}) {
   const pathname = useRouterState({ select: state => state.location.pathname });
   const isSettings = pathname === '/settings';
   const isSpecRoute = pathname.startsWith('/specs/');
 
-  const baseStatuses = statuses && statuses.length > 0 ? statuses : DEFAULT_STATUSES;
+  const baseStatuses = statuses && statuses.length > 0 ? statuses : defaultShellStatuses;
   const [customStatuses, setCustomStatuses] = useState<ShellStatus[]>([]);
   const [draftStatus, setDraftStatus] = useState('');
   const allStatuses = [...baseStatuses, ...customStatuses];
@@ -122,8 +69,8 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
     allStatuses.find(status => status.id === (selectedStatusId ?? currentStatusId)) ?? allStatuses[0]!;
 
   const [workspaceIndex, setWorkspaceIndex] = useState(0);
-  const activeWorkspace = workspaces[workspaceIndex] ?? workspaces[0]!;
-  const [teamId, setTeamId] = useState(workspaces[0]?.teams?.[0] ?? '');
+  const activeWorkspace = shellWorkspaces[workspaceIndex] ?? shellWorkspaces[0]!;
+  const [teamId, setTeamId] = useState(shellWorkspaces[0]?.teams?.[0] ?? '');
 
   const handleSelectStatus = (id: string) => {
     setSelectedStatusId(id);
@@ -144,7 +91,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
 
   const handleSelectWorkspace = (index: number) => {
     setWorkspaceIndex(index);
-    setTeamId(workspaces[index]?.teams?.[0] ?? '');
+    setTeamId(shellWorkspaces[index]?.teams?.[0] ?? '');
   };
 
   const statusSection = (
@@ -203,7 +150,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
     <div className={styles.accountSection}>
       <span className={styles.accountSectionLabel}>Workspace</span>
       <div className={styles.scrollList}>
-        {workspaces.map((workspace, index) => {
+        {shellWorkspaces.map((workspace, index) => {
           const isActive = index === workspaceIndex;
 
           return isActive ? (

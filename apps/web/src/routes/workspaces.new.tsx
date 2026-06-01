@@ -12,79 +12,19 @@ import {
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Badge, Button, TextInput, Typography } from '@stride/ui';
 
+import {
+  stepLabels,
+  workspaceCreationSteps,
+  workspacePlans,
+  workspaceSourceOptions,
+  type BillingCycle,
+  type PlanId,
+} from './workspaces.new.mock';
 import styles from './workspaces.new.module.css';
 
 export const Route = createFileRoute('/workspaces/new')({
   component: NewWorkspacePage,
 });
-
-const steps = ['details', 'plan', 'connect'] as const;
-type Step = (typeof steps)[number];
-
-const stepLabels: Record<Step, string> = {
-  details: 'Workspace',
-  plan: 'Plan',
-  connect: 'Connect',
-};
-
-type BillingCycle = 'monthly' | 'annual';
-
-type PlanId = 'free' | 'team' | 'enterprise';
-
-type Plan = {
-  id: PlanId;
-  name: string;
-  tagline: string;
-  monthly: number | null;
-  annual: number | null;
-  priceSuffix: string;
-  features: string[];
-  recommended?: boolean;
-};
-
-const plans: Plan[] = [
-  {
-    id: 'free',
-    name: 'Free',
-    tagline: 'For an individual getting their own work in order.',
-    monthly: 0,
-    annual: 0,
-    priceSuffix: 'forever',
-    features: ['1 team', 'Up to 3 members', 'Capture, Backlog & Schedule', 'One source connection'],
-  },
-  {
-    id: 'team',
-    name: 'Team',
-    tagline: 'For a team that plans and runs work together.',
-    monthly: 11,
-    annual: 9,
-    priceSuffix: 'per member / month',
-    features: ['Unlimited teams', 'Shared source pool', 'Team flow insights', 'Roles & admin controls'],
-    recommended: true,
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    tagline: 'For an org that needs control and assurance.',
-    monthly: null,
-    annual: null,
-    priceSuffix: "let's talk",
-    features: ['SSO & SCIM', 'Audit log', 'Data residency options', 'Priority support'],
-  },
-];
-
-type Source = {
-  id: string;
-  name: string;
-  mark: string;
-  description: string;
-};
-
-const sources: Source[] = [
-  { id: 'jira', name: 'Jira', mark: 'J', description: 'Import boards, sprints, and issues.' },
-  { id: 'linear', name: 'Linear', mark: 'L', description: 'Import teams, projects, and issues.' },
-  { id: 'github', name: 'GitHub', mark: 'G', description: 'Import repos, milestones, and issues.' },
-];
 
 function NewWorkspacePage() {
   const navigate = useNavigate();
@@ -94,9 +34,9 @@ function NewWorkspacePage() {
   const [planId, setPlanId] = useState<PlanId>('team');
   const [sourceId, setSourceId] = useState<string | null>(null);
 
-  const step = steps[stepIndex]!;
+  const step = workspaceCreationSteps[stepIndex]!;
   const isFirst = stepIndex === 0;
-  const isLast = stepIndex === steps.length - 1;
+  const isLast = stepIndex === workspaceCreationSteps.length - 1;
   const canContinue = step === 'details' ? name.trim().length > 0 : true;
 
   const goNext = () => {
@@ -104,7 +44,7 @@ function NewWorkspacePage() {
       navigate({ to: '/' });
       return;
     }
-    setStepIndex(index => Math.min(index + 1, steps.length - 1));
+    setStepIndex(index => Math.min(index + 1, workspaceCreationSteps.length - 1));
   };
 
   const goBack = () => setStepIndex(index => Math.max(index - 1, 0));
@@ -120,7 +60,7 @@ function NewWorkspacePage() {
         </div>
 
         <ol className={styles.steps}>
-          {steps.map((item, index) => {
+          {workspaceCreationSteps.map((item, index) => {
             const state = index < stepIndex ? 'done' : index === stepIndex ? 'current' : 'upcoming';
 
             return (
@@ -269,7 +209,7 @@ function PlanStep({ billing, onBillingChange, planId, onPlanChange }: PlanStepPr
       </div>
 
       <div className={styles.planGrid}>
-        {plans.map(plan => {
+        {workspacePlans.map(plan => {
           const price = billing === 'annual' ? plan.annual : plan.monthly;
           const selected = plan.id === planId;
 
@@ -339,7 +279,7 @@ function ConnectStep({ sourceId, onSelect, workspaceName }: ConnectStepProps) {
       </div>
 
       <div className={styles.sourceList}>
-        {sources.map(source => {
+        {workspaceSourceOptions.map(source => {
           const selected = source.id === sourceId;
 
           return (

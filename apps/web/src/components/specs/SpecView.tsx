@@ -18,13 +18,17 @@ import { Badge, Button, Popover, Select, Typography } from '@stride/ui';
 import type { BacklogAction, BacklogSpec } from '../backlog/backlog.mock';
 import { useSession } from '../session';
 import type { CompletedSession, Feeling } from '../session';
+import {
+  getMockActiveSessionHistory,
+  mockSpecCompletedSessions,
+  relativeMockDate,
+  type SpecHistoryChange,
+} from './specs.mock';
 import { useSpecs } from './SpecsProvider';
 import styles from './SpecView.module.css';
 
 type SpecViewProps = { specId: string; focusedActionId?: string };
 type TabId = 'overview' | 'history';
-
-type HistoryChange = { label: string; from?: string; to: string };
 
 type HistoryItem = {
   id: string;
@@ -32,7 +36,7 @@ type HistoryItem = {
   eyebrow: string;
   summary: string;
   actor: string;
-  changes?: HistoryChange[];
+  changes?: SpecHistoryChange[];
   tone?: 'default' | 'success' | 'source' | 'action' | 'session';
 };
 
@@ -59,93 +63,6 @@ const historyTime = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 });
 
-function mockCompletedSession({
-  id,
-  specId,
-  actionId,
-  title,
-  sourceKey,
-  estimateMin,
-  daysAgo,
-  hour,
-  elapsedMin,
-  feeling,
-}: {
-  id: string;
-  specId: string;
-  actionId: string;
-  title: string;
-  sourceKey: string;
-  estimateMin: number;
-  daysAgo: number;
-  hour: number;
-  elapsedMin: number;
-  feeling: Feeling;
-}): CompletedSession {
-  const endedAt = relativeDate(daysAgo, hour).getTime();
-  return {
-    id,
-    target: { title, sourceKey, estimateMin, specId, actionId },
-    startedAt: endedAt - elapsedMin * 60000,
-    endedAt,
-    elapsedMin,
-    feeling,
-    note: '',
-    markedDone: false,
-  };
-}
-
-const MOCK_COMPLETED_SESSIONS: CompletedSession[] = [
-  mockCompletedSession({
-    id: 'mock-spec-view-a3-1',
-    specId: 'spec-3',
-    actionId: 'a-3',
-    title: 'Wire Jira and Linear status vocabularies',
-    sourceKey: 'APP-742',
-    estimateMin: 75,
-    daysAgo: 1,
-    hour: 15,
-    elapsedMin: 35,
-    feeling: 'target',
-  }),
-  mockCompletedSession({
-    id: 'mock-spec-view-a4-1',
-    specId: 'spec-3',
-    actionId: 'a-4',
-    title: 'Add status picker interaction states',
-    sourceKey: 'APP-742',
-    estimateMin: 50,
-    daysAgo: 0,
-    hour: 15,
-    elapsedMin: 25,
-    feeling: 'smile',
-  }),
-  mockCompletedSession({
-    id: 'mock-spec-view-a12-1',
-    specId: 'spec-7',
-    actionId: 'a-12',
-    title: 'Model ownership audit display rows',
-    sourceKey: 'APP-751',
-    estimateMin: 90,
-    daysAgo: 1,
-    hour: 16,
-    elapsedMin: 50,
-    feeling: 'target',
-  }),
-  mockCompletedSession({
-    id: 'mock-spec-view-a13-1',
-    specId: 'spec-7',
-    actionId: 'a-13',
-    title: 'Add source activity grouping',
-    sourceKey: 'APP-751',
-    estimateMin: 45,
-    daysAgo: 0,
-    hour: 10,
-    elapsedMin: 25,
-    feeling: 'smile',
-  }),
-];
-
 function formatDuration(min: number) {
   const hours = Math.floor(min / 60);
   const minutes = min % 60;
@@ -157,16 +74,9 @@ function formatDuration(min: number) {
 function getVisibleHistory(history: CompletedSession[]) {
   const ids = new Set(history.map((session) => session.id));
   return [
-    ...MOCK_COMPLETED_SESSIONS.filter((session) => !ids.has(session.id)),
+    ...mockSpecCompletedSessions.filter(session => !ids.has(session.id)),
     ...history,
   ];
-}
-
-function relativeDate(daysAgo: number, hour = 9) {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  date.setHours(hour, 0, 0, 0);
-  return date;
 }
 
 export function SpecView({ specId, focusedActionId }: SpecViewProps) {
@@ -1069,7 +979,7 @@ function buildHistory(
 ): HistoryItem[] {
   const sourceItem: HistoryItem = {
     id: `${spec.id}-source`,
-    at: relativeDate(6, 9),
+    at: relativeMockDate(6, 9),
     eyebrow: 'Source sync',
     summary: `${spec.sourceKey} imported from ${spec.source}`,
     actor: spec.assignee ?? 'You',
@@ -1078,7 +988,7 @@ function buildHistory(
 
   const statusItem: HistoryItem = {
     id: `${spec.id}-status`,
-    at: relativeDate(5, 11),
+    at: relativeMockDate(5, 11),
     eyebrow: 'Spec modified',
     summary: `Status changed to ${spec.sourceStatus}`,
     actor: spec.assignee ?? 'You',
@@ -1089,7 +999,7 @@ function buildHistory(
   const actionItems = spec.actions.map(
     (action, index): HistoryItem => ({
       id: `${spec.id}-${action.id}-created`,
-      at: relativeDate(Math.max(1, 4 - index), 10 + index),
+      at: relativeMockDate(Math.max(1, 4 - index), 10 + index),
       eyebrow: 'Action created',
       summary: action.title,
       actor: action.assignee ?? spec.assignee ?? 'You',
@@ -1102,7 +1012,7 @@ function buildHistory(
     .map(
       (action, index): HistoryItem => ({
         id: `${spec.id}-${action.id}-done`,
-        at: relativeDate(index, 15),
+        at: relativeMockDate(index, 15),
         eyebrow: 'Action completed',
         summary: `${action.title} completed`,
         actor: action.assignee ?? spec.assignee ?? 'You',
@@ -1125,7 +1035,7 @@ function buildHistory(
     .slice(0, 2)
     .map((action, index) => ({
       id: `${spec.id}-${action.id}-modified`,
-      at: relativeDate(Math.max(0, 2 - index), 13 + index),
+      at: relativeMockDate(Math.max(0, 2 - index), 13 + index),
       eyebrow: 'Action modified',
       summary: `${action.title} updated`,
       actor: action.assignee ?? spec.assignee ?? 'You',
@@ -1151,7 +1061,7 @@ function buildHistory(
       ? [
           {
             id: `${spec.id}-session-modified`,
-            at: relativeDate(0, 11),
+            at: relativeMockDate(0, 11),
             eyebrow: 'Session modified',
             summary: 'Session updated for Model ownership audit display rows',
             actor: 'You',
@@ -1168,19 +1078,7 @@ function buildHistory(
         ]
       : [];
 
-  const mockActiveItem: HistoryItem[] =
-    spec.id === 'spec-7'
-      ? [
-          {
-            id: `${spec.id}-mock-active-session`,
-            at: relativeDate(0, 14),
-            eyebrow: 'Session active',
-            summary: '18m in progress on Add source activity grouping',
-            actor: 'You',
-            tone: 'session',
-          },
-        ]
-      : [];
+  const mockActiveItem: HistoryItem[] = getMockActiveSessionHistory(spec.id);
 
   const activeItem: HistoryItem[] =
     running?.target.specId === spec.id

@@ -15,7 +15,7 @@ import {
   type DragStartEvent,
   type Modifier,
 } from '@dnd-kit/core';
-import { DotsSixVerticalIcon, PlusIcon, TrashIcon, TrayIcon } from '@phosphor-icons/react';
+import { DotsSixVerticalIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import { Typography } from '@stride/ui';
 
@@ -763,20 +763,6 @@ function FloatingAddBlock({
   return (
     <div ref={addBlockRef} className={open ? styles.floatingAddBlockOpen : styles.floatingAddBlock}>
       <div className={styles.floatingAddOptions} aria-label="Add event options" aria-hidden={!open}>
-        {onOpenTray ? (
-          <button
-            className={styles.floatingAddTrayOption}
-            type="button"
-            disabled={!open}
-            onClick={() => {
-              onOpenTray();
-              onOpenChange(false);
-            }}
-          >
-            <TrayIcon size={15} weight="bold" />
-            <span>{isSession ? 'Log sessions' : 'Plan work'}</span>
-          </button>
-        ) : null}
         {types.map(type => (
           <DraggableAddBlockOption
             key={type}

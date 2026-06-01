@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { defaultProfileStatuses } from './statuses.mock';
+
 // User-defined presence statuses. Defined in Settings (Personal > My statuses)
 // and chosen from the profile menu in the app shell. Account-level, so it
 // lives in a provider and persists locally.
@@ -27,12 +29,6 @@ export type ProfileStatus = {
 };
 
 const STORAGE_KEY = 'stride.statuses.v1';
-
-const DEFAULT_STATUSES: ProfileStatus[] = [
-  { id: 'available', label: 'Available', color: 'success', icon: 'Smiley' },
-  { id: 'focus', label: 'Focus', color: 'accent', icon: 'Target' },
-  { id: 'away', label: 'Away', color: 'warning', icon: 'Coffee' },
-];
 
 type StoredState = {
   statuses: ProfileStatus[];
@@ -86,8 +82,8 @@ function parseStored(raw: string | null): StoredState | null {
 }
 
 export function StatusesProvider({ children }: { children: ReactNode }) {
-  const [statuses, setStatuses] = useState<ProfileStatus[]>(DEFAULT_STATUSES);
-  const [currentStatusId, setCurrentStatusId] = useState(DEFAULT_STATUSES[0]!.id);
+  const [statuses, setStatuses] = useState<ProfileStatus[]>(defaultProfileStatuses);
+  const [currentStatusId, setCurrentStatusId] = useState(defaultProfileStatuses[0]!.id);
 
   // Hydrate after mount so server and first client render match.
   useEffect(() => {
