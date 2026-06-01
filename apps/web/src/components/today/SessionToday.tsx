@@ -122,6 +122,7 @@ function IdleHero() {
                 className={styles.ticketLink}
                 to="/specs/$specId"
                 params={{ specId: next.spec.id }}
+                search={{ actionId: undefined }}
                 aria-label={`Open spec view for ${next.spec.sourceKey}`}
               >
                 <span className={styles.ticketKey}>{next.spec.sourceKey}</span>
@@ -184,6 +185,7 @@ function RunningHero() {
               className={styles.runningSpecInline}
               to="/specs/$specId"
               params={{ specId: running.target.specId }}
+              search={{ actionId: undefined }}
               aria-label={`Open spec view for ${sourceKey}`}
             >
               <span className={styles.runningSpecKey}>{sourceKey}</span>
@@ -349,6 +351,7 @@ function LaterToday() {
                 className={styles.queueSpecLink}
                 to="/specs/$specId"
                 params={{ specId: spec.id }}
+                search={{ actionId: undefined }}
                 aria-label={`Open spec view for ${spec.sourceKey}`}
               >
                 {spec.sourceKey}

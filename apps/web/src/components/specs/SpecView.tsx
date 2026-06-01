@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Link } from '@tanstack/react-router';
 import {
@@ -21,7 +21,7 @@ import type { CompletedSession, Feeling } from '../session';
 import { useSpecs } from './SpecsProvider';
 import styles from './SpecView.module.css';
 
-type SpecViewProps = { specId: string };
+type SpecViewProps = { specId: string; focusedActionId?: string };
 type TabId = 'overview' | 'history';
 
 type HistoryChange = { label: string; from?: string; to: string };
@@ -169,7 +169,7 @@ function relativeDate(daysAgo: number, hour = 9) {
   return date;
 }
 
-export function SpecView({ specId }: SpecViewProps) {
+export function SpecView({ specId, focusedActionId }: SpecViewProps) {
   const { getSpec } = useSpecs();
   const spec = getSpec(specId);
   const [tab, setTab] = useState<TabId>('overview');
@@ -234,7 +234,7 @@ export function SpecView({ specId }: SpecViewProps) {
       </div>
 
       {tab === 'overview' ? (
-        <OverviewTab spec={spec} />
+        <OverviewTab spec={spec} focusedActionId={focusedActionId} />
       ) : (
         <HistoryTab spec={spec} />
       )}
@@ -526,7 +526,13 @@ function SourcePanel({ spec }: { spec: BacklogSpec }) {
   );
 }
 
-function OverviewTab({ spec }: { spec: BacklogSpec }) {
+function OverviewTab({
+  spec,
+  focusedActionId,
+}: {
+  spec: BacklogSpec;
+  focusedActionId?: string;
+}) {
   const { updateSpec, addAction } = useSpecs();
   const { history } = useSession();
   const visibleHistory = useMemo(() => getVisibleHistory(history), [history]);
@@ -534,10 +540,14 @@ function OverviewTab({ spec }: { spec: BacklogSpec }) {
   const [editingDescription, setEditingDescription] = useState(false);
   const addInputRef = useRef<HTMLInputElement>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(focusedActionId ?? null);
   const [sessionsAction, setSessionsAction] = useState<BacklogAction | null>(
     null,
   );
+
+  useEffect(() => {
+    if (focusedActionId) setExpandedId(focusedActionId);
+  }, [focusedActionId]);
 
   const submitAdd = () => {
     const title = addingTitle.trim();
@@ -625,6 +635,7 @@ function OverviewTab({ spec }: { spec: BacklogSpec }) {
                     (session) => session.target.actionId === action.id,
                   )}
                   spec={spec}
+                  focused={focusedActionId === action.id}
                 />
               ))}
             </ul>
@@ -672,6 +683,7 @@ type ActionRowProps = {
   onCancelDelete: () => void;
   onViewSessions: () => void;
   sessions: CompletedSession[];
+  focused: boolean;
 };
 
 function ActionRow({
@@ -684,9 +696,11 @@ function ActionRow({
   onCancelDelete,
   onViewSessions,
   sessions,
+  focused,
 }: ActionRowProps) {
   const { updateAction, deleteAction } = useSpecs();
   const { phase, running, startSession } = useSession();
+  const rowRef = useRef<HTMLLIElement>(null);
   const isRunningThis =
     phase !== 'idle' && running?.target.actionId === action.id;
   const canStart = phase === 'idle' && !action.done;
@@ -694,6 +708,11 @@ function ActionRow({
     (sum, session) => sum + session.elapsedMin,
     0,
   );
+
+  useEffect(() => {
+    if (!focused) return;
+    rowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [focused]);
 
   const handleStart = () => {
     startSession({
@@ -739,6 +758,8 @@ function ActionRow({
           : styles.actionRow
       }
       data-expanded={expanded}
+      data-focused={focused}
+      ref={rowRef}
     >
       <button
         aria-label={

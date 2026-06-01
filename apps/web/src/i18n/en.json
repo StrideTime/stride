@@ -77,7 +77,10 @@
       "headers": {
         "action": "Action",
         "spec": "Spec",
+        "priority": "Priority",
         "assignee": "Assignee",
+        "effort": "Effort",
+        "difficulty": "Difficulty",
         "time": "Time",
         "status": "Status"
       }
@@ -85,7 +88,17 @@
     "actionRow": {
       "nudge": "Nudge",
       "start": "Start",
-      "schedule": "Schedule"
+      "end": "End",
+      "switch": "Switch",
+      "running": "Running",
+      "session": {
+        "start": "Begin",
+        "finish": "End",
+        "swap": "Switch"
+      },
+      "schedule": "Schedule",
+      "more": "More action options",
+      "openSpec": "Open spec"
     },
     "statusPill": {
       "done": "Done",

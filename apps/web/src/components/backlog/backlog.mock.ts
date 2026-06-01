@@ -18,6 +18,7 @@ export type BacklogAction = {
   description?: string;
   assignee?: string;
   estimateMin?: number;
+  difficulty?: 'Tiny' | 'Small' | 'Medium' | 'Large';
   loggedMin: number;
   plannedMin: number;
   done?: boolean;

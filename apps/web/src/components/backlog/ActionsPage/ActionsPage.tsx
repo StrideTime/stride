@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Smiley, SmileyMeh, SmileySad, Target, Trash } from '@phosphor-icons/react';
 
+import { Button, Typography } from '@stride/ui';
+
+import { useSession, type Feeling } from '../../session';
 import { useSpecs } from '../../specs';
 import { ActionList } from './components/ActionList/ActionList';
 import { Controls } from '../components/Controls/Controls';
@@ -8,10 +12,21 @@ import { Header } from '../components/Header/Header';
 import { defaultBacklogFilters, getVisibleActions } from '../lib/backlogFilters';
 import { getViewCopy } from '../lib/viewCopy';
 import type { ActionScope, BacklogView } from '../types';
-import type { ActionsPageProps } from './ActionsPage.type';
 import styles from './ActionsPage.module.css';
 
-export function ActionsPage(_props: ActionsPageProps) {
+const FEELING_OPTIONS: ReadonlyArray<{
+  value: Feeling;
+  label: string;
+  icon: typeof Smiley;
+  className: string;
+}> = [
+  { value: 'frown', label: 'Tough', icon: SmileySad, className: 'feelingTough' },
+  { value: 'neutral', label: 'Okay', icon: SmileyMeh, className: 'feelingOkay' },
+  { value: 'smile', label: 'Good', icon: Smiley, className: 'feelingGood' },
+  { value: 'target', label: 'On point', icon: Target, className: 'feelingOnPoint' },
+];
+
+export function ActionsPage() {
   const { t } = useTranslation();
   const { specs } = useSpecs();
   const [activeView, setActiveView] = useState<BacklogView>('next');
@@ -33,8 +48,6 @@ export function ActionsPage(_props: ActionsPageProps) {
       />
       <div className={styles.pipeline}>
         <ActionList
-          title={viewCopy.title}
-          description={viewCopy.description}
           actions={actionRows}
           emptyText={viewCopy.empty}
           scope={effectiveActionScope}
@@ -42,6 +55,120 @@ export function ActionsPage(_props: ActionsPageProps) {
           onScopeChange={setActionScope}
         />
       </div>
+      <SessionCheckInDialog />
     </section>
+  );
+}
+
+function SessionCheckInDialog() {
+  const { phase, running, elapsedMs, completeSession, discardSession } = useSession();
+  const [feeling, setFeeling] = useState<Feeling | null>(null);
+  const [note, setNote] = useState('');
+  const [markedDone, setMarkedDone] = useState<boolean | null>(null);
+
+  if (phase !== 'checkin' || !running) return null;
+
+  const minutes = Math.max(1, Math.round(elapsedMs / 60000));
+  const durationLabel = minutes === 1 ? '1 minute logged' : `${minutes} minutes logged`;
+  const finishCheckIn = () => completeSession({
+    feeling: feeling ?? 'neutral',
+    note,
+    markedDone: markedDone === true,
+  });
+
+  return (
+    <div className={styles.checkInOverlay} role="presentation" onClick={finishCheckIn}>
+      <section
+        className={styles.checkInDialog}
+        aria-label="Session check-in"
+        onClick={event => event.stopPropagation()}
+      >
+        <button
+          className={styles.checkInClose}
+          type="button"
+          aria-label="Close feedback"
+          onClick={finishCheckIn}
+        >
+          ×
+        </button>
+        <div className={styles.checkInHead}>
+          <Typography as="h2" size="lg" weight="bold">
+            Anything to add?
+          </Typography>
+          <Typography as="p" size="sm" color="muted">
+            {running.target.title}
+          </Typography>
+          <span className={styles.sessionDuration}>{durationLabel}</span>
+        </div>
+
+        <div className={styles.feelingScale} aria-label="Session feeling">
+          {FEELING_OPTIONS.map(item => {
+            const Icon = item.icon;
+            const selected = feeling === item.value;
+            return (
+              <button
+                key={item.value}
+                className={[
+                  styles.feelingOption,
+                  styles[item.className],
+                  selected ? styles.feelingSelected : null,
+                ].filter(Boolean).join(' ')}
+                onClick={() => setFeeling(item.value)}
+                type="button"
+                aria-pressed={selected}
+              >
+                <Icon size={18} weight={selected ? 'fill' : 'regular'} aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <textarea
+          className={styles.checkInNote}
+          onChange={event => setNote(event.target.value)}
+          placeholder="Add a note if anything changed."
+          rows={3}
+          value={note}
+        />
+
+        <div className={styles.completionRow}>
+          <Typography as="span" size="sm" weight="semibold">
+            Finished the action?
+          </Typography>
+          <div className={styles.doneChoice} aria-label="Action completion">
+            <button
+              aria-pressed={markedDone === false}
+              className={markedDone === false ? `${styles.doneOption} ${styles.doneOptionActive}` : styles.doneOption}
+              onClick={() => setMarkedDone(false)}
+              type="button"
+            >
+              No
+            </button>
+            <button
+              aria-pressed={markedDone === true}
+              className={markedDone === true ? `${styles.doneOption} ${styles.doneOptionDone}` : styles.doneOption}
+              onClick={() => setMarkedDone(true)}
+              type="button"
+            >
+              Yes
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.checkInActions}>
+          <Button
+            variant="danger"
+            icon={<Trash size={14} aria-hidden="true" />}
+            onClick={discardSession}
+          >
+            Delete session
+          </Button>
+          <Button variant="primary" onClick={finishCheckIn}>
+            Add feedback
+          </Button>
+        </div>
+      </section>
+    </div>
   );
 }

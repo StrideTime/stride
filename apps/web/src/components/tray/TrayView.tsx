@@ -153,6 +153,7 @@ function LiveSessionTray() {
             className={styles.detailsButton}
             to="/specs/$specId"
             params={{ specId: spec.id }}
+            search={{ actionId: undefined }}
           >
             View spec
           </Link>

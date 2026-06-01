@@ -21,6 +21,7 @@ type SessionState = {
   running: RunningSession | null;
   endedAt: number | null;
   history: CompletedSession[];
+  pendingSwitchTarget: SessionTarget | null;
 };
 
 const now = Date.now();
@@ -141,6 +142,7 @@ const DEFAULT_STATE: SessionState = {
   running: null,
   endedAt: null,
   history: MOCK_HISTORY,
+  pendingSwitchTarget: null,
 };
 
 const STORAGE_KEY = 'stride.session.v1';
@@ -168,6 +170,7 @@ type SessionContextValue = {
   elapsedMs: number;
   history: CompletedSession[];
   startSession: (target: SessionTarget) => void;
+  switchSession: (target: SessionTarget) => void;
   requestEnd: () => void;
   resumeSession: () => void;
   completeSession: (input: CheckInInput) => void;
@@ -234,6 +237,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           endedAt: null,
         }));
       },
+      switchSession: (target) => {
+        const switchedAt = Date.now();
+        setNow(switchedAt);
+        setState((prev) => {
+          if (!prev.running) {
+            return {
+              ...prev,
+              phase: 'running',
+              running: { id: `s-${switchedAt}`, target, startedAt: switchedAt },
+              endedAt: null,
+              pendingSwitchTarget: null,
+            };
+          }
+
+          return {
+            ...prev,
+            phase: 'checkin',
+            endedAt: switchedAt,
+            pendingSwitchTarget: target,
+          };
+        });
+      },
       requestEnd: () => {
         setState((prev) =>
           prev.phase === 'running'
@@ -263,21 +288,53 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             note: note.trim(),
             markedDone,
           };
-          return {
-            phase: 'idle',
-            running: null,
-            endedAt: null,
-            history: [completed, ...prev.history],
-          };
+          const nextStartedAt = Date.now();
+          return prev.pendingSwitchTarget
+            ? {
+                phase: 'running',
+                running: {
+                  id: `s-${nextStartedAt}`,
+                  target: prev.pendingSwitchTarget,
+                  startedAt: nextStartedAt,
+                },
+                endedAt: null,
+                history: [completed, ...prev.history],
+                pendingSwitchTarget: null,
+              }
+            : {
+                phase: 'idle',
+                running: null,
+                endedAt: null,
+                history: [completed, ...prev.history],
+                pendingSwitchTarget: null,
+              };
         });
       },
       discardSession: () => {
-        setState((prev) => ({
-          ...prev,
-          phase: 'idle',
-          running: null,
-          endedAt: null,
-        }));
+        setState((prev) => {
+          if (prev.pendingSwitchTarget) {
+            const startedAt = Date.now();
+            return {
+              ...prev,
+              phase: 'running',
+              running: {
+                id: `s-${startedAt}`,
+                target: prev.pendingSwitchTarget,
+                startedAt,
+              },
+              endedAt: null,
+              pendingSwitchTarget: null,
+            };
+          }
+
+          return {
+            ...prev,
+            phase: 'idle',
+            running: null,
+            endedAt: null,
+            pendingSwitchTarget: null,
+          };
+        });
       },
     };
   }, [state, now]);

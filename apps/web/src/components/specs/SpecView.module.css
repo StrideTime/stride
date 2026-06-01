@@ -224,6 +224,19 @@
   transition: background-color 120ms ease;
 }
 .actionRow:hover { background: var(--color-surface-raised); }
+.actionRow[data-focused='true'] {
+  background: color-mix(in oklch, var(--color-surface-raised) 72%, transparent);
+}
+.actionRow[data-focused='true'] .actionMain {
+  color: var(--color-text);
+}
+.actionRow[data-focused='true'] .actionTitleLine > span:first-child {
+  color: var(--color-accent);
+}
+.actionRow[data-focused='true'] .actionDetails {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
 .actionDone .actionCopy span:first-child {
   color: var(--color-text-muted);
   text-decoration: line-through;

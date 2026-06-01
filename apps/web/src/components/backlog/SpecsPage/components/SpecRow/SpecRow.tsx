@@ -20,6 +20,7 @@ export function SpecRow({ spec }: SpecRowProps) {
         className={styles.specRow}
         to="/specs/$specId"
         params={{ specId: spec.id }}
+        search={{ actionId: undefined }}
       >
         <code className={styles.specKey}>{spec.sourceKey}</code>
         <div className={styles.specTitle}>{spec.title}</div>

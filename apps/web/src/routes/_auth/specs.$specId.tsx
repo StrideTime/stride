@@ -3,6 +3,9 @@ import { createFileRoute } from '@tanstack/react-router';
 import { SpecView } from '../../components/specs';
 
 export const Route = createFileRoute('/_auth/specs/$specId')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    actionId: typeof search.actionId === 'string' ? search.actionId : undefined,
+  }),
   component: SpecPage,
 });
 
@@ -11,5 +14,6 @@ export const Route = createFileRoute('/_auth/specs/$specId')({
 // are a later refinement; this route renders SpecView directly. See docs/product/surfaces.md.
 function SpecPage() {
   const { specId } = Route.useParams();
-  return <SpecView specId={specId} />;
+  const { actionId } = Route.useSearch();
+  return <SpecView specId={specId} focusedActionId={actionId} />;
 }
