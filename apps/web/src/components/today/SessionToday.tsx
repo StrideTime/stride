@@ -8,6 +8,7 @@ import {
   SmileyMeh,
   SmileySad,
   Target,
+  Trash,
   Tray,
 } from '@phosphor-icons/react';
 import { Button, Typography } from '@stride/ui';
@@ -257,25 +258,24 @@ function CheckInHero() {
   const { specs } = useSpecs();
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [note, setNote] = useState('');
-  const [markedDone, setMarkedDone] = useState<boolean | null>(null);
+  const [markedDone, setMarkedDone] = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
 
   if (!running) return null;
   const minutes = Math.max(1, Math.round(elapsedMs / 60000));
   const spec = specs.find(item => item.id === running.target.specId);
+  const hasFeedback = feeling !== null || note.trim().length > 0 || markedDone;
 
   return (
     <section className={`${styles.hero} ${styles.heroCheckin}`}>
       <div className={styles.checkinHead}>
-        <Typography as="h2" size="lg" weight="bold">How did that go?</Typography>
-        <div className={styles.checkinMeta}>
-          <Typography as="p" size="sm" color="muted">
-            {running.target.title}
-          </Typography>
-          <Typography as="span" size="sm" weight="semibold" color="muted">
-            {`${minutes}m`}
-          </Typography>
-        </div>
+        <Typography as="h2" size="lg" weight="bold">Anything to add?</Typography>
+        <Typography as="p" size="sm" color="muted">
+          {running.target.title}
+        </Typography>
+        <span className={styles.sessionDuration}>
+          {minutes === 1 ? '1 minute logged' : `${minutes} minutes logged`}
+        </span>
       </div>
 
       <div className={styles.feedbackGrid}>
@@ -303,7 +303,7 @@ function CheckInHero() {
         <textarea
           className={styles.note}
           onChange={event => setNote(event.target.value)}
-          placeholder="What changed?"
+          placeholder="Add a note if anything changed."
           rows={3}
           value={note}
         />
@@ -326,16 +326,16 @@ function CheckInHero() {
         </div>
         <div className={styles.doneChoice} aria-label="Action completion">
           <button
-            aria-pressed={markedDone === false}
-            className={markedDone === false ? `${styles.doneOption} ${styles.doneOptionActive}` : styles.doneOption}
+            aria-pressed={!markedDone}
+            className={!markedDone ? `${styles.doneOption} ${styles.doneOptionActive}` : styles.doneOption}
             onClick={() => setMarkedDone(false)}
             type="button"
           >
             No
           </button>
           <button
-            aria-pressed={markedDone === true}
-            className={markedDone === true ? `${styles.doneOption} ${styles.doneOptionDone}` : styles.doneOption}
+            aria-pressed={markedDone}
+            className={markedDone ? `${styles.doneOption} ${styles.doneOptionDone}` : styles.doneOption}
             onClick={() => setMarkedDone(true)}
             type="button"
           >
@@ -369,12 +369,18 @@ function CheckInHero() {
       ) : null}
 
       <div className={styles.checkinActions}>
-        <Button variant="secondary" onClick={discardSession}>Discard</Button>
+        <Button
+          variant="danger"
+          icon={<Trash size={14} aria-hidden="true" />}
+          onClick={discardSession}
+        >
+          Delete session
+        </Button>
         <Button
           variant="primary"
-          onClick={() => completeSession({ feeling: feeling ?? 'neutral', note, markedDone: markedDone === true })}
+          onClick={() => completeSession({ feeling: feeling ?? 'neutral', note, markedDone })}
         >
-          Save session
+          {hasFeedback ? 'Add feedback' : 'Done'}
         </Button>
       </div>
     </section>
@@ -382,7 +388,7 @@ function CheckInHero() {
 }
 
 function LaterToday({ forceEmpty }: { forceEmpty: boolean }) {
-  const { phase, running, startSession } = useSession();
+  const { phase, running, requestEnd, startSession, switchSession } = useSession();
   const { specs } = useSpecs();
   // Don't repeat whatever the hero is already leading with: the top action
   // while idle, or the active action while a session is running / checking in.
@@ -405,6 +411,16 @@ function LaterToday({ forceEmpty }: { forceEmpty: boolean }) {
       <ul className={styles.laterList}>
         {upcoming.map(({ spec, action }) => {
           const status = actionStatus(action);
+          const isRunningThis = running?.target.actionId === action.id;
+          const hasActiveSession = phase !== 'idle';
+          const sessionTarget = {
+            title: action.title,
+            sourceKey: spec.sourceKey,
+            estimateMin: action.estimateMin,
+            specId: spec.id,
+            actionId: action.id,
+          };
+          const buttonLabel = isRunningThis ? 'End' : hasActiveSession ? 'Switch' : 'Start';
           return (
             <li className={styles.laterRow} key={action.id}>
               <div className={styles.laterCopy}>
@@ -434,18 +450,24 @@ function LaterToday({ forceEmpty }: { forceEmpty: boolean }) {
                   {status.label}
                 </span>
                 <button
-                  aria-label={`Start session for ${action.title}`}
-                  className={styles.quickStart}
-                  disabled={phase !== 'idle'}
-                  onClick={() => startSession({
-                    title: action.title,
-                    sourceKey: spec.sourceKey,
-                    specId: spec.id,
-                    actionId: action.id,
-                  })}
+                  aria-label={`${buttonLabel} session for ${action.title}`}
+                  className={`${styles.quickStart} ${hasActiveSession ? styles.quickSwitch : ''}`}
+                  onClick={() => {
+                    if (isRunningThis) {
+                      requestEnd();
+                      return;
+                    }
+
+                    if (hasActiveSession) {
+                      switchSession(sessionTarget);
+                      return;
+                    }
+
+                    startSession(sessionTarget);
+                  }}
                   type="button"
                 >
-                  Start
+                  {buttonLabel}
                 </button>
               </div>
             </li>

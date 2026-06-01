@@ -64,16 +64,17 @@ function SessionCheckInDialog() {
   const { phase, running, elapsedMs, completeSession, discardSession } = useSession();
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [note, setNote] = useState('');
-  const [markedDone, setMarkedDone] = useState<boolean | null>(null);
+  const [markedDone, setMarkedDone] = useState(false);
 
   if (phase !== 'checkin' || !running) return null;
 
   const minutes = Math.max(1, Math.round(elapsedMs / 60000));
   const durationLabel = minutes === 1 ? '1 minute logged' : `${minutes} minutes logged`;
+  const hasFeedback = feeling !== null || note.trim().length > 0 || markedDone;
   const finishCheckIn = () => completeSession({
     feeling: feeling ?? 'neutral',
     note,
-    markedDone: markedDone === true,
+    markedDone,
   });
 
   return (
@@ -138,16 +139,16 @@ function SessionCheckInDialog() {
           </Typography>
           <div className={styles.doneChoice} aria-label="Action completion">
             <button
-              aria-pressed={markedDone === false}
-              className={markedDone === false ? `${styles.doneOption} ${styles.doneOptionActive}` : styles.doneOption}
+              aria-pressed={!markedDone}
+              className={!markedDone ? `${styles.doneOption} ${styles.doneOptionActive}` : styles.doneOption}
               onClick={() => setMarkedDone(false)}
               type="button"
             >
               No
             </button>
             <button
-              aria-pressed={markedDone === true}
-              className={markedDone === true ? `${styles.doneOption} ${styles.doneOptionDone}` : styles.doneOption}
+              aria-pressed={markedDone}
+              className={markedDone ? `${styles.doneOption} ${styles.doneOptionDone}` : styles.doneOption}
               onClick={() => setMarkedDone(true)}
               type="button"
             >
@@ -165,7 +166,7 @@ function SessionCheckInDialog() {
             Delete session
           </Button>
           <Button variant="primary" onClick={finishCheckIn}>
-            Add feedback
+            {hasFeedback ? 'Add feedback' : 'Done'}
           </Button>
         </div>
       </section>
