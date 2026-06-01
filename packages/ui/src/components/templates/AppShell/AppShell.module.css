@@ -757,9 +757,10 @@
     align-items: stretch;
     justify-content: space-around;
     gap: var(--space-1);
-    padding: var(--space-2) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--color-border);
-    background: var(--color-bg);
+    padding: var(--space-2) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom));
+    border-top: 1px solid color-mix(in oklch, var(--color-border) 80%, transparent);
+    background: var(--color-shell);
+    box-shadow: 0 -8px 24px oklch(8% 0.02 260 / 45%);
   }
 
   .mobileNavItem {
@@ -768,14 +769,20 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
     min-height: 48px;
-    color: var(--color-text-muted);
+    color: color-mix(in oklch, var(--color-text-inverse) 58%, transparent);
     font-size: 10px;
     font-weight: 700;
+    letter-spacing: 0.01em;
     line-height: 1;
     text-decoration: none;
+    transition: color 160ms ease-out;
+  }
+
+  .mobileNavItem:hover {
+    color: var(--color-text-inverse);
   }
 
   .mobileNavIcon {
@@ -783,7 +790,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
+    width: 46px;
     height: 30px;
     border-radius: 999px;
     transition: background-color 180ms ease-out, box-shadow 180ms ease-out;
@@ -793,28 +800,33 @@
     background: var(--color-shell-raised);
   }
 
-  .mobileNavActive {
+  .mobileNavActive,
+  .mobileNavActive:hover {
     color: var(--color-accent);
   }
 
   .mobileNavActive .mobileNavIcon,
   .mobileNavActive:hover .mobileNavIcon {
     background: var(--color-accent-subtle);
-    box-shadow: inset 0 0 0 1px oklch(46% 0.08 250);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-accent) 38%, transparent);
   }
 
   .mobileBadge {
     position: absolute;
     top: -3px;
-    left: 58%;
+    left: calc(50% + 5px);
+    display: grid;
+    place-items: center;
     min-width: 16px;
-    padding: 1px 5px;
+    height: 16px;
+    padding: 0 4px;
     border-radius: 999px;
     background: var(--color-accent);
     color: var(--color-shell);
     font-size: 10px;
     font-weight: 800;
-    box-shadow: 0 0 0 2px var(--color-bg);
+    line-height: 1;
+    box-shadow: 0 0 0 2px var(--color-shell);
   }
 }
 

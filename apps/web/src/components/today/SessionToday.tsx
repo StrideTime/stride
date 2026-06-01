@@ -8,13 +8,14 @@ import {
   SmileyMeh,
   SmileySad,
   Target,
+  Tray,
 } from '@phosphor-icons/react';
 import { Button, Typography } from '@stride/ui';
 
 import { useSession } from '../session';
 import type { Feeling } from '../session';
 import { pickUpNextAction, useSpecs } from '../specs';
-import type { BacklogSpec } from '../backlog/backlog.mock';
+import type { BacklogAction, BacklogSpec } from '../backlog/backlog.mock';
 import styles from './SessionToday.module.css';
 
 const FEELING_OPTIONS: ReadonlyArray<{
@@ -42,9 +43,39 @@ function getNextActions(specs: BacklogSpec[]) {
     .flatMap(spec => spec.actions
       .filter(action => !action.done && (action.assignee === 'You' || (!action.assignee && spec.assignee === 'You')))
       .sort((a, b) => Number(b.scheduled) - Number(a.scheduled))
-      .map(action => ({ spec, action })))
-    .slice(0, 4);
+      .map(action => ({ spec, action })));
 }
+
+function formatMins(min: number) {
+  const hours = Math.floor(min / 60);
+  const mins = min % 60;
+  if (hours === 0) return `${mins}m`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h ${mins}m`;
+}
+
+type QueueStatus = { label: string; tone: 'progress' | 'over' | 'scheduled' | 'ready' };
+
+// What the user most needs to decide whether to pick this up next: is it
+// already underway (and how much is left), planned for today, or untouched.
+function actionStatus(action: BacklogAction): QueueStatus {
+  const logged = action.loggedMin ?? 0;
+  if (logged > 0 && !action.done) {
+    const est = action.estimateMin;
+    if (est && logged > est) return { label: 'In progress · over', tone: 'over' };
+    if (est) return { label: `In progress · ${formatMins(est - logged)} left`, tone: 'progress' };
+    return { label: 'In progress', tone: 'progress' };
+  }
+  if (action.scheduled) return { label: 'Scheduled', tone: 'scheduled' };
+  return { label: 'Ready', tone: 'ready' };
+}
+
+const STATUS_TONE_CLASS: Record<QueueStatus['tone'], string> = {
+  progress: 'statusProgress',
+  over: 'statusOver',
+  scheduled: 'statusScheduled',
+  ready: 'statusReady',
+};
 
 function formatClock(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -68,87 +99,107 @@ export function SessionToday() {
   const [dateText, setDateText] = useState('');
   useEffect(() => setDateText(dateLabel()), []);
 
+  // TEMP dev-only control to preview the empty-queue state. Remove before ship.
+  const [showEmpty, setShowEmpty] = useState(false);
+
   return (
     <section className={styles.page}>
+      {/* TEMP dev-only toggle — remove before shipping. */}
+      <button
+        type="button"
+        className={`${styles.devToggle} ${showEmpty ? styles.devToggleActive : ''}`}
+        onClick={() => setShowEmpty(value => !value)}
+      >
+        {`Dev · empty queue: ${showEmpty ? 'on' : 'off'}`}
+      </button>
+
       <header className={styles.header}>
-        <Typography as="h1" size="2xl" weight="bold">Today</Typography>
-        <Typography as="span" size="base" color="muted">{dateText}</Typography>
+        <div className={styles.headText}>
+          <Typography as="h1" size="2xl" weight="bold">Today</Typography>
+          <Typography as="span" size="base" color="muted">{dateText}</Typography>
+        </div>
       </header>
 
-      <Hero />
-      <LaterToday />
+      <Hero forceEmpty={showEmpty} />
+      <LaterToday forceEmpty={showEmpty} />
     </section>
   );
 }
 
-function Hero() {
+function Hero({ forceEmpty }: { forceEmpty: boolean }) {
   const { phase } = useSession();
   if (phase === 'running') return <RunningHero />;
   if (phase === 'checkin') return <CheckInHero />;
-  return <IdleHero />;
+  return <IdleHero forceEmpty={forceEmpty} />;
 }
 
-function IdleHero() {
+function IdleHero({ forceEmpty }: { forceEmpty: boolean }) {
   const { startSession } = useSession();
   const { specs } = useSpecs();
-  const next = pickUpNextAction(specs);
+  const next = forceEmpty ? null : pickUpNextAction(specs);
+
+  if (!next) {
+    return (
+      <div className={styles.empty}>
+        <span className={styles.emptyIcon} aria-hidden="true">
+          <Tray size={26} weight="regular" />
+        </span>
+        <div className={styles.emptyCopy}>
+          <Typography as="h2" size="lg" weight="bold">Nothing queued right now</Typography>
+          <Typography as="p" size="sm" color="muted" className={styles.emptyText}>
+            Pull work in from the backlog, or start a focus session to capture time as you go.
+          </Typography>
+        </div>
+        <div className={styles.emptyActions}>
+          <Button
+            variant="primary"
+            icon={<Play size={16} weight="fill" />}
+            onClick={() => startSession({ title: 'Focus session' })}
+          >
+            Start a focus session
+          </Button>
+          <Link className={styles.emptyLink} to="/backlog">
+            Browse backlog
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className={`${styles.hero} ${styles.heroIdle}`}>
       <div className={styles.heroMain}>
-        {next ? (
-          <>
-            <div className={styles.heroTitleRow}>
-              <Typography as="h2" size="2xl" weight="bold" className={styles.heroTitle}>
-                {next.action.title}
-              </Typography>
-              <Button
-                variant="primary"
-                icon={<Play size={16} weight="fill" />}
-                onClick={() => {
-                  startSession({
-                    title: next.action.title,
-                    sourceKey: next.spec.sourceKey,
-                    specId: next.spec.id,
-                    actionId: next.action.id,
-                  });
-                }}
-              >
-                Start session
-              </Button>
-            </div>
-            <div className={styles.heroMeta}>
-              <Link
-                className={styles.ticketLink}
-                to="/specs/$specId"
-                params={{ specId: next.spec.id }}
-                aria-label={`Open spec view for ${next.spec.sourceKey}`}
-              >
-                <span className={styles.ticketKey}>{next.spec.sourceKey}</span>
-                <span className={styles.ticketLinkLabel}>Open spec</span>
-                <ArrowRight size={13} aria-hidden="true" />
-              </Link>
-              <Typography as="span" size="sm" color="muted">
-                {next.spec.title}
-              </Typography>
-            </div>
-
-          </>
-        ) : (
-          <Typography as="h2" size="2xl" weight="bold">Nothing queued right now</Typography>
-        )}
-
-        {next ? null : (
-          <div className={styles.heroActions}>
-            <button
-              className={styles.secondaryAction}
-              type="button"
-              onClick={() => startSession({ title: 'Focus session' })}
-            >
-              Start focus session
-            </button>
-          </div>
-        )}
+        <span className={styles.heroEyebrow}>Up next</span>
+        <div className={styles.heroTitleRow}>
+          <Typography as="h2" size="2xl" weight="bold" className={styles.heroTitle}>
+            {next.action.title}
+          </Typography>
+          <Button
+            variant="primary"
+            icon={<Play size={16} weight="fill" />}
+            onClick={() => {
+              startSession({
+                title: next.action.title,
+                sourceKey: next.spec.sourceKey,
+                specId: next.spec.id,
+                actionId: next.action.id,
+              });
+            }}
+          >
+            Start session
+          </Button>
+        </div>
+        <Link
+          className={styles.specLink}
+          to="/specs/$specId"
+          params={{ specId: next.spec.id }}
+          aria-label={`Open spec ${next.spec.sourceKey}: ${next.spec.title}`}
+        >
+          <span className={styles.specKey}>{next.spec.sourceKey}</span>
+          <span className={styles.specTitle}>{next.spec.title}</span>
+          <ArrowRight size={13} className={styles.specArrow} aria-hidden="true" />
+        </Link>
       </div>
     </section>
   );
@@ -163,8 +214,9 @@ function RunningHero() {
   return (
     <section className={`${styles.hero} ${styles.heroRunning}`}>
       <div className={styles.runningContext}>
-        <div className={styles.runningEyebrow} aria-label="Session running">
+        <div className={styles.runningEyebrow}>
           <span className={styles.pulse} aria-hidden="true" />
+          <span className={styles.runningEyebrowLabel}>In session</span>
         </div>
 
         <div className={styles.runningTitleBlock}>
@@ -181,17 +233,16 @@ function RunningHero() {
           <Button variant="primary" onClick={requestEnd}>End session</Button>
           {running.target.specId && sourceKey ? (
             <Link
-              className={styles.runningSpecInline}
+              className={styles.specLink}
               to="/specs/$specId"
               params={{ specId: running.target.specId }}
-              aria-label={`Open spec view for ${sourceKey}`}
+              aria-label={`Open spec ${sourceKey}`}
             >
-              <span className={styles.runningSpecKey}>{sourceKey}</span>
-              <span>Open spec</span>
-              <ArrowRight size={12} aria-hidden="true" />
+              <span className={styles.specKey}>{sourceKey}</span>
+              <ArrowRight size={13} className={styles.specArrow} aria-hidden="true" />
             </Link>
           ) : sourceKey ? (
-            <span className={styles.sourceKey}>{sourceKey}</span>
+            <span className={styles.specKey}>{sourceKey}</span>
           ) : null}
         </div>
       </div>
@@ -328,51 +379,75 @@ function CheckInHero() {
   );
 }
 
-function LaterToday() {
-  const { phase, startSession } = useSession();
+function LaterToday({ forceEmpty }: { forceEmpty: boolean }) {
+  const { phase, running, startSession } = useSession();
   const { specs } = useSpecs();
-  const upcoming = getNextActions(specs);
+  // Don't repeat whatever the hero is already leading with: the top action
+  // while idle, or the active action while a session is running / checking in.
+  const heroActionId = phase === 'idle'
+    ? pickUpNextAction(specs)?.action.id
+    : running?.target.actionId;
+  const upcoming = forceEmpty
+    ? []
+    : getNextActions(specs)
+        .filter(({ action }) => action.id !== heroActionId)
+        .slice(0, 4);
+
+  if (upcoming.length === 0) return null;
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHead}>
-        <Typography as="h2" size="lg" weight="bold">Up next</Typography>
+        <Typography as="h2" size="lg" weight="bold">Later today</Typography>
       </div>
       <ul className={styles.laterList}>
-        {upcoming.map(({ spec, action }) => (
-          <li className={styles.laterRow} key={action.id}>
-            <div className={styles.laterCopy}>
-              <Typography as="span" size="base" weight="semibold" className={styles.truncate}>
-                {action.title}
-              </Typography>
-              <Link
-                className={styles.queueSpecLink}
-                to="/specs/$specId"
-                params={{ specId: spec.id }}
-                aria-label={`Open spec view for ${spec.sourceKey}`}
-              >
-                {spec.sourceKey}
-                {action.scheduled ? <span>Scheduled</span> : null}
-              </Link>
-            </div>
-            <div className={styles.laterAction}>
-              <button
-                aria-label={`Begin ${action.title}`}
-                className={styles.quickStart}
-                disabled={phase !== 'idle'}
-                onClick={() => startSession({
-                  title: action.title,
-                  sourceKey: spec.sourceKey,
-                  specId: spec.id,
-                  actionId: action.id,
-                })}
-                type="button"
-              >
-                Begin
-              </button>
-            </div>
-          </li>
-        ))}
+        {upcoming.map(({ spec, action }) => {
+          const status = actionStatus(action);
+          return (
+            <li className={styles.laterRow} key={action.id}>
+              <div className={styles.laterCopy}>
+                <Typography as="span" size="base" weight="semibold" className={styles.truncate}>
+                  {action.title}
+                </Typography>
+                <div className={styles.queueMeta}>
+                  <span className={`${styles.priorityChip} ${styles[`priority${spec.priority}`]}`}>
+                    {spec.priority}
+                  </span>
+                  <Link
+                    className={styles.queueSpecLink}
+                    to="/specs/$specId"
+                    params={{ specId: spec.id }}
+                    aria-label={`Open spec view for ${spec.sourceKey}`}
+                  >
+                    {spec.sourceKey}
+                  </Link>
+                  <span className={styles.queueEstimate}>
+                    {action.estimateMin ? formatMins(action.estimateMin) : 'No estimate'}
+                  </span>
+                </div>
+              </div>
+              <div className={styles.laterRight}>
+                <span className={`${styles.queueStatus} ${styles[STATUS_TONE_CLASS[status.tone]]}`}>
+                  {status.label}
+                </span>
+                <button
+                  aria-label={`Start session for ${action.title}`}
+                  className={styles.quickStart}
+                  disabled={phase !== 'idle'}
+                  onClick={() => startSession({
+                    title: action.title,
+                    sourceKey: spec.sourceKey,
+                    specId: spec.id,
+                    actionId: action.id,
+                  })}
+                  type="button"
+                >
+                  Start
+                </button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
