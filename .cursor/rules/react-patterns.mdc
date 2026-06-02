@@ -57,36 +57,33 @@ export function SpecCard({ spec, onRefine, className }: SpecCardProps) {
 
 ## File Organization
 
+Global app folders use aliases from route/component code. Import providers from `@providers`, not from relative paths like `../../providers`.
+
 ```
 apps/web/src/
-  routes/              # TanStack Start file-based routes
-    __root.tsx         # Root layout (providers)
-    login.tsx          # /login (unauthenticated — placeholder)
-    onboarding.tsx     # /onboarding (first-run — placeholder, shape TBD)
-    _auth.tsx          # App-shell layout — requires auth + a workspace; left rail + Settings gear
-    _auth/
-      index.tsx        # / → Today (dashboard)
-      backlog.tsx      # /backlog route (Specs/Actions/Blockers as in-page views)
-      schedule.tsx     # /schedule route (week/month as in-page views)
-      insights.tsx     # /insights route (v1: Performance only; more tabs post-v1)
-      specs.$specId.tsx  # /specs/$specId — spec detail (overlay over the current page in-app; standalone when cold-loaded)
-      settings/        # /settings/* (sub-pages TBD)
-      tray.tsx         # /tray route (desktop tray window — loaded by Tauri; not a nav item)
-  components/
-    shared/            # Reusable across features
-    today/             # Today-specific components
-    backlog/           # Backlog-specific components
-    schedule/          # Schedule-specific components
-    insights/          # Insights-specific components
-    specs/             # Spec view + the ad-hoc spec modal
-    tray/              # Tray-specific components
-  hooks/               # Custom hooks (useAuth.ts, useQueue.ts)
+  routes/              # TanStack Start file-based routes and route-owned UI
+    __root.tsx         # Root document only
+    index/route.tsx    # / route — top-level Today page component lives here
+    index/components/ # Today-only components; each component gets its own folder
+      SessionToday/
+        SessionToday.tsx
+        SessionToday.module.css
+        index.ts
+    backlog/specs/route.tsx
+    backlog/specs/components/
+    schedule/route.tsx
+    schedule/components/
+    settings/$sectionId/route.tsx
+    settings/components/
+  providers/           # App-wide provider components, contexts, hooks, and provider state helpers
+  components/          # Only app-wide reusable components that do not belong in packages/ui
+  hooks/               # App-wide custom hooks (useAuth.ts, useQueue.ts)
   lib/                 # Non-React utilities
 ```
 
 ## Route Files — TanStack Start
 
-Each route file exports a `Route` created with `createFileRoute`:
+Each route file exports a `Route` created with `createFileRoute`. The route file is also the top-level page component for that route; do not make routes thin pass-through files that only render a page component from `src/components`.
 
 ```typescript
 // routes/_auth/backlog.tsx
@@ -112,6 +109,9 @@ function BacklogView() {
 ```
 
 **Rules:**
+- Route-owned components, mocks, helpers, and CSS Modules live alongside the route in `components/`, `lib/`, or `*.mock.ts` files/directories
+- Inside a route `components/` directory, each component gets a named folder containing its component file, CSS Module, and optional `index.ts`; do not put multiple component/CSS pairs flat in one folder
+- `src/components` is for app-wide reusable components only; prefer `packages/ui` when a component is truly shared
 - Loaders prefetch data server-side (web SSR) or client-side (desktop SPA) — same code, different runtime
 - Use `queryClient.ensureQueryData` in loaders so TanStack Query cache is always primed
 - Components read from cache via `useSuspenseQuery` — never fetch in components directly
@@ -167,7 +167,7 @@ export function RefineSpec({ specId }: { specId: string }) {
 |---|---|
 | Server/API data | TanStack Query (`useSuspenseQuery`) |
 | Ephemeral UI state | `useState` (modal open, form inputs, hover) |
-| Cross-component UI state | React Context (`src/lib/context/`) |
+| Cross-component UI state | React Context for now, isolated under `src/providers/` when app-wide |
 | Form state | TanStack Form |
 | Offline queue state | `packages/queue` via `useQueueStatus` hook |
 

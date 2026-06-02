@@ -3,42 +3,61 @@
   align-items: center;
   gap: var(--space-1);
   width: max-content;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 800;
   line-height: 1;
-  padding: 5px 8px;
+  padding: var(--space-1) var(--space-2);
   white-space: nowrap;
 }
 
 .neutral {
-  background: var(--color-bg);
-  color: var(--color-text-muted);
+  --badge-color: var(--color-text-muted);
+  --badge-bg: var(--color-bg);
+  --badge-border: var(--color-border);
 }
 
-.accent {
-  border-color: var(--color-accent);
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
+.primary {
+  --badge-color: var(--color-accent);
+  --badge-bg: var(--color-accent-subtle);
+  --badge-border: var(--color-accent);
 }
 
 .success {
-  border-color: var(--color-success);
-  background: color-mix(in oklch, var(--color-success) 18%, var(--color-surface));
-  color: var(--color-success);
+  --badge-color: var(--color-success);
+  --badge-bg: var(--color-success-subtle);
+  --badge-border: var(--color-success-border);
 }
 
 .warning {
-  border-color: var(--color-attention-warn-text);
-  background: var(--color-attention-warn-bg);
-  color: var(--color-attention-warn-text);
+  --badge-color: var(--color-warning);
+  --badge-bg: var(--color-warning-subtle);
+  --badge-border: var(--color-warning-border);
 }
 
 .danger {
-  border-color: var(--color-attention-danger-text);
-  background: var(--color-attention-danger-bg);
-  color: var(--color-attention-danger-text);
+  --badge-color: var(--color-danger);
+  --badge-bg: var(--color-danger-subtle);
+  --badge-border: var(--color-danger-border);
+}
+
+.contained {
+  border-color: var(--badge-border);
+  background: var(--badge-bg);
+  color: var(--badge-color);
+}
+
+.outlined {
+  border-color: var(--badge-border);
+  background: transparent;
+  color: var(--badge-color);
+}
+
+.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--badge-color);
 }
 
 .leading {

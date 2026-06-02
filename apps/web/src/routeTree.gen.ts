@@ -10,30 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrayRouteRouteImport } from './routes/tray/route'
-import { Route as SignupRouteRouteImport } from './routes/signup/route'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as ScheduleRouteRouteImport } from './routes/schedule/route'
-import { Route as OnboardingRouteRouteImport } from './routes/onboarding/route'
-import { Route as LoginRouteRouteImport } from './routes/login/route'
 import { Route as InboxRouteRouteImport } from './routes/inbox/route'
 import { Route as BacklogRouteRouteImport } from './routes/backlog/route'
 import { Route as IndexRouteRouteImport } from './routes/index/route'
 import { Route as WorkspacesNewRouteRouteImport } from './routes/workspaces/new/route'
-import { Route as SpecsSpecIdRouteRouteImport } from './routes/specs/$specId/route'
 import { Route as SettingsSectionIdRouteRouteImport } from './routes/settings/$sectionId/route'
 import { Route as BacklogSpecsRouteRouteImport } from './routes/backlog/specs/route'
 import { Route as BacklogActionsRouteRouteImport } from './routes/backlog/actions/route'
+import { Route as AuthSignupRouteRouteImport } from './routes/auth/signup/route'
+import { Route as AuthLoginRouteRouteImport } from './routes/auth/login/route'
 import { Route as SettingsIndexRouteRouteImport } from './routes/settings/index/route'
 import { Route as ScheduleBlockBlockIdRouteRouteImport } from './routes/schedule/block/$blockId/route'
+import { Route as BacklogSpecsSpecIdRouteRouteImport } from './routes/backlog/specs/$specId/route'
 
 const TrayRouteRoute = TrayRouteRouteImport.update({
   id: '/tray',
   path: '/tray',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRouteRoute = SignupRouteRouteImport.update({
-  id: '/signup',
-  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
@@ -44,16 +38,6 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
 const ScheduleRouteRoute = ScheduleRouteRouteImport.update({
   id: '/schedule',
   path: '/schedule',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRouteRoute = OnboardingRouteRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRouteRoute = LoginRouteRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InboxRouteRoute = InboxRouteRouteImport.update({
@@ -76,11 +60,6 @@ const WorkspacesNewRouteRoute = WorkspacesNewRouteRouteImport.update({
   path: '/workspaces/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SpecsSpecIdRouteRoute = SpecsSpecIdRouteRouteImport.update({
-  id: '/specs/$specId',
-  path: '/specs/$specId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsSectionIdRouteRoute = SettingsSectionIdRouteRouteImport.update({
   id: '/$sectionId',
   path: '/$sectionId',
@@ -96,6 +75,16 @@ const BacklogActionsRouteRoute = BacklogActionsRouteRouteImport.update({
   path: '/actions',
   getParentRoute: () => BacklogRouteRoute,
 } as any)
+const AuthSignupRouteRoute = AuthSignupRouteRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRouteRoute = AuthLoginRouteRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsIndexRouteRoute = SettingsIndexRouteRouteImport.update({
   id: '/',
   path: '',
@@ -107,40 +96,43 @@ const ScheduleBlockBlockIdRouteRoute =
     path: '/block/$blockId',
     getParentRoute: () => ScheduleRouteRoute,
   } as any)
+const BacklogSpecsSpecIdRouteRoute = BacklogSpecsSpecIdRouteRouteImport.update({
+  id: '/$specId',
+  path: '/$specId',
+  getParentRoute: () => BacklogSpecsRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRouteRoute
   '/backlog': typeof BacklogRouteRouteWithChildren
   '/inbox': typeof InboxRouteRoute
-  '/login': typeof LoginRouteRoute
-  '/onboarding': typeof OnboardingRouteRoute
   '/schedule': typeof ScheduleRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
-  '/signup': typeof SignupRouteRoute
   '/tray': typeof TrayRouteRoute
   '/settings/': typeof SettingsIndexRouteRoute
+  '/auth/login': typeof AuthLoginRouteRoute
+  '/auth/signup': typeof AuthSignupRouteRoute
   '/backlog/actions': typeof BacklogActionsRouteRoute
-  '/backlog/specs': typeof BacklogSpecsRouteRoute
+  '/backlog/specs': typeof BacklogSpecsRouteRouteWithChildren
   '/settings/$sectionId': typeof SettingsSectionIdRouteRoute
-  '/specs/$specId': typeof SpecsSpecIdRouteRoute
   '/workspaces/new': typeof WorkspacesNewRouteRoute
+  '/backlog/specs/$specId': typeof BacklogSpecsSpecIdRouteRoute
   '/schedule/block/$blockId': typeof ScheduleBlockBlockIdRouteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRouteRoute
   '/backlog': typeof BacklogRouteRouteWithChildren
   '/inbox': typeof InboxRouteRoute
-  '/login': typeof LoginRouteRoute
-  '/onboarding': typeof OnboardingRouteRoute
   '/schedule': typeof ScheduleRouteRouteWithChildren
   '/settings': typeof SettingsIndexRouteRoute
-  '/signup': typeof SignupRouteRoute
   '/tray': typeof TrayRouteRoute
+  '/auth/login': typeof AuthLoginRouteRoute
+  '/auth/signup': typeof AuthSignupRouteRoute
   '/backlog/actions': typeof BacklogActionsRouteRoute
-  '/backlog/specs': typeof BacklogSpecsRouteRoute
+  '/backlog/specs': typeof BacklogSpecsRouteRouteWithChildren
   '/settings/$sectionId': typeof SettingsSectionIdRouteRoute
-  '/specs/$specId': typeof SpecsSpecIdRouteRoute
   '/workspaces/new': typeof WorkspacesNewRouteRoute
+  '/backlog/specs/$specId': typeof BacklogSpecsSpecIdRouteRoute
   '/schedule/block/$blockId': typeof ScheduleBlockBlockIdRouteRoute
 }
 export interface FileRoutesById {
@@ -148,18 +140,17 @@ export interface FileRoutesById {
   '/': typeof IndexRouteRoute
   '/backlog': typeof BacklogRouteRouteWithChildren
   '/inbox': typeof InboxRouteRoute
-  '/login': typeof LoginRouteRoute
-  '/onboarding': typeof OnboardingRouteRoute
   '/schedule': typeof ScheduleRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
-  '/signup': typeof SignupRouteRoute
   '/tray': typeof TrayRouteRoute
   '/settings/': typeof SettingsIndexRouteRoute
+  '/auth/login': typeof AuthLoginRouteRoute
+  '/auth/signup': typeof AuthSignupRouteRoute
   '/backlog/actions': typeof BacklogActionsRouteRoute
-  '/backlog/specs': typeof BacklogSpecsRouteRoute
+  '/backlog/specs': typeof BacklogSpecsRouteRouteWithChildren
   '/settings/$sectionId': typeof SettingsSectionIdRouteRoute
-  '/specs/$specId': typeof SpecsSpecIdRouteRoute
   '/workspaces/new': typeof WorkspacesNewRouteRoute
+  '/backlog/specs/$specId': typeof BacklogSpecsSpecIdRouteRoute
   '/schedule/block/$blockId': typeof ScheduleBlockBlockIdRouteRoute
 }
 export interface FileRouteTypes {
@@ -168,53 +159,50 @@ export interface FileRouteTypes {
     | '/'
     | '/backlog'
     | '/inbox'
-    | '/login'
-    | '/onboarding'
     | '/schedule'
     | '/settings'
-    | '/signup'
     | '/tray'
     | '/settings/'
+    | '/auth/login'
+    | '/auth/signup'
     | '/backlog/actions'
     | '/backlog/specs'
     | '/settings/$sectionId'
-    | '/specs/$specId'
     | '/workspaces/new'
+    | '/backlog/specs/$specId'
     | '/schedule/block/$blockId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/backlog'
     | '/inbox'
-    | '/login'
-    | '/onboarding'
     | '/schedule'
     | '/settings'
-    | '/signup'
     | '/tray'
+    | '/auth/login'
+    | '/auth/signup'
     | '/backlog/actions'
     | '/backlog/specs'
     | '/settings/$sectionId'
-    | '/specs/$specId'
     | '/workspaces/new'
+    | '/backlog/specs/$specId'
     | '/schedule/block/$blockId'
   id:
     | '__root__'
     | '/'
     | '/backlog'
     | '/inbox'
-    | '/login'
-    | '/onboarding'
     | '/schedule'
     | '/settings'
-    | '/signup'
     | '/tray'
     | '/settings/'
+    | '/auth/login'
+    | '/auth/signup'
     | '/backlog/actions'
     | '/backlog/specs'
     | '/settings/$sectionId'
-    | '/specs/$specId'
     | '/workspaces/new'
+    | '/backlog/specs/$specId'
     | '/schedule/block/$blockId'
   fileRoutesById: FileRoutesById
 }
@@ -222,13 +210,11 @@ export interface RootRouteChildren {
   IndexRouteRoute: typeof IndexRouteRoute
   BacklogRouteRoute: typeof BacklogRouteRouteWithChildren
   InboxRouteRoute: typeof InboxRouteRoute
-  LoginRouteRoute: typeof LoginRouteRoute
-  OnboardingRouteRoute: typeof OnboardingRouteRoute
   ScheduleRouteRoute: typeof ScheduleRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
-  SignupRouteRoute: typeof SignupRouteRoute
   TrayRouteRoute: typeof TrayRouteRoute
-  SpecsSpecIdRouteRoute: typeof SpecsSpecIdRouteRoute
+  AuthLoginRouteRoute: typeof AuthLoginRouteRoute
+  AuthSignupRouteRoute: typeof AuthSignupRouteRoute
   WorkspacesNewRouteRoute: typeof WorkspacesNewRouteRoute
 }
 
@@ -239,13 +225,6 @@ declare module '@tanstack/react-router' {
       path: '/tray'
       fullPath: '/tray'
       preLoaderRoute: typeof TrayRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -260,20 +239,6 @@ declare module '@tanstack/react-router' {
       path: '/schedule'
       fullPath: '/schedule'
       preLoaderRoute: typeof ScheduleRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inbox': {
@@ -304,13 +269,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspacesNewRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/specs/$specId': {
-      id: '/specs/$specId'
-      path: '/specs/$specId'
-      fullPath: '/specs/$specId'
-      preLoaderRoute: typeof SpecsSpecIdRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings/$sectionId': {
       id: '/settings/$sectionId'
       path: '/$sectionId'
@@ -332,6 +290,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BacklogActionsRouteRouteImport
       parentRoute: typeof BacklogRouteRoute
     }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/': {
       id: '/settings/'
       path: ''
@@ -346,17 +318,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleBlockBlockIdRouteRouteImport
       parentRoute: typeof ScheduleRouteRoute
     }
+    '/backlog/specs/$specId': {
+      id: '/backlog/specs/$specId'
+      path: '/$specId'
+      fullPath: '/backlog/specs/$specId'
+      preLoaderRoute: typeof BacklogSpecsSpecIdRouteRouteImport
+      parentRoute: typeof BacklogSpecsRouteRoute
+    }
   }
 }
 
+interface BacklogSpecsRouteRouteChildren {
+  BacklogSpecsSpecIdRouteRoute: typeof BacklogSpecsSpecIdRouteRoute
+}
+
+const BacklogSpecsRouteRouteChildren: BacklogSpecsRouteRouteChildren = {
+  BacklogSpecsSpecIdRouteRoute: BacklogSpecsSpecIdRouteRoute,
+}
+
+const BacklogSpecsRouteRouteWithChildren =
+  BacklogSpecsRouteRoute._addFileChildren(BacklogSpecsRouteRouteChildren)
+
 interface BacklogRouteRouteChildren {
   BacklogActionsRouteRoute: typeof BacklogActionsRouteRoute
-  BacklogSpecsRouteRoute: typeof BacklogSpecsRouteRoute
+  BacklogSpecsRouteRoute: typeof BacklogSpecsRouteRouteWithChildren
 }
 
 const BacklogRouteRouteChildren: BacklogRouteRouteChildren = {
   BacklogActionsRouteRoute: BacklogActionsRouteRoute,
-  BacklogSpecsRouteRoute: BacklogSpecsRouteRoute,
+  BacklogSpecsRouteRoute: BacklogSpecsRouteRouteWithChildren,
 }
 
 const BacklogRouteRouteWithChildren = BacklogRouteRoute._addFileChildren(
@@ -393,13 +383,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRouteRoute: IndexRouteRoute,
   BacklogRouteRoute: BacklogRouteRouteWithChildren,
   InboxRouteRoute: InboxRouteRoute,
-  LoginRouteRoute: LoginRouteRoute,
-  OnboardingRouteRoute: OnboardingRouteRoute,
   ScheduleRouteRoute: ScheduleRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
-  SignupRouteRoute: SignupRouteRoute,
   TrayRouteRoute: TrayRouteRoute,
-  SpecsSpecIdRouteRoute: SpecsSpecIdRouteRoute,
+  AuthLoginRouteRoute: AuthLoginRouteRoute,
+  AuthSignupRouteRoute: AuthSignupRouteRoute,
   WorkspacesNewRouteRoute: WorkspacesNewRouteRoute,
 }
 export const routeTree = rootRouteImport

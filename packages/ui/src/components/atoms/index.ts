@@ -1,5 +1,6 @@
 export { Badge } from './Badge';
 export { Button } from './Button';
+export { Chip } from './Chip';
 export { MultiSelect } from './MultiSelect';
 export { Popover } from './Popover';
 export { Select } from './Select';
@@ -7,5 +8,6 @@ export { TextInput } from './TextInput';
 export { Typography } from './Typography';
 export type { BadgeProps } from './Badge';
 export type { ButtonProps } from './Button';
+export type { ChipProps } from './Chip';
 export type { MultiSelectOption, MultiSelectProps } from './MultiSelect';
 export type { TextInputProps } from './TextInput';

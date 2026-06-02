@@ -1,6 +1,6 @@
 ---
 title: Data model (conceptual)
-updated: 2026-05-27
+updated: 2026-06-02
 status: draft
 owner: jaren
 ---
@@ -41,11 +41,19 @@ A ticket synced from a source.
 - `sourceId` — the issue key/id in the source (e.g. `PLAT-501`)
 - `title`, `description` (markdown)
 - `priority` — internal scale, **displayed using the source's vocabulary** (Jira: Highest…Lowest; Linear: Urgent…No priority; GitHub: Critical…Low)
-- `status` — internal `open | closed`, **displayed using the source's vocabulary**; `CLOSED_STATUSES` ≈ Done / Cancelled / Merged / Closed
+- `status` — internal `open | closed`, **displayed using the source's vocabulary**; `CLOSED_STATUSES` ≈ Done / Cancelled / Merged / Closed. **Reopen** flips `status` back to `open` manually; existing Actions / Sessions / ScheduledEvents are left untouched as immutable history — no auto-revival, no new-cycle entity. The "closed in source / still open here" warning is just a surfaced mismatch between `sourceStatus` and internal `status`. (Resolves Q8.)
 - `assignee` — a user (nullable = unassigned, claimable by any team member)
 - `reporter`, `due`, `sprint`, `labels[]`
 - state flags: `justLanded` (+ `landedFrom`, `landedAgo`, `prevOwner`), `awaitingApproval`, `blockerReported`, `needsBreakdown`
 - relations: `actions[]`, `comments[]`, `sourceActivity[]` (source-side event feed), `audit[]` (ownership history with time logged per owner), `linked[]` (rel = Blocks / Blocked by / Related / Implements), and the chokepoint data `blocks[]` (teammates waiting on this) / `blockedOn[]` (what this waits on, with nudge fields)
+
+> **Backlog organization is derived, not stored (Q4).** The backlog's view tabs (Breakdown /
+> In Flight / Blocked / Next Up / Completed) and a Spec's "readiness" (`no-actions →
+> draft-actions → needs-estimates → ready`) are **computed** at query time from the primitives
+> above — action count, whether estimates are set, `done`, blocked-ness, `assignee` — never
+> persisted as columns, so they cannot drift from reality. The earlier "Later / Snoozed /
+> Archive / Reassign" shelf-state framing was stale prototype-era text and does not exist in
+> the built backlog.
 
 ### Action
 A Stride-native **execution step** — a unit of focused work that serves Sessions, 1+ per
@@ -74,6 +82,7 @@ Actual timed work against an Action. Sessions are execution/history, not plannin
 - `notes` + `jots[]` — quick mid-session notes `{ at, text, kind }`
 - on end: `feeling` (icons: frown / neutral / smile / target), `note` (optional free text), `markDone` (whether it also closed the Action)
 - the variance nudge surfaces only when `elapsedMin` ≳ 1.5–2× `action.estimateMin`
+- `contentSignal?` (JSON) + `signalSource` — **nullable, unused in v1.** A reserved slot for later git/file correlation (which commits and files fell inside the Session window). It ships from day one so the timeshape→content upgrade needs **no migration**; the correlation itself is deferred to the desktop integration surface. (Resolves Q21; honors the provenance-ready commitment in `decisions.mdc` 2026-05-21.)
 
 > **v1 scope note (updated 2026-05-27).** **ScheduledEventType** customization is
 > deferred from MVP ([`mvp.md`](mvp.md)) — v1 Schedule uses a minimal fixed set of block
@@ -129,6 +138,8 @@ Personal settings split by scope:
 - Per-workspace personal settings: calendar opt-in, workspace notification overrides, tracking preferences, and working hours.
 
 Default working hours are seeded from the Team when a member joins a team, but the member ultimately has one personal working-hours setting per Workspace. If a member joins multiple teams in one Workspace, the calendar/capacity surface uses the member's workspace-level hours, not separate team-level hours.
+
+Onboarding is **account-first** (Q11): a User account is created first, then workspace creation mints the Workspace + the founder's Membership (`workspace_admin`). Invite acceptance is a magic link that mints a Member Membership and drops the invitee inside the workspace. There is no standalone signup surface; `/auth/login` serves returning users.
 
 ### Source connection
 Not modeled in the prototype. The real model needs a workspace-owned connection pool per source account. A Workspace Admin can manage all connections in the pool. A Team Admin can add a source connection from Team settings without broad workspace-admin access; that connection still becomes visible in the Workspace's connection pool.
@@ -213,4 +224,4 @@ schema is not.
 
 ## Open model questions
 
-Tracked in [`open-questions.md`](open-questions.md): Do "Later" / "Snoozed" / "Archive" collapse to fewer states? How are labels/tags grouped ("feature within a project")? Default teammate visibility (load-only vs full Today)? What signal does Stride capture about *what* the developer is doing inside a Session (git correlation)? Final DB representation for ScheduledEvent recurrence/exceptions still needs schema design. *(Q3 — "is an Action ever 1:1 with a source issue" — resolved 2026-05-21: see the Action entity above.)*
+Tracked in [`open-questions.md`](open-questions.md): How are labels/tags grouped ("feature within a project")? Default teammate visibility (load-only vs full Today)? Final DB representation for ScheduledEvent recurrence/exceptions still needs schema design. *(Q3 resolved 2026-05-21 — see the Action entity above. Q4 "shelf states", Q8 reopen, and Q21 in-session content signal all resolved 2026-06-02 — see the Spec, Session, and backlog-organization notes above.)*

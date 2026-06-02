@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { ActionsPage } from '../../../components/backlog/ActionsPage';
+import { ActionsPage } from '../components/ActionsPage';
 
 export const Route = createFileRoute('/backlog/actions')({
   component: BacklogActionsRoute,

@@ -107,19 +107,31 @@ Do not put a comfy/compact toggle in Backlog controls.
 
 The component library is intentionally small at first.
 
-Current:
+Current shared primitives:
 
 - `Typography`
-- `AppShell`
+- `Button`, with `contained`, `outlined`, and `ghost` variants plus `primary`, `neutral`, `success`, `warning`, and `danger` colors
+- `Badge`, with the same semantic color vocabulary and `contained`, `outlined`, and `ghost` styles for compact labels
+- `Chip`, with `contained` and `outlined` styles for filters, removable selections, and source/attention metadata
+- `TextInput`
+- `Select`
+- `MultiSelect`
+- `Popover`
+- `Drawer`
+- `Modal`
 
-Near-term Backlog components should start in `apps/web/src/components/backlog/` and move to `packages/ui` only when stable.
+`AppShell` is app-owned and lives in `apps/web/src/components/AppShell` because it carries
+router, workspace, account, status, and platform assumptions. Its sidebar lives in
+`apps/web/src/components/AppShell/Sidebar/Sidebar.tsx` so navigation is easy to find. It must
+not be exported from `packages/ui`.
+
+Near-term Backlog components should start beside the route and move to `packages/ui` only when stable.
 
 Likely reusable pieces:
 
 - Search field
 - Filter trigger
 - Segmented view toggle
-- Density toggle
 - Source badge
 - Priority indicator
 - Status pill

@@ -1,6 +1,6 @@
 ---
 title: Architecture overview
-updated: 2026-05-21
+updated: 2026-06-02
 status: current
 owner: jaren
 ---
@@ -54,7 +54,7 @@ Dependency direction is strict (see `architecture.mdc`): `apps/web` → `package
 
 The conventions are written **ahead of** the code — that's intentional. As of 2026-05-21 the repo has:
 
-- `apps/web/` — a **TanStack Start app** (`@tanstack/react-start`), `_auth` app-shell layout, routes for Today, Inbox, Backlog, Schedule, Settings, the Spec view, and the Tray. Built so far (FE, mock-data-backed): the **Session flow** (a client-side `SessionProvider` + the Today hero — start / live timer / feeling check-in, localStorage-persisted), the **app-wide working mode** (`AppModeProvider`, the Settings control), the **two Today variants** (session-first / schedule-first), the simplified **single-day Schedule**, the **"Your data"** settings surface, and the demo-fidelity Inbox / Backlog. **Still placeholders:** a real Spec view, the Tray (`/tray` is a stub). The Insights route was deleted 2026-05-21. Still on the Vite-only build; the `BUILD_TARGET` web/desktop SSR/SPA split is not wired yet.
+- `apps/web/` — a **TanStack Start app** (`@tanstack/react-start`), `_auth` app-shell layout, routes for Today, Inbox, Backlog, Schedule, Settings, the Spec view, and the Tray. Route files own the top-level page component and route-specific UI is colocated beneath the route directory; the old global `src/components` folder has been removed. Built so far (FE, mock-data-backed): the **Session flow** (an app-wide provider under `src/providers/session` + the Today hero — start / live timer / feeling check-in, localStorage-persisted), the **app-wide working mode** (`src/providers/app-mode`, the Settings control), the **two Today variants** (session-first / schedule-first), the simplified **single-day Schedule**, the **"Your data"** settings surface, and the demo-fidelity Inbox / Backlog. **Still placeholders:** a real Spec view, the Tray (`/tray` is a stub). The Insights route was deleted 2026-05-21. Still on the Vite-only build; the `BUILD_TARGET` web/desktop SSR/SPA split is not wired yet.
 - `apps/api/` — a "Hello Hono" + Drizzle starter, still on `@hono/node-server`. **Stack mismatch:** the locked stack (2026-05-04) is Hono on Cloudflare Workers, mounted in the same Worker as TanStack Start at `/api/$`. The backend trails the FE — it gets built out once the Session-flow FE shape is clear ([`../plan/roadmap.md`](../plan/roadmap.md)).
 - `packages/` — `eslint-config`, `typescript-config`, and `ui` exist. **To do:** add `db`, `api-client`, `queue` when they're needed (per the roadmap — not all at once).
 - `apps/desktop/` (Tauri) — not created yet; the integration approach is documented ("Desktop & web from one codebase" above + `architecture.mdc`).

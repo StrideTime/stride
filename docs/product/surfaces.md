@@ -1,6 +1,6 @@
 ---
 title: Surfaces (screens & routes)
-updated: 2026-05-30
+updated: 2026-06-02
 status: current
 owner: jaren
 ---
@@ -11,15 +11,14 @@ The screen + route inventory. The surface list and route structure were confirme
 
 ## Routes
 
-TanStack Start, file-based, flat under the app-shell layout. (`.cursor/rules/react-patterns.mdc` has been reconciled to this: `/updates` removed; `/` → Today; `/insights` and `/specs/$specId` added.)
+TanStack Start, file-based. Route files own the top-level page component and route-owned UI is colocated under that route's `components/` folders. (`.cursor/rules/react-patterns.mdc` has been reconciled to this: `/updates` removed; `/` → Today; `/insights` deferred; spec detail lives under `/backlog/specs/$specId`.)
 
 ```
 __root.tsx                     providers (QueryClient, i18n, theme)
 │
-├── login.tsx       /login         ┐  unauthenticated — placeholder; the auth/first-run shape is open (open-questions Q11); v1 invite-only
-├── signup.tsx      /signup        ┘
-├── onboarding.tsx  /onboarding       placeholder — connect Jira/Linear → pick projects → first sync; shape TBD
-├── workspaces.new.tsx /workspaces/new   focused full-screen flow to create a workspace (name → plan → connect a source); entered from the workspace switcher, not the app shell
+├── auth/login/route.tsx   /auth/login    ┐  unauthenticated — placeholder; v1 invite-only
+├── auth/signup/route.tsx  /auth/signup   ┘  grouped under the auth route namespace
+├── workspaces.new.tsx     /workspaces/new   focused full-screen flow to create a workspace (name → plan → connect a source); entered from the workspace switcher, not the app shell
 │
 └── _auth.tsx       app-shell layout (requires auth + a workspace) — left rail: Today · Backlog · Schedule · Insights, with ⚙ Settings pinned at the bottom
     ├── index.tsx           /              Today — renders a session-first or schedule-first variant per the working mode
@@ -29,13 +28,13 @@ __root.tsx                     providers (QueryClient, i18n, theme)
     ├── insights.tsx        /insights      deferred from v1 (route not built) — see the Insights note below
 
     ├── settings.tsx        /settings      settings shell with deep-linkable sections (?section=…) for Personal, My workspace, Workspace admin, and Team admin settings
-    ├── specs.$specId.tsx   /specs/$specId the dedicated spec view — a real, deep-linkable route. Renders as an overlay over the page you were on when opened from inside the app; standalone when cold-loaded (deep links, "Open in Stride", "review this incoming spec")
+    ├── backlog/specs/$specId/route.tsx  /backlog/specs/$specId the dedicated spec view; focus an action with ?actionId=…
     └── tray.tsx            /tray          the desktop tray window — compact layout, loaded by the Tauri tray window. NOT a left-rail nav item
 ```
 
-Plus, **not a route — client state**: an **ad-hoc spec modal** (`openSpecId`). Pop it anywhere for a quick peek at a spec (a blocker row, an Info Hub widget, a mention) without changing the URL; it carries a "view full spec →" affordance that navigates to `/specs/$specId`. So the `/specs/$specId` route is the canonical, shareable, back-button view; the client-state modal is the ephemeral in-context quick-look.
+Plus, **not a route — client state**: an **ad-hoc spec modal** (`openSpecId`). Pop it anywhere for a quick peek at a spec (a blocker row, an Info Hub widget, a mention) without changing the URL; it carries a "view full spec →" affordance that navigates to `/backlog/specs/$specId`. So the `/backlog/specs/$specId` route is the canonical, shareable, back-button view; the client-state modal is the ephemeral in-context quick-look.
 
-Assumptions baked in (flag if wrong): routes are flat under `_auth.tsx`; the prototype's "Tray demo" nav entry was a demo affordance — gone in the real web nav; Backlog's Specs/Actions/Blockers are in-page state (search params), not routes. Schedule is a single day route — the date is a `?date=` search param, no separate week or day-canvas route (simplified 2026-05-21). Round-2 items still to pin (open-questions Q11): the ⌥Space capture window's route (`/tray/capture` vs `/capture` vs not-a-route), and the `/onboarding`·`/login`·`/signup` shape.
+Assumptions baked in (flag if wrong): the prototype's "Tray demo" nav entry was a demo affordance — gone in the real web nav; Backlog's Specs/Actions/Blockers are in-page state (search params), not routes. Schedule is a single day route — the date is a `?date=` search param, no separate week or day-canvas route (simplified 2026-05-21). Round-2 item still to pin (open-questions Q11): the ⌥Space capture window's route (`/tray/capture` vs `/capture` vs not-a-route).
 
 ## Navigation
 
@@ -45,7 +44,7 @@ Left rail (~200px, dark): a workspace+team switcher at the top (behavior still o
 
 ## Today · `/`
 
-Today is **two screens behind one route**: `TodayView` reads the working mode ([`overview.md`](overview.md) → User modes) and renders one variant. It is a focused, centered, single-column surface — *not* the old four-panel dashboard. Today never owns work; it is a derived view that pulls from Backlog, the Session state, and the Schedule, and the only thing it owns is the act of working right now.
+Today is **two screens behind one route**: `routes/index/route.tsx` reads the working mode ([`overview.md`](overview.md) → User modes) and renders one variant. It is a focused, centered, single-column surface — *not* the old four-panel dashboard. Today never owns work; it is a derived view that pulls from Backlog, the Session state, and the Schedule, and the only thing it owns is the act of working right now.
 
 **Session-first — `SessionToday`.** Answers one question: *what do I run next, and start?*
 
@@ -147,11 +146,11 @@ The always-available menu-bar window. Same web build, route `/tray`, smaller dim
 - **Banner** — a dismissible top banner appears *only* for time-sensitive context (meeting in ~2–5m / a just-landed spec); auto-opens once per meeting, not nagging. No notification framing — the OS handles notifications.
 - Chrome notes: no Stride logo in the tray header; a small labeled corner button ("Open app" + pop-out icon) to open the main window — the label is kept because an icon alone read as too vague in testing; no "Capture" label (it's the separate ⌥Space window). For browser iteration only, a temporary dev-only **Tray preview** nav item may render the tray content inside the main app shell so mode/context switching stays fast; it is not product navigation.
 
-## Spec view — `/specs/$specId` (route) + the ad-hoc modal (client state)
+## Spec view — `/backlog/specs/$specId` (route) + the ad-hoc modal (client state)
 
 The spec detail surface — used both to inspect/edit any existing spec and to review a newly-synced incoming ticket. **Two presentations of the same thing:**
 
-- **`/specs/$specId`** — the canonical route. Deep-linkable and back-button-friendly (shareable spec URLs, "Open in {source}" round-trips, links to "review this incoming spec"). Rendered as an overlay over the page you were on when opened from inside the app; standalone (with the app shell) when cold-loaded.
+- **`/backlog/specs/$specId`** — the canonical route. Deep-linkable and back-button-friendly while preserving Backlog > Specs context. Use `?actionId=…` to focus a specific Action within the spec detail. `/specs/$specId` redirects here for legacy compatibility.
 - **The ad-hoc modal** — client state (`openSpecId`). A quick peek triggered anywhere (a blocker row, an Info Hub widget, a mention) without navigating; carries "view full spec →" to the route.
 
 Content (the same in both presentations):
@@ -166,7 +165,7 @@ Content (the same in both presentations):
 
 ## Not standalone surfaces (handled elsewhere)
 
-- **Onboarding** — placeholder route `/onboarding` (connect Jira/Linear → pick projects → first sync → land on Today). Whether it's a gated route before the app shell or a step inside it is open ([`open-questions.md`](open-questions.md) Q11); v1 is invite-only (no public self-serve signup).
+- **Auth** — placeholder routes `/auth/login` and `/auth/signup`, grouped under the auth namespace. Standalone `/onboarding` has been removed; workspace creation lives at `/workspaces/new`.
 - **Create workspace** — focused full-screen route `/workspaces/new`, entered from the **Create workspace** action in the workspace switcher (the switcher is the multi-workspace context; per-workspace Settings is the single-workspace context, so creation lives in the switcher, not Settings). It runs without the app shell — a three-step flow: **name** the workspace (you become its workspace admin) → **pick a plan** → **connect a source** (or skip). The plan step is a *visualization* of how paid tiers will look (Free / Team / Enterprise, monthly–annual toggle); **billing is not live in v1** (deferred per [`mvp.md`](mvp.md) and the 2026-05-12 open-questions decision), so the step is a preview and the flow lands you in the new workspace without charging.
 - **Settings** — a `/settings` section reached via the ⚙ gear at the bottom of the left rail. The global app rail stays visible and Settings adds a secondary settings sidebar. First implementation uses `?section=…` deep links rather than nested routes. Sections are organized by ownership scope: **My workspace settings** (default), **Personal** account-wide settings, **Workspace admin** settings, and **Team admin** settings nested under the selected workspace/team context. Admin-only sections are hidden when the user lacks access. Source connections are workspace-pooled: one Jira account, one Linear account, and one GitHub organization per workspace. Team Source mapping first chooses which source type the team uses, then chooses the source unit inside that connected account or organization: a Jira board, Linear team, or GitHub repository. Each Stride Team has exactly one primary source mapping, and each external Jira board / Linear Team / GitHub repo maps to only one Stride Team per workspace. Multiple GitHub repositories per Stride Team is an open question, not current behavior. Team General settings cover the Stride team name plus workflow and breakdown behavior. Source-owned identifiers and source-to-team assignment live in Source mapping, not Team General. Team defaults do not set member working hours, working mode, notification timing, presence, or focus status. Calendar connections are personal and opted into per workspace.
 - **"Needs attention"** — surfaced inline in Backlog, not its own page.

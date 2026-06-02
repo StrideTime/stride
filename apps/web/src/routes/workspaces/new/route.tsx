@@ -3,7 +3,7 @@ import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PlusIcon, XIcon } from '@phos
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Button, Typography } from '@stride/ui';
 
-import { ConnectStep, DetailsStep, PlanStep } from './-components';
+import { ConnectStep, DetailsStep, PlanStep } from './components';
 import {
   stepLabels,
   workspaceCreationSteps,

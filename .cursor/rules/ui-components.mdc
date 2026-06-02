@@ -28,13 +28,11 @@ globs: ["packages/ui/src/**/*.tsx", "packages/ui/src/**/*.ts", "packages/ui/src/
 ```
 packages/ui/src/
 ├── components/
-│   ├── atoms/          # Button, Typography, Input, Badge, Skeleton, StatusPill, etc.
+│   ├── atoms/          # Button, Typography, Input, Badge, Chip, Skeleton, etc.
 │   │   └── index.ts
-│   ├── molecules/      # FormField, SearchBar, SpecRow, ActionRow, etc.
+│   ├── molecules/      # FormField, SearchBar, Modal, Drawer, SpecRow, ActionRow, etc.
 │   │   └── index.ts
-│   ├── organisms/      # SpecCard, RefinementPanel, SessionTimer, TrayShell, etc.
-│   │   └── index.ts
-│   ├── templates/      # AppShell, TrayLayout
+│   ├── organisms/      # SpecCard, RefinementPanel, SessionTimer, etc.
 │   │   └── index.ts
 │   └── index.ts        # Master barrel export
 ├── styles/
@@ -198,7 +196,10 @@ export function SpecCard({ spec }: SpecCardProps) {
 | Atom | Single HTML element or primitive | Button, Input, Badge, StatusPill, Typography |
 | Molecule | 2–4 atoms with a single purpose | FormField, SearchBar, SpecRow, ActionRow |
 | Organism | Complex feature-complete unit | SpecCard, RefinementPanel, BacklogList, SessionTimer |
-| Template | Layout structure, slots only | AppShell, TrayLayout |
+
+App-owned shells and route layouts live in `apps/web/src/components` or route folders, not
+`packages/ui`. `packages/ui` does not expose a `templates` layer because shells carry router,
+workspace, account, and platform assumptions.
 
 - Atoms have no business logic and no data fetching
 - Molecules may accept complex props but do not fetch data

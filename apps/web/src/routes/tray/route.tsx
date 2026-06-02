@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Typography } from '@stride/ui';
 
-import { TrayView } from '../../components/tray';
+import { TrayView } from './components';
 import styles from './TrayPreview.module.css';
 
 export const Route = createFileRoute('/tray')({

@@ -1,6 +1,6 @@
 ---
 title: Open product questions
-updated: 2026-05-30
+updated: 2026-06-02
 status: current
 owner: jaren
 ---
@@ -18,12 +18,12 @@ Things raised during design and not firmly resolved. Each has context so it can 
 ## Data model & mechanics
 
 3. ~~**Is an Action ever 1:1 with a source issue, or always strictly smaller?**~~ — **[resolved 2026-05-21]** The question dissolves under the *execution-step* model: an Action is a function of how work *decomposes*, not how source tickets are *shaped*. A 1:1 Spec→Action is fine for trivial work; a complex Spec decomposes into several. See the Action entity in [`data-model.md`](data-model.md).
-4. **Do "Later" / "Snoozed" / "Archive" / "Reassign" collapse?** The user said there are "too many actions that realistically won't all get used at once" and these "feel like they should be handled differently." Which are primary, which merge into one state?
+4. ~~**Do "Later" / "Snoozed" / "Archive" / "Reassign" collapse?**~~ — **[resolved 2026-06-02]** The premise was stale prototype-era text; none of those shelf states exist in the built backlog. The backlog organizes by **derived views** (Breakdown / In Flight / Blocked / Next Up / Completed) computed from primitives, plus the internal `Spec.status` (`open | closed`). Nothing to collapse. Recorded in [`data-model.md`](data-model.md) and the 2026-06-02 ADR.
 5. **Default teammate visibility.** When you look at a teammate, do you see load-only, or their full Today? Privacy-sensitive — ties to the "visibility without surveillance" principle in [`../PRODUCT.md`](../PRODUCT.md).
 6. **Label/tag grouping.** The user floated grouping labels by "feature within a project." The prototype keeps a flat `labels[]`. In or out?
 7. **Focus Time / Habits.** v1: out (per [`mvp.md`](mvp.md) — "Focus Time" rides with the Insights-rest deferral; habits are absent from the current prototype). Open: do habits return post-v1, and is "Focus Time" meant to grow into a full Pomodoro engine, or stay a simple timer? (Old design in `Figma Make Files/IMPLEMENTATION_GUIDE.md` — see [`../reference/archived.md`](../reference/archived.md).)
-8. **Reopen behavior.** What happens to actions/sessions/schedule when a closed spec is reopened (in Stride or in the source)? The prototype mocks a "closed in source / still open here" warning state but the full reopen flow isn't pinned down.
-21. **In-session content signal.** A Session today records the *timeshape* of work — duration, feeling — but not the *content*: what files changed, what was referenced. The future-state context system needs content, not just timeshape. Lowest-friction starting point: correlate local git activity (commits in the Session window) to the Session. Decision deferred; flagged so it is not forgotten. Affects the Session schema and the desktop integration surface.
+8. ~~**Reopen behavior.**~~ — **[resolved 2026-06-02]** Reopening a closed Spec is a **manual status flip** of the internal `Spec.status` back to `open`; existing Actions, Sessions, and past ScheduledEvents are left untouched as immutable history (no auto-revival, no new-cycle entity). The "closed in source / still open here" warning is just a surfaced mismatch between `sourceStatus` and internal `status`. See [`data-model.md`](data-model.md).
+21. ~~**In-session content signal.**~~ — **[resolved 2026-06-02]** v1 records **timeshape only** (duration, feeling), but the Session table ships a nullable `contentSignal` (JSON) + `signalSource` slot from day one so git/file correlation can land later with **no migration**. The correlation itself (commits in the Session window, files touched) stays deferred to the desktop integration surface. See [`data-model.md`](data-model.md).
 
 ## Integrations
 
@@ -33,7 +33,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Routing — round-2 details
 
-11. **Auth & first-run routing.** Invite-only is decided for v1 (no public self-serve signup, no billing). Still open: the `/login` / `/onboarding` route shape — is onboarding a gated route *before* the app shell, or a step *inside* it? Does `/signup` exist at all in v1 (invites may create accounts directly)? *Partial:* workspace **creation** has a settled shape — a focused full-screen `/workspaces/new` flow (name → plan → connect a source) entered from the workspace switcher (see [`surfaces.md`](surfaces.md)). Its plan step is a non-functional pricing *preview*; billing stays deferred, so this resolves where workspace creation lives without reopening the billing decision.
+11. **Auth & first-run routing.** Invite-only is decided for v1 (no public self-serve signup, no billing). *Partial:* auth placeholders are grouped under `/auth/login` and `/auth/signup`, and the standalone `/onboarding` route was removed. Workspace **creation** has a settled shape — a focused full-screen `/workspaces/new` flow (name → plan → connect a source) entered from the workspace switcher (see [`surfaces.md`](surfaces.md)). Its plan step is a non-functional pricing *preview*; billing stays deferred, so this resolves where workspace creation lives without reopening the billing decision. **[resolved 2026-06-02]** Onboarding is **account-first**: a person creates a User account first, then runs workspace creation (plan preview → name → invite teammates). The founder flow mints User + Workspace + Membership(workspace_admin); invite acceptance is a magic link that mints a Member Membership and drops them inside the workspace. There is **no standalone signup surface** — `/auth/login` serves returning users; the `/auth/signup` placeholder collapses into the workspace-creation and invite-acceptance flows. (Step order is account → workspace, refining the earlier `/workspaces/new` "name → plan → connect" sketch.)
 12. **Tray sub-routes & Settings route details.** The ⌥Space capture window — a route (`/tray/capture` vs a top-level `/capture`) or rendered another way (a separate Tauri window, not router-driven)? ~~And what are the `/settings/*` sub-pages?~~ — **[settings resolved 2026-05-19]** Settings starts as `/settings?section=…`, organized by ownership scope: My workspace settings, Personal, Workspace admin, Team admin.
 
 ## Architecture — desktop integration
@@ -52,6 +52,7 @@ Things raised during design and not firmly resolved. Each has context so it can 
 
 ## Changelog
 
+- **2026-06-02 — Backend platform confirmed; Q4 / Q8 / Q11 / Q21 resolved.** Cloudflare + Neon confirmed over Convex (ADR 2026-06-02; [`backend-platform-considerations.md`](../architecture/backend-platform-considerations.md) closed). Q4 dissolved — backlog views/readiness are derived, not stored shelf states. Q8 reopen = manual `Spec.status` flip, history untouched. Q11 onboarding is account-first with magic-link invites, no standalone signup. Q21 Session ships a nullable `contentSignal` slot, timeshape-only in v1.
 - **2026-05-30 — Team General settings narrowed.** Team admin General settings now cover the Stride team name plus workflow and breakdown behavior. Source-owned identifiers and source-to-team assignment live in Source mapping, not Team General. They do not seed or override member working hours, working mode, notification timing, presence, or focus status; those remain personal settings per `principles.md`.
 - **2026-05-27 — Time budgets cut.** Removed the TimeBudget feature from Settings, Schedule, Insights, and the conceptual model. Category-level time goals added too much settings weight for the execution loop.
 - **2026-05-21 — Schedule simplified to a single day view.** Cut the week view, the separate day-canvas route, and untimed `ActionDayAssignment` day-level intent. `/schedule` is now one 24-hour day canvas with the date carried as `?date=`. The Plan/Sessions toggle is session-first only. Recorded in [`surfaces.md`](surfaces.md), [`data-model.md`](data-model.md), [`mvp.md`](mvp.md).

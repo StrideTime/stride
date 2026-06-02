@@ -1,6 +1,7 @@
 export {
   Badge,
   Button,
+  Chip,
   MultiSelect,
   Popover,
   Select,
@@ -8,9 +9,9 @@ export {
   Typography,
   type BadgeProps,
   type ButtonProps,
+  type ChipProps,
   type MultiSelectOption,
   type MultiSelectProps,
   type TextInputProps,
 } from './atoms';
-export { Drawer, type DrawerProps } from './molecules';
-export { AppShell, type AppShellProps, type AppShellText, type ShellStatus } from './templates';
+export { Drawer, Modal, type DrawerProps, type ModalProps } from './molecules';

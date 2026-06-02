@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { ScheduleBlockDetail } from '../../../../components/schedule';
+import { ScheduleBlockDetail } from '../../components';
 
 export const Route = createFileRoute('/schedule/block/$blockId')({
   component: ScheduleBlockDetailPage,

@@ -1,0 +1,85 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: max-content;
+  min-height: var(--control-height-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-3);
+  color: var(--chip-color);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+button.chip {
+  cursor: pointer;
+}
+
+button.chip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.neutral {
+  --chip-color: var(--color-text-muted);
+  --chip-bg: var(--color-bg);
+  --chip-border: var(--color-border);
+  --chip-active-bg: var(--color-surface-raised);
+}
+
+.primary {
+  --chip-color: var(--color-accent);
+  --chip-bg: var(--color-accent-subtle);
+  --chip-border: var(--color-accent);
+  --chip-active-bg: var(--color-accent-muted);
+}
+
+.success {
+  --chip-color: var(--color-success);
+  --chip-bg: var(--color-success-subtle);
+  --chip-border: var(--color-success-border);
+  --chip-active-bg: var(--color-success-muted);
+}
+
+.warning {
+  --chip-color: var(--color-warning);
+  --chip-bg: var(--color-warning-subtle);
+  --chip-border: var(--color-warning-border);
+  --chip-active-bg: var(--color-warning-muted);
+}
+
+.danger {
+  --chip-color: var(--color-danger);
+  --chip-bg: var(--color-danger-subtle);
+  --chip-border: var(--color-danger-border);
+  --chip-active-bg: var(--color-danger-muted);
+}
+
+.contained,
+.active {
+  border-color: var(--chip-border);
+  background: var(--chip-bg);
+}
+
+.outlined {
+  border-color: var(--chip-border);
+  background: transparent;
+}
+
+button.chip:hover:not(:disabled) {
+  background: var(--chip-active-bg);
+}
+
+button.chip:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+.slot {
+  display: inline-grid;
+  place-items: center;
+}

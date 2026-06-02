@@ -1,11 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { Outlet, createFileRoute, useRouterState } from '@tanstack/react-router';
 
-import { SpecsPage } from '../../../components/backlog/SpecsPage';
+import { SpecsPage } from '../components/SpecsPage';
 
 export const Route = createFileRoute('/backlog/specs')({
-  component: BacklogSpecsRoute,
+  component: BacklogSpecsLayout,
 });
 
-function BacklogSpecsRoute() {
-  return <SpecsPage />;
+function BacklogSpecsLayout() {
+  const pathname = useRouterState({ select: state => state.location.pathname });
+
+  if (pathname === '/backlog/specs') {
+    return <SpecsPage />;
+  }
+
+  return <Outlet />;
 }

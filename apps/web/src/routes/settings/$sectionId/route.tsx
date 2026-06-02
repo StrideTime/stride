@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { SettingsView, type SettingsSectionId } from '../../../components/settings';
+import { SettingsView, type SettingsSectionId } from '../components';
 
 const settingsSectionIds = [
   'my-workspace',

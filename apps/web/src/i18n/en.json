@@ -136,13 +136,6 @@
   "inbox": {
     "title": "Inbox",
     "allUpdates": "All updates",
-    "navVariants": {
-      "aria": "Inbox navigation variants",
-      "chips": "A \u00b7 Filter chips",
-      "feed": "B \u00b7 Grouped feed",
-      "strip": "C \u00b7 Counts strip",
-      "select": "D \u00b7 Scope dropdown"
-    },
     "categories": {
       "review": {
         "title": "Needs review",

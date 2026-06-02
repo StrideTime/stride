@@ -155,3 +155,48 @@ Locked architectural commitments — honor them from the first endpoint/table:
   **off** in the schema, opt-in only.
 
 Does not contradict the 2026-05-04 or 2026-05-12 entries; the locked stack stands.
+
+## 2026-06-02: App shell is web-owned, shared UI has no templates layer
+
+The sidebar/app shell carries TanStack Router, workspace/account selection, profile status,
+settings navigation, and platform-specific tray-preview behavior. That makes it app
+composition, not shared UI. `AppShell` lives in `apps/web/src/components/AppShell` and is
+imported by the web providers. `packages/ui` no longer exposes a `templates` layer; shared
+UI is atoms, molecules, and organisms only. Modal and Drawer remain shared molecules because
+they compose primitives into reusable accessibility patterns without app routing or data
+assumptions.
+
+## 2026-06-02: Backend platform confirmed — Cloudflare + Neon (Convex declined); v1 schema-shaping resolutions
+
+The 2026-05-25 reconsideration (`docs/architecture/backend-platform-considerations.md`) is
+**closed in favour of the already-locked Cloudflare + Neon stack** (2026-05-04). Convex was
+weighed as a reactive-DB alternative and **declined**: it trades away Postgres portability
+and the "API as product" surface (2026-05-21) for built-in realtime that v1 does not need
+(realtime stays deferred to Durable Objects post-v1). Convex remains only a documented
+benchmark / escape hatch, not a path. The locked stack stands unchanged.
+
+Resolved at the same time (product/schema decisions; full detail lives in
+`docs/product/data-model.md` and `docs/product/open-questions.md`, summarised here because
+they constrain the first tables):
+
+- **Backlog state is derived, not stored (Q4).** The "Later / Snoozed / Archive / Reassign"
+  framing was stale prototype-era text and is dropped — none of it exists in the built
+  backlog. The view tabs (Breakdown / In Flight / Blocked / Next Up / Completed) and a Spec's
+  `readiness` are **computed** from primitives (action count, estimates set, `done`,
+  blocked-ness, assignee), never stored as columns, so they cannot drift. The schema stores
+  the primitives plus the internal `Spec.status` (`open | closed`) already in the data model.
+- **Reopen is a manual status flip (Q8).** Reopening a closed Spec flips `Spec.status` back
+  to `open`; Actions, Sessions, and past ScheduledEvents are left untouched as immutable
+  history. No automatic revival, no new-cycle entity.
+- **Session keeps a content-signal slot from day one (Q21).** v1 records timeshape only, but
+  the Session table ships a nullable `contentSignal` (JSON) + `signalSource` column so git /
+  file correlation can land later with no migration. Honours the provenance-ready commitment
+  (2026-05-21) without pulling desktop/git work into the MVP.
+- **Onboarding is account-first (Q11).** A person creates a User account first, then runs
+  workspace creation (plan preview → name → invite teammates by email). The founder flow
+  mints User + Workspace + Membership(workspace_admin); invite acceptance is a magic link
+  that mints a Member Membership and drops them inside the workspace. There is no standalone
+  signup surface; `/auth/login` serves returning users. Billing stays a preview (deferred).
+
+Does not contradict the 2026-05-04 / 2026-05-12 / 2026-05-21 entries; it confirms and
+extends them.

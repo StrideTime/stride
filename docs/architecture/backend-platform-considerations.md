@@ -1,11 +1,16 @@
 ---
 title: Backend platform considerations
-updated: 2026-05-25
-status: draft
+updated: 2026-06-02
+status: resolved
 owner: jaren
 ---
 
 # Backend platform considerations
+
+> **Resolved 2026-06-02 — Cloudflare + Neon confirmed; Convex declined.** This reconsideration
+> is closed in favour of the locked stack; see the 2026-06-02 ADR in
+> [`../../.cursor/rules/decisions.mdc`](../../.cursor/rules/decisions.mdc). The analysis below
+> is kept as the rationale of record and as the documented escape hatch — nothing more.
 
 Research note from the 2026-05-25 architecture discussion. This is **not** an
 architecture decision and does not supersede the locked stack in

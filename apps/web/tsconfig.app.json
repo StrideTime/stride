@@ -1,7 +1,12 @@
 {
   "extends": "../../packages/typescript-config/vite-app.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@providers": ["src/providers/index.ts"],
+      "@providers/*": ["src/providers/*"]
+    }
   },
   "include": ["src"]
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { ScheduleDayView } from '../../components/schedule';
+import { ScheduleDayView } from './components';
 
 type ScheduleSearch = {
   date?: string;
