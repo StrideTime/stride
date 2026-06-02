@@ -12,10 +12,10 @@ import type { ReactNode } from 'react';
 
 export type NavItem = {
   to: string;
-  label: string;
+  labelKey: string;
   icon: typeof House;
   badge?: number;
-  children?: Array<{ href: string; label: string; icon: typeof House }>;
+  children?: Array<{ href: string; labelKey: string; icon: typeof House }>;
 };
 
 export type ShellStatus = {
@@ -36,20 +36,20 @@ const showTrayPreview =
   ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV ?? false);
 
 export const navItems: NavItem[] = [
-  { to: '/', label: 'Today', icon: House },
-  { to: '/inbox', label: 'Inbox', icon: Tray, badge: 3 },
+  { to: '/', labelKey: 'shell.nav.today', icon: House },
+  { to: '/inbox', labelKey: 'shell.nav.inbox', icon: Tray, badge: 3 },
   {
     to: '/backlog/specs',
-    label: 'Backlog',
+    labelKey: 'shell.nav.backlog',
     icon: SquaresFour,
     badge: 7,
     children: [
-      { href: '/backlog/specs', label: 'Specs', icon: SquaresFour },
-      { href: '/backlog/actions', label: 'Actions', icon: ListBullets },
+      { href: '/backlog/specs', labelKey: 'shell.nav.specs', icon: SquaresFour },
+      { href: '/backlog/actions', labelKey: 'shell.nav.actions', icon: ListBullets },
     ],
   },
-  { to: '/schedule', label: 'Schedule', icon: ClockCountdown },
-  ...(showTrayPreview ? [{ to: '/tray', label: 'Tray preview', icon: ClockCountdown }] : []),
+  { to: '/schedule', labelKey: 'shell.nav.schedule', icon: ClockCountdown },
+  ...(showTrayPreview ? [{ to: '/tray', labelKey: 'shell.nav.trayPreview', icon: ClockCountdown }] : []),
 ];
 
 export const defaultShellStatuses: ShellStatus[] = [

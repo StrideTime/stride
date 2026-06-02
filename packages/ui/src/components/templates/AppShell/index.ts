@@ -1,2 +1,2 @@
 export { AppShell } from './AppShell';
-export type { AppShellProps, ShellStatus } from './AppShell';
+export type { AppShellProps, AppShellText, ShellStatus } from './AppShell';

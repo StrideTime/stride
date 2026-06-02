@@ -9,6 +9,7 @@ export {
   TextInput,
   Typography,
   type AppShellProps,
+  type AppShellText,
   type BadgeProps,
   type ButtonProps,
   type DrawerProps,

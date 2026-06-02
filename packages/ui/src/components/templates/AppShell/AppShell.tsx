@@ -14,48 +14,38 @@ import {
   shellWorkspaces,
   type ShellStatus,
 } from './AppShell.mock';
+import { StatusBadge, StatusGlyph } from './components';
 import styles from './AppShell.module.css';
 
 export type { ShellStatus } from './AppShell.mock';
+
+export type AppShellText = {
+  edit: string;
+  status: string;
+  setStatusAria: string;
+  customStatusPlaceholder: string;
+  customStatusAria: string;
+  addCustomStatusAria: string;
+  workspace: string;
+  teamAria: string;
+  statusBadgeAria: (status: string) => string;
+  openSettingsAria: string;
+  primaryNavAria: string;
+  userName: string;
+  userEmail: string;
+  nav: Record<string, string>;
+};
 
 export type AppShellProps = {
   statuses?: ShellStatus[];
   currentStatusId?: string;
   onSelectStatus?: (id: string) => void;
+  text: AppShellText;
 };
 
-function StatusGlyph({ status }: { status: ShellStatus }) {
-  const toneClass = styles[`glyph${status.color}`] ?? '';
-
-  return (
-    <span className={`${styles.statusGlyph} ${toneClass}`} aria-hidden="true">
-      {status.icon ?? <span className={`${styles.statusDot} ${styles[`dot${status.color}`] ?? ''}`} />}
-    </span>
-  );
-}
-
-function StatusBadge({ status, className }: { status: ShellStatus; className?: string }) {
-  const bgClass = styles[`dot${status.color}`] ?? '';
-
-  return (
-    <span
-      aria-label={`Status: ${status.label}`}
-      className={`${styles.statusBadge} ${bgClass} ${className ?? ''}`}
-      role="img"
-      tabIndex={0}
-    >
-      {status.icon ?? null}
-      <span className={styles.statusTooltip} aria-hidden="true">
-        <span className={`${styles.statusTooltipIcon} ${bgClass}`}>{status.icon ?? null}</span>
-        <span className={styles.statusTooltipValue}>{status.label}</span>
-      </span>
-    </span>
-  );
-}
-
-export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShellProps = {}) {
+export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: AppShellProps) {
   const pathname = useRouterState({ select: state => state.location.pathname });
-  const isSettings = pathname === '/settings';
+  const isSettings = pathname.startsWith('/settings');
   const isSpecRoute = pathname.startsWith('/specs/');
 
   const baseStatuses = statuses && statuses.length > 0 ? statuses : defaultShellStatuses;
@@ -97,12 +87,16 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
   const statusSection = (
     <div className={styles.accountSection}>
       <div className={styles.sectionHeader}>
-        <span className={styles.accountSectionLabel}>Status</span>
-        <Link to="/settings" search={{ section: 'my-statuses' }} className={styles.sectionLink}>
-          Edit
+        <span className={styles.accountSectionLabel}>{text.status}</span>
+        <Link
+          to="/settings/$sectionId"
+          params={{ sectionId: 'my-statuses' }}
+          className={styles.sectionLink}
+        >
+          {text.edit}
         </Link>
       </div>
-      <div className={styles.statusList} role="group" aria-label="Set your status">
+      <div className={styles.statusList} role="group" aria-label={text.setStatusAria}>
         {allStatuses.map(option => {
           const isActive = option.id === activeStatus.id;
 
@@ -130,14 +124,14 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
           className={styles.customStatusInput}
           value={draftStatus}
           onChange={event => setDraftStatus(event.target.value)}
-          placeholder="Set a custom status…"
-          aria-label="Custom status"
+          placeholder={text.customStatusPlaceholder}
+          aria-label={text.customStatusAria}
           maxLength={40}
         />
         <button
           className={styles.customStatusAdd}
           type="submit"
-          aria-label="Add custom status"
+          aria-label={text.addCustomStatusAria}
           disabled={!draftStatus.trim()}
         >
           <Plus size={15} weight="bold" aria-hidden="true" />
@@ -148,7 +142,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
 
   const workspaceSection = (
     <div className={styles.accountSection}>
-      <span className={styles.accountSectionLabel}>Workspace</span>
+      <span className={styles.accountSectionLabel}>{text.workspace}</span>
       <div className={styles.scrollList}>
         {shellWorkspaces.map((workspace, index) => {
           const isActive = index === workspaceIndex;
@@ -164,7 +158,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
               </div>
               {workspace.teams ? (
                 <Select
-                  aria-label="Team"
+                  aria-label={text.teamAria}
                   value={teamId}
                   onChange={setTeamId}
                   options={workspace.teams.map(team => ({ value: team, label: team }))}
@@ -195,11 +189,15 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
     <Link to="/settings" className={styles.accountIdentity}>
       <span className={styles.accountAvatarWrap}>
         <span className={styles.accountAvatar}>J</span>
-        <StatusBadge status={activeStatus} className={styles.accountAvatarBadge} />
+        <StatusBadge
+          status={activeStatus}
+          className={styles.accountAvatarBadge}
+          label={text.statusBadgeAria(activeStatus.label)}
+        />
       </span>
       <span className={styles.accountIdentityCopy}>
-        <span className={styles.accountName}>Jaren Lee</span>
-        <span className={styles.accountHandle}>jaren@stride.app</span>
+        <span className={styles.accountName}>{text.userName}</span>
+        <span className={styles.accountHandle}>{text.userEmail}</span>
       </span>
       <PencilSimple size={16} className={styles.accountEdit} aria-hidden="true" />
     </Link>
@@ -217,7 +215,11 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                 <>
                   <div className={styles.mobileAvatarWrap}>
                     <div className={styles.mobileAvatar}>J</div>
-                    <StatusBadge status={activeStatus} className={styles.mobileAvatarBadge} />
+                    <StatusBadge
+                      status={activeStatus}
+                      className={styles.mobileAvatarBadge}
+                      label={text.statusBadgeAria(activeStatus.label)}
+                    />
                   </div>
                   <div className={styles.mobileScopeCopy}>
                     <span className={styles.mobileScopeName}>{activeWorkspace.name}</span>
@@ -236,7 +238,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
               </div>
             </Popover>
 
-            <Link to="/settings" className={styles.mobileSettingsButton} aria-label="Open settings">
+            <Link to="/settings" className={styles.mobileSettingsButton} aria-label={text.openSettingsAria}>
               <Gear size={18} weight="bold" aria-hidden="true" />
             </Link>
           </div>
@@ -269,7 +271,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
             </div>
           </Popover>
 
-          <nav className={styles.nav} aria-label="Primary">
+          <nav className={styles.nav} aria-label={text.primaryNavAria}>
             {navItems.map(item => {
               const Icon = item.icon;
               return (
@@ -283,7 +285,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                     <span className={styles.navIcon}>
                       <Icon size={16} weight="bold" aria-hidden="true" />
                     </span>
-                    <Typography size="sm" weight="medium" color="inverse">{item.label}</Typography>
+                    <Typography size="sm" weight="medium" color="inverse">{text.nav[item.labelKey] ?? item.labelKey}</Typography>
                     {item.badge ? <span className={styles.badge}>{item.badge}</span> : null}
                   </Link>
                   {item.children ? (
@@ -306,7 +308,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                             <span className={styles.subNavIcon}>
                               <ChildIcon size={14} weight="bold" aria-hidden="true" />
                             </span>
-                            <span>{child.label}</span>
+                            <span>{text.nav[child.labelKey] ?? child.labelKey}</span>
                           </Link>
                         );
                       })}
@@ -326,10 +328,14 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                 <>
                   <span className={styles.profileAvatarWrap}>
                     <span className={styles.profileAvatar}>J</span>
-                    <StatusBadge status={activeStatus} className={styles.profileAvatarBadge} />
+                    <StatusBadge
+                      status={activeStatus}
+                      className={styles.profileAvatarBadge}
+                      label={text.statusBadgeAria(activeStatus.label)}
+                    />
                   </span>
                   <div className={styles.profileCopy}>
-                    <Typography size="sm" weight="semibold" color="inverse">Jaren Lee</Typography>
+                    <Typography size="sm" weight="semibold" color="inverse">{text.userName}</Typography>
                   </div>
                   <CaretDown size={14} className={styles.caretIcon} aria-hidden="true" />
                 </>
@@ -342,7 +348,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
               </div>
             </Popover>
 
-            <Link to="/settings" className={styles.settingsButton} aria-label="Open settings">
+            <Link to="/settings" className={styles.settingsButton} aria-label={text.openSettingsAria}>
               <Gear size={18} weight="bold" aria-hidden="true" />
             </Link>
           </div>
@@ -354,7 +360,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
       </main>
 
       {!isSettings ? (
-        <nav className={styles.mobileNav} aria-label="Primary">
+        <nav className={styles.mobileNav} aria-label={text.primaryNavAria}>
           {navItems.map(item => {
             const Icon = item.icon;
             return (
@@ -369,7 +375,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus }: AppShell
                   <Icon size={19} weight="bold" aria-hidden="true" />
                   {item.badge ? <span className={styles.mobileBadge}>{item.badge}</span> : null}
                 </span>
-                <span className={styles.mobileNavLabel}>{item.label}</span>
+                <span className={styles.mobileNavLabel}>{text.nav[item.labelKey] ?? item.labelKey}</span>
               </Link>
             );
           })}

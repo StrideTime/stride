@@ -21,6 +21,7 @@ import { Typography } from '@stride/ui';
 
 import { useAppMode } from '../app-mode';
 import {
+  addDays,
   formatTime,
   getGenericBlockIcon,
   getGenericBlockTitle,
@@ -29,6 +30,8 @@ import {
   ScheduleBlockCard,
   ScheduleDateNavigator,
   ScheduleTray,
+  parseDateKey,
+  toDateKey,
   toScheduleBlock,
   type GenericBlockType,
   type SelectedScheduleBlock,
@@ -1193,24 +1196,6 @@ function getEventStartMinutes(
 ) {
   const rect = canvas.getBoundingClientRect();
   return snapMinutes(((pointer.y - rect.top) / HOUR_HEIGHT) * 60 - dragOffsetMin);
-}
-
-function parseDateKey(date: string) {
-  const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function addDays(date: Date, dayCount: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + dayCount);
-  return nextDate;
-}
-
-function toDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function formatDateSelectorLabel(date: string) {

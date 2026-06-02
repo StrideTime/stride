@@ -127,5 +127,162 @@
       "breakdownPrompt": "Shape the next actions for this spec.",
       "addFirstAction": "Add first action"
     }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "allUpdates": "All updates",
+    "navVariants": {
+      "aria": "Inbox navigation variants",
+      "chips": "A \u00b7 Filter chips",
+      "feed": "B \u00b7 Grouped feed",
+      "strip": "C \u00b7 Counts strip",
+      "select": "D \u00b7 Scope dropdown"
+    },
+    "categories": {
+      "review": {
+        "title": "Needs review",
+        "short": "need review"
+      },
+      "unblocked": {
+        "title": "Unblocked",
+        "short": "unblocked"
+      },
+      "decisions": {
+        "title": "Decisions",
+        "short": "decisions"
+      }
+    },
+    "filters": {
+      "aria": "Filter updates",
+      "optionWithCount": "{{label}} \u00b7 {{count}}"
+    },
+    "search": {
+      "aria": "Search inbox updates",
+      "placeholder": "Search {{scope}}"
+    },
+    "empty": {
+      "view": "No updates in this view.",
+      "search": "No updates match your search."
+    },
+    "row": {
+      "openAria": "Open inbox item: {{title}}"
+    },
+    "detail": {
+      "closeAria": "Close inbox detail",
+      "selectedAria": "Selected inbox item",
+      "spec": "Spec",
+      "unblocked": "{{actor}} unblocked you {{timestamp}}",
+      "updated": "{{actor}} updated this {{timestamp}}",
+      "openSpec": "Open spec"
+    }
+  },
+  "shell": {
+    "nav": {
+      "primaryAria": "Primary",
+      "today": "Today",
+      "inbox": "Inbox",
+      "backlog": "Backlog",
+      "specs": "Specs",
+      "actions": "Actions",
+      "schedule": "Schedule",
+      "trayPreview": "Tray preview"
+    },
+    "settings": {
+      "openAria": "Open settings"
+    },
+    "account": {
+      "status": "Status",
+      "setStatusAria": "Set your status",
+      "customStatusPlaceholder": "Set a custom status\u2026",
+      "customStatusAria": "Custom status",
+      "addCustomStatusAria": "Add custom status",
+      "workspace": "Workspace",
+      "teamAria": "Team",
+      "statusBadgeAria": "Status: {{status}}",
+      "userName": "Jaren Lee",
+      "userEmail": "jaren@stride.app"
+    }
+  },
+  "settings": {
+    "yourData": {
+      "privacy": {
+        "shareFocusStatus": {
+          "title": "Share focus status",
+          "detail": "Let teammates see when you're focused or free."
+        },
+        "liveSessionIndicator": {
+          "title": "Show live session indicator",
+          "detail": "Show teammates you're in a work block."
+        },
+        "guarantee": "Team reports show aggregate patterns only. Your individual sessions, check-ins, and captures stay private."
+      },
+      "recordsTitle": "Your records",
+      "categories": {
+        "sessions": "Sessions",
+        "checkins": "Check-ins",
+        "captures": "Captures"
+      },
+      "feelings": {
+        "frown": "Tough",
+        "neutral": "Okay",
+        "smile": "Good",
+        "target": "On point",
+        "notLogged": "Not logged"
+      },
+      "columns": {
+        "when": "When",
+        "action": "Action",
+        "duration": "Duration",
+        "felt": "Felt",
+        "note": "Note",
+        "kind": "Kind"
+      },
+      "personal": "Personal",
+      "noNote": "No note left",
+      "onAction": "on {{action}}",
+      "delete": {
+        "sessionAria": "Delete session on {{title}}",
+        "sessionConfirm": "Delete this session? Its logged time and check-in are removed with it.",
+        "checkinAria": "Delete check-in from {{when}}",
+        "checkinConfirm": "Delete this check-in? The session it belongs to stays.",
+        "captureAria": "Delete capture from {{when}}",
+        "captureConfirm": "Delete this capture?"
+      },
+      "empty": {
+        "sessions": {
+          "title": "No sessions recorded",
+          "body": "When you run a timed session it lands here, fully under your control."
+        },
+        "checkins": {
+          "title": "No check-ins recorded",
+          "body": "A check-in is the quick how-did-it-go you log when a session ends."
+        },
+        "captures": {
+          "title": "No captures recorded",
+          "body": "Captures are quick notes you take during a session with the capture shortcut."
+        },
+        "filteredTitle": "Nothing matches \u201c{{query}}\u201d",
+        "filteredBody": "Try a different search."
+      },
+      "export": {
+        "downloaded": "Downloaded",
+        "exporting": "Exporting\u2026",
+        "exportJson": "Export JSON"
+      },
+      "search": {
+        "aria": "Search {{category}}",
+        "placeholder": "Search {{category}}"
+      },
+      "pagination": {
+        "range": "Showing {{start}}\u2013{{end}} of {{total}}",
+        "previousAria": "Previous page",
+        "nextAria": "Next page"
+      }
+    }
   }
 }
