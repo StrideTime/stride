@@ -1,4 +1,4 @@
-import { Smiley, SmileyMeh, SmileySad, Target } from '@phosphor-icons/react';
+import { SmileyIcon, SmileyMehIcon, SmileySadIcon, TargetIcon } from '@phosphor-icons/react';
 
 import type { Feeling } from '../../yourData.mock';
 import type { DataCategory } from './types';
@@ -12,9 +12,9 @@ export const CATEGORY_LABEL_KEY: Record<DataCategory, string> = {
   captures: 'settings.yourData.categories.captures',
 };
 
-export const FEELING_META: Record<Feeling, { labelKey: string; icon: typeof Smiley }> = {
-  frown: { labelKey: 'settings.yourData.feelings.frown', icon: SmileySad },
-  neutral: { labelKey: 'settings.yourData.feelings.neutral', icon: SmileyMeh },
-  smile: { labelKey: 'settings.yourData.feelings.smile', icon: Smiley },
-  target: { labelKey: 'settings.yourData.feelings.target', icon: Target },
+export const FEELING_META: Record<Feeling, { labelKey: string; icon: typeof SmileyIcon }> = {
+  frown: { labelKey: 'settings.yourData.feelings.frown', icon: SmileySadIcon },
+  neutral: { labelKey: 'settings.yourData.feelings.neutral', icon: SmileyMehIcon },
+  smile: { labelKey: 'settings.yourData.feelings.smile', icon: SmileyIcon },
+  target: { labelKey: 'settings.yourData.feelings.target', icon: TargetIcon },
 };

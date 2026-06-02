@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Smiley, SmileyMeh, SmileySad, Target, Trash } from '@phosphor-icons/react';
+import { SmileyIcon, SmileyMehIcon, SmileySadIcon, TargetIcon, TrashIcon } from '@phosphor-icons/react';
 
 import { Button, Typography } from '@stride/ui';
 
@@ -17,13 +17,13 @@ import styles from './ActionsPage.module.css';
 const FEELING_OPTIONS: ReadonlyArray<{
   value: Feeling;
   label: string;
-  icon: typeof Smiley;
+  icon: typeof SmileyIcon;
   className: string;
 }> = [
-  { value: 'frown', label: 'Tough', icon: SmileySad, className: 'feelingTough' },
-  { value: 'neutral', label: 'Okay', icon: SmileyMeh, className: 'feelingOkay' },
-  { value: 'smile', label: 'Good', icon: Smiley, className: 'feelingGood' },
-  { value: 'target', label: 'On point', icon: Target, className: 'feelingOnPoint' },
+  { value: 'frown', label: 'Tough', icon: SmileySadIcon, className: 'feelingTough' },
+  { value: 'neutral', label: 'Okay', icon: SmileyMehIcon, className: 'feelingOkay' },
+  { value: 'smile', label: 'Good', icon: SmileyIcon, className: 'feelingGood' },
+  { value: 'target', label: 'On point', icon: TargetIcon, className: 'feelingOnPoint' },
 ];
 
 export function ActionsPage() {
@@ -160,7 +160,7 @@ function SessionCheckInDialog() {
         <div className={styles.checkInActions}>
           <Button
             variant="danger"
-            icon={<Trash size={14} aria-hidden="true" />}
+            icon={<TrashIcon size={14} aria-hidden="true" />}
             onClick={discardSession}
           >
             Delete session

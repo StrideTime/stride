@@ -1,4 +1,4 @@
-import { CaretDown, Check, Info } from '@phosphor-icons/react';
+import { CaretDownIcon, CheckIcon, InfoIcon } from '@phosphor-icons/react';
 import { Select as BaseSelect } from '@base-ui-components/react/select';
 import type { ReactNode } from 'react';
 
@@ -60,7 +60,7 @@ export function Select({
             <span>{selectedOption?.label ?? value}</span>
           </span>
           <BaseSelect.Icon className={styles.icon}>
-            <CaretDown size={13} weight="bold" />
+            <CaretDownIcon size={13} weight="bold" />
           </BaseSelect.Icon>
         </BaseSelect.Trigger>
       </div>
@@ -86,7 +86,7 @@ export function Select({
                     <BaseSelect.ItemText>{option.label}</BaseSelect.ItemText>
                   </span>
                   <BaseSelect.ItemIndicator className={styles.itemIndicator}>
-                    <Check size={14} weight="bold" />
+                    <CheckIcon size={14} weight="bold" />
                   </BaseSelect.ItemIndicator>
                 </BaseSelect.Item>
               ))}
@@ -101,7 +101,7 @@ export function Select({
 function InfoTooltip({ label }: { label: string }) {
   return (
     <span className={styles.infoTooltip} data-tooltip={label} aria-label={label} tabIndex={0}>
-      <Info size={13} weight="bold" aria-hidden="true" />
+      <InfoIcon size={13} weight="bold" aria-hidden="true" />
     </span>
   );
 }

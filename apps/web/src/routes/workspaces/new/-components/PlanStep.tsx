@@ -1,4 +1,4 @@
-import { Check, CheckCircle } from '@phosphor-icons/react';
+import { CheckIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { Typography } from '@stride/ui';
 
 import { workspacePlans, type BillingCycle, type PlanId } from '../-workspaceCreation.mock';
@@ -61,7 +61,7 @@ export function PlanStep({ billing, onBillingChange, planId, onPlanChange }: Pla
                   {plan.name}
                 </Typography>
                 <span className={styles.planCheck} aria-hidden={!selected}>
-                  {selected ? <CheckCircle size={20} weight="fill" /> : null}
+                  {selected ? <CheckCircleIcon size={20} weight="fill" /> : null}
                 </span>
               </div>
               <Typography as="p" size="sm" color="muted" className={styles.planTagline}>
@@ -78,7 +78,7 @@ export function PlanStep({ billing, onBillingChange, planId, onPlanChange }: Pla
               <ul className={styles.planFeatures}>
                 {plan.features.map(feature => (
                   <li key={feature}>
-                    <Check size={14} weight="bold" aria-hidden="true" />
+                    <CheckIcon size={14} weight="bold" aria-hidden="true" />
                     {feature}
                   </li>
                 ))}

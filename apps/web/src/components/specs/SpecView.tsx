@@ -2,16 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Link } from '@tanstack/react-router';
 import {
-  ArrowLeft,
-  ArrowSquareOut,
-  CaretDown,
-  CaretRight,
-  CheckCircle,
-  ClockCounterClockwise,
-  DotsThree,
-  Play,
-  Plus,
-  Trash,
+  ArrowLeftIcon,
+  ArrowSquareOutIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  CheckCircleIcon,
+  ClockCounterClockwiseIcon,
+  DotsThreeIcon,
+  PlayIcon,
+  PlusIcon,
+  TrashIcon,
 } from '@phosphor-icons/react';
 import { Badge, Button, Popover, Select, Typography } from '@stride/ui';
 
@@ -62,7 +62,7 @@ export function SpecView({ specId, focusedActionId }: SpecViewProps) {
     return (
       <section className={styles.page}>
         <Link className={styles.backLink} to="/backlog/specs">
-          <ArrowLeft size={15} aria-hidden="true" />
+          <ArrowLeftIcon size={15} aria-hidden="true" />
           <Typography as="span" size="sm">
             Back to backlog
           </Typography>
@@ -81,7 +81,7 @@ export function SpecView({ specId, focusedActionId }: SpecViewProps) {
   return (
     <section className={styles.page}>
       <Link className={styles.backLink} to="/backlog/specs">
-        <ArrowLeft size={15} aria-hidden="true" />
+        <ArrowLeftIcon size={15} aria-hidden="true" />
         <Typography as="span" size="sm">
           Back to backlog
         </Typography>
@@ -147,7 +147,7 @@ function Header({ spec }: { spec: BacklogSpec }) {
           onClick={(event) => event.preventDefault()}
         >
           <span>{spec.sourceKey}</span>
-          <ArrowSquareOut size={14} aria-hidden="true" />
+          <ArrowSquareOutIcon size={14} aria-hidden="true" />
         </a>
       </div>
     </header>
@@ -532,7 +532,7 @@ function OverviewTab({
               submitAdd();
             }}
           >
-            <Plus size={15} aria-hidden="true" />
+            <PlusIcon size={15} aria-hidden="true" />
             <input
               aria-label="New action title"
               className={styles.addInput}
@@ -619,7 +619,7 @@ function ActionRow({
             Cancel
           </Button>
           <Button
-            icon={<Trash size={14} aria-hidden="true" />}
+            icon={<TrashIcon size={14} aria-hidden="true" />}
             size="sm"
             variant="danger"
             onClick={() => {
@@ -655,9 +655,9 @@ function ActionRow({
       >
         <span className={styles.expandIcon} aria-hidden="true">
           {expanded ? (
-            <CaretDown size={16} weight="bold" />
+            <CaretDownIcon size={16} weight="bold" />
           ) : (
-            <CaretRight size={16} weight="bold" />
+            <CaretRightIcon size={16} weight="bold" />
           )}
         </span>
         <span className={styles.actionCopy}>
@@ -767,13 +767,13 @@ function ActionMenu({
           aria-label={`Action options for ${action.title}`}
           className={styles.iconButton}
         >
-          <DotsThree size={20} weight="bold" aria-hidden="true" />
+          <DotsThreeIcon size={20} weight="bold" aria-hidden="true" />
         </span>
       }
       triggerClassName={styles.menuTrigger}
     >
       <button onClick={onViewSessions} role="menuitem" type="button">
-        <ClockCounterClockwise size={14} aria-hidden="true" /> View sessions
+        <ClockCounterClockwiseIcon size={14} aria-hidden="true" /> View sessions
       </button>
       <button
         disabled={startDisabled}
@@ -781,10 +781,10 @@ function ActionMenu({
         role="menuitem"
         type="button"
       >
-        <Play size={14} aria-hidden="true" /> Start
+        <PlayIcon size={14} aria-hidden="true" /> Start
       </button>
       <button onClick={onToggleDone} role="menuitem" type="button">
-        <CheckCircle size={14} aria-hidden="true" />
+        <CheckCircleIcon size={14} aria-hidden="true" />
         {action.done ? 'Mark incomplete' : 'Mark complete'}
       </button>
       <button
@@ -793,7 +793,7 @@ function ActionMenu({
         role="menuitem"
         type="button"
       >
-        <Trash size={14} aria-hidden="true" /> Delete
+        <TrashIcon size={14} aria-hidden="true" /> Delete
       </button>
     </Popover>
   );

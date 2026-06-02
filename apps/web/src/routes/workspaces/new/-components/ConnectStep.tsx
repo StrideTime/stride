@@ -1,4 +1,4 @@
-import { Buildings, CheckCircle, Plus } from '@phosphor-icons/react';
+import { BuildingsIcon, CheckCircleIcon, PlusIcon } from '@phosphor-icons/react';
 import { Typography } from '@stride/ui';
 
 import { workspaceSourceOptions } from '../-workspaceCreation.mock';
@@ -45,7 +45,7 @@ export function ConnectStep({ sourceId, onSelect, workspaceName }: ConnectStepPr
                 </Typography>
               </span>
               <span className={styles.sourceCheck}>
-                {selected ? <CheckCircle size={18} weight="fill" /> : <Plus size={16} weight="bold" />}
+                {selected ? <CheckCircleIcon size={18} weight="fill" /> : <PlusIcon size={16} weight="bold" />}
               </span>
             </button>
           );
@@ -53,7 +53,7 @@ export function ConnectStep({ sourceId, onSelect, workspaceName }: ConnectStepPr
       </div>
 
       <button className={styles.skipLink} onClick={() => onSelect(null)} type="button">
-        <Buildings size={14} weight="bold" aria-hidden="true" />
+        <BuildingsIcon size={14} weight="bold" aria-hidden="true" />
         I&apos;ll connect a source later
       </button>
     </section>

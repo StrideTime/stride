@@ -1,4 +1,4 @@
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 
 import { TextInput } from './TextInput';
 
@@ -14,7 +14,7 @@ export const WithLeading = {
     <TextInput
       aria-label="Search"
       placeholder="Search"
-      leading={<MagnifyingGlass size={16} weight="bold" />}
+      leading={<MagnifyingGlassIcon size={16} weight="bold" />}
     />
   ),
 };

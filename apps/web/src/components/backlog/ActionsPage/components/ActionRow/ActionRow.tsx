@@ -1,4 +1,4 @@
-import { CheckCircle } from '@phosphor-icons/react';
+import { CheckCircleIcon } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -99,7 +99,7 @@ export function ActionRow({ action, scope, view }: ActionRowProps) {
       <div className={styles.actionRowTitle}>
         {view === 'completed' ? (
           <span className={styles.completionMark} aria-hidden="true">
-            <CheckCircle size={18} weight="fill" />
+            <CheckCircleIcon size={18} weight="fill" />
           </span>
         ) : null}
         <span className={styles.actionTitleCopy}>

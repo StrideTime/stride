@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CaretLeft, CaretRight, CheckCircle, MagnifyingGlass } from '@phosphor-icons/react';
+import { CaretLeftIcon, CaretRightIcon, CheckCircleIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { Badge, Button, Typography } from '@stride/ui';
 import { useTranslation } from 'react-i18next';
 
@@ -220,7 +220,7 @@ export function YourDataSection() {
           <div className={styles.dataExport}>
             {exportState === 'done' ? (
               <span className={styles.exportDone}>
-                <CheckCircle size={16} weight="fill" aria-hidden="true" />
+                <CheckCircleIcon size={16} weight="fill" aria-hidden="true" />
                 <Typography as="span" size="xs" color="muted">
                   {t('settings.yourData.export.downloaded')}
                 </Typography>
@@ -257,7 +257,7 @@ export function YourDataSection() {
             ))}
           </div>
           <label className={styles.dataSearch}>
-            <MagnifyingGlass size={15} aria-hidden="true" />
+            <MagnifyingGlassIcon size={15} aria-hidden="true" />
             <input
               aria-label={t('settings.yourData.search.aria', { category: t(CATEGORY_LABEL_KEY[category]).toLowerCase() })}
               onChange={event => updateQuery(event.target.value)}
@@ -294,7 +294,7 @@ export function YourDataSection() {
                   onClick={() => setPage(value => Math.max(0, value - 1))}
                   type="button"
                 >
-                  <CaretLeft size={14} aria-hidden="true" />
+                  <CaretLeftIcon size={14} aria-hidden="true" />
                 </button>
                 <Typography
                   as="span"
@@ -308,7 +308,7 @@ export function YourDataSection() {
                   onClick={() => setPage(value => Math.min(pageCount - 1, value + 1))}
                   type="button"
                 >
-                  <CaretRight size={14} aria-hidden="true" />
+                  <CaretRightIcon size={14} aria-hidden="true" />
                 </button>
               </div>
             ) : null}

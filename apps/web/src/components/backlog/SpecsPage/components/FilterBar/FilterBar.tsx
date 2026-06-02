@@ -1,4 +1,4 @@
-import { MagnifyingGlass, X } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon, XIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button, TextInput } from '@stride/ui';
 
@@ -35,7 +35,7 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
         className={styles.searchControl}
         placeholder={t('backlog.filters.searchPlaceholder')}
         value={filters.query}
-        leading={<MagnifyingGlass size={16} weight="bold" />}
+        leading={<MagnifyingGlassIcon size={16} weight="bold" />}
         onChange={event =>
           onFilterChange({ ...filters, query: event.currentTarget.value })
         }
@@ -44,7 +44,7 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
         <Button
           className={activeFilterCount > 0 ? styles.clearActive : styles.clearButton}
           disabled={activeFilterCount === 0}
-          icon={<X size={14} weight="bold" />}
+          icon={<XIcon size={14} weight="bold" />}
           onClick={() => onFilterChange(defaultBacklogFilters)}
           size="md"
           variant="secondary"

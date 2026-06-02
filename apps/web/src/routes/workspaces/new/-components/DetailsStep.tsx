@@ -1,4 +1,4 @@
-import { Briefcase, CheckCircle } from '@phosphor-icons/react';
+import { BriefcaseIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { Badge, TextInput, Typography } from '@stride/ui';
 
 import styles from '../NewWorkspacePage.module.css';
@@ -25,7 +25,7 @@ export function DetailsStep({ name, onNameChange }: DetailsStepProps) {
           Workspace name
         </Typography>
         <TextInput
-          leading={<Briefcase size={16} weight="bold" aria-hidden="true" />}
+          leading={<BriefcaseIcon size={16} weight="bold" aria-hidden="true" />}
           placeholder="Workspace name"
           value={name}
           onChange={event => onNameChange(event.target.value)}
@@ -46,7 +46,7 @@ export function DetailsStep({ name, onNameChange }: DetailsStepProps) {
             You&apos;ll be the workspace admin
           </Typography>
         </div>
-        <Badge variant="accent" leading={<CheckCircle size={12} weight="fill" aria-hidden="true" />}>
+        <Badge variant="accent" leading={<CheckCircleIcon size={12} weight="fill" aria-hidden="true" />}>
           Owner
         </Badge>
       </div>

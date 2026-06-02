@@ -1,4 +1,4 @@
-import { CaretDown, Check } from '@phosphor-icons/react';
+import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
 import { Popover as BasePopover } from '@base-ui-components/react/popover';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
@@ -53,7 +53,7 @@ export function MultiSelect({
             <span className={styles.label}>{label}</span>
             <span className={styles.value}>{displayValue}</span>
           </span>
-          <CaretDown className={styles.icon} size={13} weight="bold" />
+          <CaretDownIcon className={styles.icon} size={13} weight="bold" />
         </BasePopover.Trigger>
       </div>
       <BasePopover.Portal>
@@ -85,7 +85,7 @@ export function MultiSelect({
                     type="button"
                   >
                     <span className={styles.checkbox} aria-hidden="true">
-                      {selected ? <Check size={12} weight="bold" /> : null}
+                      {selected ? <CheckIcon size={12} weight="bold" /> : null}
                     </span>
                     <span className={styles.itemLayout}>
                       {option.leading ? <span className={styles.leading}>{option.leading}</span> : null}

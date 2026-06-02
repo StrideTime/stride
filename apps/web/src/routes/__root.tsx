@@ -12,7 +12,7 @@ import { StatusesProvider, useStatuses } from '../components/statuses';
 
 import '@stride/ui/styles/global.css';
 
-type PhosphorIcon = (typeof PhosphorIcons)['Circle'];
+type PhosphorIcon = (typeof PhosphorIcons)['CircleIcon'];
 
 const PUBLIC_PATHS = new Set(['/login', '/signup', '/onboarding']);
 const showTrayInShell =
@@ -23,8 +23,9 @@ const SHELLLESS_PROTECTED_PATHS = new Set([
 ]);
 
 function resolveIcon(name: string): PhosphorIcon {
-  const icon = (PhosphorIcons as Record<string, unknown>)[name];
-  return (typeof icon === 'object' && icon !== null ? icon : PhosphorIcons.Circle) as PhosphorIcon;
+  const icons = PhosphorIcons as Record<string, unknown>;
+  const icon = icons[`${name}Icon`] ?? icons[name];
+  return (typeof icon === 'object' && icon !== null ? icon : PhosphorIcons.CircleIcon) as PhosphorIcon;
 }
 
 function ShellWithStatuses() {

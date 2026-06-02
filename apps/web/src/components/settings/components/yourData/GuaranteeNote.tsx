@@ -1,4 +1,4 @@
-import { ShieldCheck } from '@phosphor-icons/react';
+import { ShieldCheckIcon } from '@phosphor-icons/react';
 import { Typography } from '@stride/ui';
 
 import styles from '../../SettingsView.module.css';
@@ -10,7 +10,7 @@ type GuaranteeNoteProps = {
 export function GuaranteeNote({ body }: GuaranteeNoteProps) {
   return (
     <div className={styles.guaranteeNote}>
-      <ShieldCheck size={17} weight="fill" aria-hidden="true" />
+      <ShieldCheckIcon size={17} weight="fill" aria-hidden="true" />
       <Typography as="p" size="sm" color="muted">
         {body}
       </Typography>

@@ -1,4 +1,4 @@
-import { CaretRight } from '@phosphor-icons/react';
+import { CaretRightIcon } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,7 @@ export function SpecRow({ spec }: SpecRowProps) {
             : t('backlog.specRow.noActions')}
         </span>
         <span className={styles.openIcon} aria-hidden="true">
-          <CaretRight size={14} weight="bold" />
+          <CaretRightIcon size={14} weight="bold" />
         </span>
       </Link>
     </article>

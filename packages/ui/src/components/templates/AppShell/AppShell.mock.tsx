@@ -1,21 +1,21 @@
 import {
-  ClockCountdown,
-  Coffee,
-  House,
-  ListBullets,
-  Smiley,
-  SquaresFour,
-  Target,
-  Tray,
+  ClockCountdownIcon,
+  CoffeeIcon,
+  HouseIcon,
+  ListBulletsIcon,
+  SmileyIcon,
+  SquaresFourIcon,
+  TargetIcon,
+  TrayIcon,
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 
 export type NavItem = {
   to: string;
   labelKey: string;
-  icon: typeof House;
+  icon: typeof HouseIcon;
   badge?: number;
-  children?: Array<{ href: string; labelKey: string; icon: typeof House }>;
+  children?: Array<{ href: string; labelKey: string; icon: typeof HouseIcon }>;
 };
 
 export type ShellStatus = {
@@ -36,20 +36,20 @@ const showTrayPreview =
   ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV ?? false);
 
 export const navItems: NavItem[] = [
-  { to: '/', labelKey: 'shell.nav.today', icon: House },
-  { to: '/inbox', labelKey: 'shell.nav.inbox', icon: Tray, badge: 3 },
+  { to: '/', labelKey: 'shell.nav.today', icon: HouseIcon },
+  { to: '/inbox', labelKey: 'shell.nav.inbox', icon: TrayIcon, badge: 3 },
   {
     to: '/backlog/specs',
     labelKey: 'shell.nav.backlog',
-    icon: SquaresFour,
+    icon: SquaresFourIcon,
     badge: 7,
     children: [
-      { href: '/backlog/specs', labelKey: 'shell.nav.specs', icon: SquaresFour },
-      { href: '/backlog/actions', labelKey: 'shell.nav.actions', icon: ListBullets },
+      { href: '/backlog/specs', labelKey: 'shell.nav.specs', icon: SquaresFourIcon },
+      { href: '/backlog/actions', labelKey: 'shell.nav.actions', icon: ListBulletsIcon },
     ],
   },
-  { to: '/schedule', labelKey: 'shell.nav.schedule', icon: ClockCountdown },
-  ...(showTrayPreview ? [{ to: '/tray', labelKey: 'shell.nav.trayPreview', icon: ClockCountdown }] : []),
+  { to: '/schedule', labelKey: 'shell.nav.schedule', icon: ClockCountdownIcon },
+  ...(showTrayPreview ? [{ to: '/tray', labelKey: 'shell.nav.trayPreview', icon: ClockCountdownIcon }] : []),
 ];
 
 export const defaultShellStatuses: ShellStatus[] = [
@@ -57,19 +57,19 @@ export const defaultShellStatuses: ShellStatus[] = [
     id: 'available',
     label: 'Available',
     color: 'success',
-    icon: <Smiley size={18} weight="fill" aria-hidden="true" />,
+    icon: <SmileyIcon size={18} weight="fill" aria-hidden="true" />,
   },
   {
     id: 'focus',
     label: 'Focus',
     color: 'accent',
-    icon: <Target size={18} weight="fill" aria-hidden="true" />,
+    icon: <TargetIcon size={18} weight="fill" aria-hidden="true" />,
   },
   {
     id: 'away',
     label: 'Away',
     color: 'warning',
-    icon: <Coffee size={18} weight="fill" aria-hidden="true" />,
+    icon: <CoffeeIcon size={18} weight="fill" aria-hidden="true" />,
   },
 ];
 

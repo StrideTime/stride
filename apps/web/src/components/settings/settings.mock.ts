@@ -1,18 +1,18 @@
 import type { ElementType } from 'react';
 
 import {
-  Bell,
-  Briefcase,
-  CalendarDots,
-  Database,
-  GearSix,
-  PaintBrush,
-  Plug,
-  ShieldCheck,
-  SlidersHorizontal,
-  Smiley,
-  User,
-  UsersThree,
+  BellIcon,
+  BriefcaseIcon,
+  CalendarDotsIcon,
+  DatabaseIcon,
+  GearSixIcon,
+  PaintBrushIcon,
+  PlugIcon,
+  ShieldCheckIcon,
+  SlidersHorizontalIcon,
+  SmileyIcon,
+  UserIcon,
+  UsersThreeIcon,
 } from '@phosphor-icons/react';
 
 export type SettingsSectionId =
@@ -100,9 +100,9 @@ export const settingsGroups: SettingsGroup[] = [
     label: 'Personal',
     helper: 'Account-wide settings across every workspace.',
     sections: [
-      { id: 'account', label: 'Profile', description: '', icon: User },
-      { id: 'appearance', label: 'Appearance', description: '', icon: PaintBrush },
-      { id: 'my-statuses', label: 'My statuses', description: '', icon: Smiley },
+      { id: 'account', label: 'Profile', description: '', icon: UserIcon },
+      { id: 'appearance', label: 'Appearance', description: '', icon: PaintBrushIcon },
+      { id: 'my-statuses', label: 'My statuses', description: '', icon: SmileyIcon },
     ],
   },
   {
@@ -110,10 +110,10 @@ export const settingsGroups: SettingsGroup[] = [
     label: 'My workspace settings',
     helper: 'Your defaults for Acme Platform.',
     sections: [
-      { id: 'my-workspace', label: 'Work preferences', description: '', icon: SlidersHorizontal },
-      { id: 'my-calendar', label: 'Calendar', description: '', icon: CalendarDots },
-      { id: 'my-notifications', label: 'Notifications', description: '', icon: Bell },
-      { id: 'your-data', label: 'Privacy and data', description: '', icon: Database },
+      { id: 'my-workspace', label: 'Work preferences', description: '', icon: SlidersHorizontalIcon },
+      { id: 'my-calendar', label: 'Calendar', description: '', icon: CalendarDotsIcon },
+      { id: 'my-notifications', label: 'Notifications', description: '', icon: BellIcon },
+      { id: 'your-data', label: 'Privacy and data', description: '', icon: DatabaseIcon },
     ],
   },
   {
@@ -122,9 +122,9 @@ export const settingsGroups: SettingsGroup[] = [
     helper: 'Visible to workspace admins only.',
     minimumRole: 'workspaceAdmin',
     sections: [
-      { id: 'workspace-general', label: 'General', description: '', icon: Briefcase },
-      { id: 'workspace-connections', label: 'Source connections', description: '', icon: Plug },
-      { id: 'workspace-members', label: 'Members', description: '', icon: UsersThree },
+      { id: 'workspace-general', label: 'General', description: '', icon: BriefcaseIcon },
+      { id: 'workspace-connections', label: 'Source connections', description: '', icon: PlugIcon },
+      { id: 'workspace-members', label: 'Members', description: '', icon: UsersThreeIcon },
     ],
   },
   {
@@ -133,9 +133,9 @@ export const settingsGroups: SettingsGroup[] = [
     helper: 'For the selected team inside this workspace.',
     minimumRole: 'teamAdmin',
     sections: [
-      { id: 'team-general', label: 'General', description: '', icon: GearSix },
-      { id: 'team-members', label: 'Members', description: '', icon: UsersThree },
-      { id: 'team-source', label: 'Source mapping', description: '', icon: ShieldCheck },
+      { id: 'team-general', label: 'General', description: '', icon: GearSixIcon },
+      { id: 'team-members', label: 'Members', description: '', icon: UsersThreeIcon },
+      { id: 'team-source', label: 'Source mapping', description: '', icon: ShieldCheckIcon },
     ],
   },
 ];

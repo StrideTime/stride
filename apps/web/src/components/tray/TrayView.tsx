@@ -1,12 +1,12 @@
 import {
-  ArrowSquareOut,
-  CalendarBlank,
-  CalendarPlus,
-  Play,
-  Smiley,
-  SmileyMeh,
-  SmileySad,
-  Target,
+  ArrowSquareOutIcon,
+  CalendarBlankIcon,
+  CalendarPlusIcon,
+  PlayIcon,
+  SmileyIcon,
+  SmileyMehIcon,
+  SmileySadIcon,
+  TargetIcon,
 } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
@@ -57,13 +57,13 @@ const PRIORITY_SCORE: Record<BacklogSpec['priority'], number> = {
 const FEELINGS: Array<{
   value: Feeling;
   label: string;
-  icon: typeof Smiley;
+  icon: typeof SmileyIcon;
   toneClass: 'feelingTough' | 'feelingOkay' | 'feelingGood' | 'feelingTarget';
 }> = [
-  { value: 'frown', label: 'Tough', icon: SmileySad, toneClass: 'feelingTough' },
-  { value: 'neutral', label: 'Okay', icon: SmileyMeh, toneClass: 'feelingOkay' },
-  { value: 'smile', label: 'Good', icon: Smiley, toneClass: 'feelingGood' },
-  { value: 'target', label: 'On point', icon: Target, toneClass: 'feelingTarget' },
+  { value: 'frown', label: 'Tough', icon: SmileySadIcon, toneClass: 'feelingTough' },
+  { value: 'neutral', label: 'Okay', icon: SmileyMehIcon, toneClass: 'feelingOkay' },
+  { value: 'smile', label: 'Good', icon: SmileyIcon, toneClass: 'feelingGood' },
+  { value: 'target', label: 'On point', icon: TargetIcon, toneClass: 'feelingTarget' },
 ];
 
 export function TrayView() {
@@ -411,7 +411,7 @@ function ScheduleFirstTray() {
     <div className={styles.scheduleCompass}>
       <div className={styles.scheduleTopBar}>
         <div className={styles.scheduleDateMark} aria-hidden="true">
-          <CalendarBlank size={17} weight="bold" />
+          <CalendarBlankIcon size={17} weight="bold" />
         </div>
         <div className={styles.scheduleTitleGroup}>
           <Typography as="span" size="xs" weight="semibold" color="muted">
@@ -426,7 +426,7 @@ function ScheduleFirstTray() {
           title="Open the main Stride window"
         >
           Open app
-          <ArrowSquareOut size={15} weight="bold" aria-hidden="true" />
+          <ArrowSquareOutIcon size={15} weight="bold" aria-hidden="true" />
         </Link>
       </div>
       {isDevEnvironment() ? (
@@ -568,7 +568,7 @@ function TraySuggestions({ actions }: { actions: TrayAction[] }) {
               </Typography>
             </span>
             <span className={styles.suggestionPlan} aria-hidden="true">
-              <CalendarPlus size={16} weight="bold" />
+              <CalendarPlusIcon size={16} weight="bold" />
             </span>
           </Link>
         ))}
@@ -591,7 +591,7 @@ function ActionHero({ action, onStart }: { action: TrayAction; onStart: () => vo
         <span>{action.estimateMin ? `${action.estimateMin}m estimate` : 'No estimate'}</span>
         <span>{action.loggedMin}m logged</span>
       </div>
-      <Button variant="primary" size="md" icon={<Play size={16} weight="bold" />} onClick={onStart}>
+      <Button variant="primary" size="md" icon={<PlayIcon size={16} weight="bold" />} onClick={onStart}>
         Start session
       </Button>
     </article>
@@ -607,7 +607,7 @@ function ActionRow({ action, onStart }: { action: TrayAction; onStart: () => voi
           {action.spec.sourceKey} · {action.estimateMin ? `${action.estimateMin}m` : 'No estimate'}
         </Typography>
       </span>
-      <Play size={15} weight="bold" aria-hidden="true" />
+      <PlayIcon size={15} weight="bold" aria-hidden="true" />
     </button>
   );
 }

@@ -1,4 +1,4 @@
-import { Plus } from '@phosphor-icons/react';
+import { PlusIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button, Typography } from '@stride/ui';
 
@@ -16,7 +16,7 @@ export function Header({ surface }: HeaderProps) {
       <Typography as="h1" size="2xl" weight="bold">
         {surface === 'actions' ? t('backlog.common.actions') : t('backlog.common.specs')}
       </Typography>
-      <Button className={styles.headerAction} icon={<Plus size={15} weight="bold" />} variant="secondary">
+      <Button className={styles.headerAction} icon={<PlusIcon size={15} weight="bold" />} variant="secondary">
         {surface === 'actions' ? t('backlog.common.addAction') : t('backlog.common.createSpec')}
       </Button>
     </header>

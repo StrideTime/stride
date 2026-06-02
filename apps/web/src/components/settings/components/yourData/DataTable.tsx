@@ -1,4 +1,4 @@
-import { Trash } from '@phosphor-icons/react';
+import { TrashIcon } from '@phosphor-icons/react';
 import { Button, Typography } from '@stride/ui';
 import { useTranslation } from 'react-i18next';
 
@@ -95,7 +95,7 @@ export function DataTable({
               onClick={() => onConfirm(row.id)}
               type="button"
             >
-              <Trash size={15} aria-hidden="true" />
+              <TrashIcon size={15} aria-hidden="true" />
             </button>
           </div>
         )

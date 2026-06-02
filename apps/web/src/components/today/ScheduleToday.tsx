@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 
 import {
-  CalendarBlank,
-  CaretRight,
-  Check,
-  Coffee,
-  UsersThree,
+  CalendarBlankIcon,
+  CaretRightIcon,
+  CheckIcon,
+  CoffeeIcon,
+  UsersThreeIcon,
 } from '@phosphor-icons/react';
 import { Button, Typography } from '@stride/ui';
 
@@ -22,10 +22,10 @@ const BLOCK_LABEL: Record<TodayScheduleBlock['state'], string> = {
 
 // The rail node carries block type at a glance: meetings, breaks, and done
 // blocks get an icon; focus work stays a quiet dot so the plan reads calmly.
-const BLOCK_ICON: Partial<Record<TodayScheduleBlock['state'], typeof Check>> = {
-  meeting: UsersThree,
-  break: Coffee,
-  done: Check,
+const BLOCK_ICON: Partial<Record<TodayScheduleBlock['state'], typeof CheckIcon>> = {
+  meeting: UsersThreeIcon,
+  break: CoffeeIcon,
+  done: CheckIcon,
 };
 
 function parseMinutes(text: string): number {
@@ -105,7 +105,7 @@ export function ScheduleToday() {
           <Button
             className={styles.scheduleButton}
             variant="secondary"
-            icon={<CaretRight size={15} aria-hidden="true" />}
+            icon={<CaretRightIcon size={15} aria-hidden="true" />}
           >
             View today’s schedule
           </Button>
@@ -149,7 +149,7 @@ export function ScheduleToday() {
       ) : (
         <div className={styles.empty}>
           <span className={styles.emptyIcon} aria-hidden="true">
-            <CalendarBlank size={26} weight="regular" />
+            <CalendarBlankIcon size={26} weight="regular" />
           </span>
           <div className={styles.emptyCopy}>
             <Typography as="h2" size="lg" weight="bold">Nothing planned today</Typography>
@@ -160,7 +160,7 @@ export function ScheduleToday() {
           <Button
             className={styles.scheduleButton}
             variant="primary"
-            icon={<CaretRight size={15} aria-hidden="true" />}
+            icon={<CaretRightIcon size={15} aria-hidden="true" />}
           >
             Plan your day
           </Button>

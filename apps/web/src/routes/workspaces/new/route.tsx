@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Plus, X } from '@phosphor-icons/react';
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Button, Typography } from '@stride/ui';
 
@@ -56,7 +56,7 @@ function NewWorkspacePage() {
             return (
               <li className={`${styles.stepItem} ${styles[state]}`} key={item}>
                 <span className={styles.stepDot}>
-                  {state === 'done' ? <Check size={11} weight="bold" aria-hidden="true" /> : index + 1}
+                  {state === 'done' ? <CheckIcon size={11} weight="bold" aria-hidden="true" /> : index + 1}
                 </span>
                 <span className={styles.stepLabel}>{stepLabels[item]}</span>
               </li>
@@ -65,7 +65,7 @@ function NewWorkspacePage() {
         </ol>
 
         <Link to="/" className={styles.closeLink} aria-label="Cancel workspace creation">
-          <X size={16} weight="bold" aria-hidden="true" />
+          <XIcon size={16} weight="bold" aria-hidden="true" />
         </Link>
       </header>
 
@@ -92,12 +92,12 @@ function NewWorkspacePage() {
         <div className={styles.footerInner}>
           {isFirst ? (
             <Link to="/" className={styles.footerBack}>
-              <ArrowLeft size={14} weight="bold" aria-hidden="true" />
+              <ArrowLeftIcon size={14} weight="bold" aria-hidden="true" />
               Cancel
             </Link>
           ) : (
             <button className={styles.footerBack} onClick={goBack} type="button">
-              <ArrowLeft size={14} weight="bold" aria-hidden="true" />
+              <ArrowLeftIcon size={14} weight="bold" aria-hidden="true" />
               Back
             </button>
           )}
@@ -106,7 +106,7 @@ function NewWorkspacePage() {
             variant="primary"
             disabled={!canContinue}
             onClick={goNext}
-            icon={isLast ? <Plus size={15} weight="bold" /> : <ArrowRight size={15} weight="bold" />}
+            icon={isLast ? <PlusIcon size={15} weight="bold" /> : <ArrowRightIcon size={15} weight="bold" />}
           >
             {isLast ? 'Create workspace' : 'Continue'}
           </Button>

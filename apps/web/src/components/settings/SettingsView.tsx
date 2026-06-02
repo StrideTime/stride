@@ -3,18 +3,18 @@ import { useMemo, useState, type ElementType, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import * as PhosphorIcons from '@phosphor-icons/react';
 import {
-  ArrowLeft,
-  ArrowRight,
-  Briefcase,
-  CalendarDots,
-  CaretDown,
-  Timer,
-  CaretLeft,
-  GearSix,
-  PencilSimple,
-  Plus,
-  Trash,
-  X,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  BriefcaseIcon,
+  CalendarDotsIcon,
+  CaretDownIcon,
+  TimerIcon,
+  CaretLeftIcon,
+  GearSixIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TrashIcon,
+  XIcon,
 } from '@phosphor-icons/react';
 import { Badge, Button, Popover, Select, TextInput, Typography } from '@stride/ui';
 
@@ -99,13 +99,13 @@ export function SettingsView({ section }: SettingsViewProps) {
       <aside className={styles.sidebar} aria-label="Settings sections">
         <div className={styles.sidebarHeader}>
           <Link to="/" className={styles.backLink} aria-label="Back to app">
-            <ArrowLeft size={15} weight="bold" aria-hidden="true" />
+            <ArrowLeftIcon size={15} weight="bold" aria-hidden="true" />
           </Link>
           <Typography as="h1" size="lg" weight="bold" className={styles.title}>
             Settings
           </Typography>
           <CompactPicker
-            icon={Briefcase}
+            icon={BriefcaseIcon}
             value={currentWorkspace.name}
             options={workspaceOptions.map((workspace) => ({
               value: workspace.id,
@@ -115,7 +115,7 @@ export function SettingsView({ section }: SettingsViewProps) {
             onSelect={selectWorkspace}
             footer={
               <Link to="/workspaces/new" className={styles.scopeMenuAction}>
-                <Plus size={14} weight="bold" aria-hidden="true" />
+                <PlusIcon size={14} weight="bold" aria-hidden="true" />
                 Create workspace
               </Link>
             }
@@ -173,7 +173,7 @@ export function SettingsView({ section }: SettingsViewProps) {
       <main className={styles.content}>
         <div className={styles.mobileBackstop}>
           <Link to="/settings" search={{}} className={styles.mobileBackButton}>
-            <CaretLeft size={15} weight="bold" aria-hidden="true" />
+            <CaretLeftIcon size={15} weight="bold" aria-hidden="true" />
             <span>All settings</span>
           </Link>
         </div>
@@ -345,7 +345,7 @@ function MyWorkspaceSection() {
                   onClick={() => removeWorkingHours(row.id)}
                   type="button"
                 >
-                  <Trash size={15} aria-hidden="true" />
+                  <TrashIcon size={15} aria-hidden="true" />
                 </button>
               </div>
             ))}
@@ -354,7 +354,7 @@ function MyWorkspaceSection() {
             variant="secondary"
             size="sm"
             className={styles.addWorkingHoursButton}
-            icon={<Plus size={14} weight="bold" />}
+            icon={<PlusIcon size={14} weight="bold" />}
             onClick={addWorkingHours}
           >
             Add day
@@ -371,14 +371,14 @@ function MyWorkspaceSection() {
         <div className={styles.workModeGrid}>
           <WorkModeOption
             active={mode === 'session-first'}
-            icon={<Timer size={24} weight="bold" aria-hidden="true" />}
+            icon={<TimerIcon size={24} weight="bold" aria-hidden="true" />}
             label="Session-first"
             summary="Start and stop sessions. Sessions count as time worked."
             onSelect={() => setMode('session-first')}
           />
           <WorkModeOption
             active={mode === 'schedule-first'}
-            icon={<CalendarDots size={24} weight="bold" aria-hidden="true" />}
+            icon={<CalendarDotsIcon size={24} weight="bold" aria-hidden="true" />}
             label="Schedule-first"
             summary="Work time comes from what is scheduled on your calendar."
             onSelect={() => setMode('schedule-first')}
@@ -693,7 +693,7 @@ function MyStatusesSection() {
                     onClick={() => removeStatus(status.id)}
                     type="button"
                   >
-                    <Trash size={15} aria-hidden="true" />
+                    <TrashIcon size={15} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -703,7 +703,7 @@ function MyStatusesSection() {
             variant="secondary"
             size="sm"
             className={styles.statusAddButton}
-            icon={<Plus size={14} weight="bold" />}
+            icon={<PlusIcon size={14} weight="bold" />}
             onClick={addStatus}
           >
             Add status
@@ -1016,7 +1016,7 @@ function CalendarSection() {
         {connected ? (
           <div className={styles.calendarAccountRow}>
             <span className={styles.calendarAccountIcon} aria-hidden="true">
-              <CalendarDots size={18} weight="bold" />
+              <CalendarDotsIcon size={18} weight="bold" />
             </span>
             <span className={styles.memberIdentity}>
               <Typography as="span" size="sm" weight="semibold">
@@ -1035,7 +1035,7 @@ function CalendarSection() {
           <div className={styles.calendarConnect}>
             <Button
               variant="primary"
-              icon={<Plus size={14} weight="bold" />}
+              icon={<PlusIcon size={14} weight="bold" />}
               onClick={() => setConnected(true)}
             >
               Connect a calendar
@@ -1287,7 +1287,7 @@ function SourceConnectionModal({ state, onClose }: SourceConnectionModalProps) {
             </Typography>
           </div>
           <button className={styles.sourceModalClose} onClick={onClose} type="button">
-            <X size={15} weight="bold" aria-hidden="true" />
+            <XIcon size={15} weight="bold" aria-hidden="true" />
           </button>
         </div>
 
@@ -1798,7 +1798,7 @@ function AccountSection() {
               variant="ghost"
               size="sm"
               className={styles.profileAvatarEditButton}
-              icon={<PencilSimple size={14} weight="bold" />}
+              icon={<PencilSimpleIcon size={14} weight="bold" />}
             >
               Edit
             </Button>
@@ -2004,6 +2004,7 @@ const allIconOptions: IconOption[] = Object.values(
     .filter(
       ([name, value]) =>
         /^[A-Z]/.test(name) &&
+        name.endsWith('Icon') &&
         !['Icon', 'IconBase', 'IconContext', 'IconWeight'].includes(name) &&
         !name.endsWith('Context') &&
         !name.includes('Logo') &&
@@ -2015,7 +2016,7 @@ const allIconOptions: IconOption[] = Object.values(
       const baseName = name.replace(/Icon$/, '');
       const existing = acc[baseName];
 
-      if (!existing || !name.endsWith('Icon')) {
+      if (!existing) {
         acc[baseName] = { name: baseName, icon: icon as IconComponent };
       }
 
@@ -2348,7 +2349,7 @@ function SearchableSelect({ label, value, options, onChange }: SearchableSelectP
         trigger={
           <>
             <span className={styles.searchableValue}>{selected?.label ?? value}</span>
-            <CaretDown size={13} weight="bold" aria-hidden="true" />
+            <CaretDownIcon size={13} weight="bold" aria-hidden="true" />
           </>
         }
         triggerClassName={styles.searchableTrigger}
@@ -2410,7 +2411,7 @@ function CompactPicker({ value, options, onSelect, icon: Icon, footer }: Compact
             <Icon size={14} weight="bold" aria-hidden="true" className={styles.scopeIcon} />
           ) : null}
           <span className={styles.scopeName}>{value}</span>
-          <CaretDown size={12} aria-hidden="true" className={styles.scopeCaret} />
+          <CaretDownIcon size={12} aria-hidden="true" className={styles.scopeCaret} />
         </>
       }
       triggerClassName={styles.scopeButton}
@@ -2495,7 +2496,7 @@ function MappingTable({ title, rows }: MappingTableProps) {
         {rows.map(([source, stride], index) => (
           <div className={styles.mappingRow} key={`${source}-${stride}`}>
             <MappingBadge label={source} index={index} display="text" />
-            <ArrowRight
+            <ArrowRightIcon
               size={15}
               weight="regular"
               aria-hidden="true"
@@ -2579,7 +2580,7 @@ function SecuritySessionRow({ name, detail, current = false }: SecuritySessionRo
   return (
     <div className={styles.securitySessionRow}>
       <span className={styles.securityDeviceIcon} aria-hidden="true">
-        <GearSix size={16} weight="bold" />
+        <GearSixIcon size={16} weight="bold" />
       </span>
       <span className={styles.memberIdentity}>
         <Typography as="span" size="sm" weight="semibold">
@@ -2654,7 +2655,7 @@ function MemberAccessModal({
             </Typography>
           </div>
           <button className={styles.sourceModalClose} onClick={onClose} type="button">
-            <X size={15} weight="bold" aria-hidden="true" />
+            <XIcon size={15} weight="bold" aria-hidden="true" />
           </button>
         </div>
 
@@ -2863,7 +2864,7 @@ function InviteMemberModal({ state, onClose }: { state: InviteModalState; onClos
             </Typography>
           </div>
           <button className={styles.sourceModalClose} onClick={onClose} type="button">
-            <X size={15} weight="bold" aria-hidden="true" />
+            <XIcon size={15} weight="bold" aria-hidden="true" />
           </button>
         </div>
 

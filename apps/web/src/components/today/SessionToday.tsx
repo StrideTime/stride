@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 
 import { Link } from '@tanstack/react-router';
 import {
-  ArrowRight,
-  Play,
-  Smiley,
-  SmileyMeh,
-  SmileySad,
-  Target,
-  Trash,
-  Tray,
+  ArrowRightIcon,
+  PlayIcon,
+  SmileyIcon,
+  SmileyMehIcon,
+  SmileySadIcon,
+  TargetIcon,
+  TrashIcon,
+  TrayIcon,
 } from '@phosphor-icons/react';
 import { Button, Typography } from '@stride/ui';
 
@@ -22,13 +22,13 @@ import styles from './SessionToday.module.css';
 const FEELING_OPTIONS: ReadonlyArray<{
   value: Feeling;
   label: string;
-  icon: typeof Smiley;
+  icon: typeof SmileyIcon;
   className: string;
 }> = [
-  { value: 'frown', label: 'Tough', icon: SmileySad, className: 'feelingTough' },
-  { value: 'neutral', label: 'Okay', icon: SmileyMeh, className: 'feelingOkay' },
-  { value: 'smile', label: 'Good', icon: Smiley, className: 'feelingGood' },
-  { value: 'target', label: 'On point', icon: Target, className: 'feelingOnPoint' },
+  { value: 'frown', label: 'Tough', icon: SmileySadIcon, className: 'feelingTough' },
+  { value: 'neutral', label: 'Okay', icon: SmileyMehIcon, className: 'feelingOkay' },
+  { value: 'smile', label: 'Good', icon: SmileyIcon, className: 'feelingGood' },
+  { value: 'target', label: 'On point', icon: TargetIcon, className: 'feelingOnPoint' },
 ];
 
 const PRIORITY_ORDER: Record<BacklogSpec['priority'], number> = {
@@ -143,7 +143,7 @@ function IdleHero({ forceEmpty }: { forceEmpty: boolean }) {
     return (
       <div className={styles.empty}>
         <span className={styles.emptyIcon} aria-hidden="true">
-          <Tray size={26} weight="regular" />
+          <TrayIcon size={26} weight="regular" />
         </span>
         <div className={styles.emptyCopy}>
           <Typography as="h2" size="lg" weight="bold">Nothing queued right now</Typography>
@@ -154,14 +154,14 @@ function IdleHero({ forceEmpty }: { forceEmpty: boolean }) {
         <div className={styles.emptyActions}>
           <Button
             variant="primary"
-            icon={<Play size={16} weight="fill" />}
+            icon={<PlayIcon size={16} weight="fill" />}
             onClick={() => startSession({ title: 'Focus session' })}
           >
             Start a focus session
           </Button>
           <Link className={styles.emptyLink} to="/backlog">
             Browse backlog
-            <ArrowRight size={14} aria-hidden="true" />
+            <ArrowRightIcon size={14} aria-hidden="true" />
           </Link>
         </div>
       </div>
@@ -178,7 +178,7 @@ function IdleHero({ forceEmpty }: { forceEmpty: boolean }) {
           </Typography>
           <Button
             variant="primary"
-            icon={<Play size={16} weight="fill" />}
+            icon={<PlayIcon size={16} weight="fill" />}
             onClick={() => {
               startSession({
                 title: next.action.title,
@@ -200,7 +200,7 @@ function IdleHero({ forceEmpty }: { forceEmpty: boolean }) {
         >
           <span className={styles.specKey}>{next.spec.sourceKey}</span>
           <span className={styles.specTitle}>{next.spec.title}</span>
-          <ArrowRight size={13} className={styles.specArrow} aria-hidden="true" />
+          <ArrowRightIcon size={13} className={styles.specArrow} aria-hidden="true" />
         </Link>
       </div>
     </section>
@@ -242,7 +242,7 @@ function RunningHero() {
               aria-label={`Open spec ${sourceKey}`}
             >
               <span className={styles.specKey}>{sourceKey}</span>
-              <ArrowRight size={13} className={styles.specArrow} aria-hidden="true" />
+              <ArrowRightIcon size={13} className={styles.specArrow} aria-hidden="true" />
             </Link>
           ) : sourceKey ? (
             <span className={styles.specKey}>{sourceKey}</span>
@@ -371,7 +371,7 @@ function CheckInHero() {
       <div className={styles.checkinActions}>
         <Button
           variant="danger"
-          icon={<Trash size={14} aria-hidden="true" />}
+          icon={<TrashIcon size={14} aria-hidden="true" />}
           onClick={discardSession}
         >
           Delete session

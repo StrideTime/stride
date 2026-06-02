@@ -1,8 +1,8 @@
 import {
-  CaretDown,
-  Gear,
-  PencilSimple,
-  Plus,
+  CaretDownIcon,
+  GearIcon,
+  PencilSimpleIcon,
+  PlusIcon,
 } from '@phosphor-icons/react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -134,7 +134,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
           aria-label={text.addCustomStatusAria}
           disabled={!draftStatus.trim()}
         >
-          <Plus size={15} weight="bold" aria-hidden="true" />
+          <PlusIcon size={15} weight="bold" aria-hidden="true" />
         </button>
       </form>
     </div>
@@ -199,7 +199,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
         <span className={styles.accountName}>{text.userName}</span>
         <span className={styles.accountHandle}>{text.userEmail}</span>
       </span>
-      <PencilSimple size={16} className={styles.accountEdit} aria-hidden="true" />
+      <PencilSimpleIcon size={16} className={styles.accountEdit} aria-hidden="true" />
     </Link>
   );
 
@@ -225,7 +225,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
                     <span className={styles.mobileScopeName}>{activeWorkspace.name}</span>
                     <span className={styles.mobileScopeTeam}>{teamId || activeWorkspace.org}</span>
                   </div>
-                  <CaretDown size={13} className={styles.caretIcon} aria-hidden="true" />
+                  <CaretDownIcon size={13} className={styles.caretIcon} aria-hidden="true" />
                 </>
               )}
               triggerClassName={styles.mobileScopeTrigger}
@@ -239,7 +239,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
             </Popover>
 
             <Link to="/settings" className={styles.mobileSettingsButton} aria-label={text.openSettingsAria}>
-              <Gear size={18} weight="bold" aria-hidden="true" />
+              <GearIcon size={18} weight="bold" aria-hidden="true" />
             </Link>
           </div>
         </header>
@@ -260,7 +260,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
                     </div>
                   </div>
                 </div>
-                <CaretDown size={14} className={styles.caretIcon} aria-hidden="true" />
+                <CaretDownIcon size={14} className={styles.caretIcon} aria-hidden="true" />
               </>
             )}
             triggerClassName={styles.scopeTrigger}
@@ -337,7 +337,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
                   <div className={styles.profileCopy}>
                     <Typography size="sm" weight="semibold" color="inverse">{text.userName}</Typography>
                   </div>
-                  <CaretDown size={14} className={styles.caretIcon} aria-hidden="true" />
+                  <CaretDownIcon size={14} className={styles.caretIcon} aria-hidden="true" />
                 </>
               )}
               triggerClassName={styles.profileCard}
@@ -349,7 +349,7 @@ export function AppShell({ statuses, currentStatusId, onSelectStatus, text }: Ap
             </Popover>
 
             <Link to="/settings" className={styles.settingsButton} aria-label={text.openSettingsAria}>
-              <Gear size={18} weight="bold" aria-hidden="true" />
+              <GearIcon size={18} weight="bold" aria-hidden="true" />
             </Link>
           </div>
         </aside>
