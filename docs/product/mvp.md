@@ -117,8 +117,8 @@ user must be able to see what was captured. See [`principles.md`](principles.md)
   the team-facing UI and flows are deferred.)*
 - **Offline mutation queue** — single user, one device; simple persistence is enough for
   v1. The durable SQLite queue is post-MVP.
-- **ScheduledEventType customization and ActionDayAssignment** — custom schedule types are
-  deferred; v1 Schedule uses a minimal fixed set of block types. Untimed day assignments
+- **ActionDayAssignment** — cut entirely. Schedule event types ship as workspace preferences
+  seeded with defaults rather than a fixed enum. Untimed day assignments
   were cut entirely when Schedule became a single day view.
 - **LLM features** — AI break down, AI insights/summaries. Architecture stays LLM-ready;
   nothing LLM ships.

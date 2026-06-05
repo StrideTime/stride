@@ -80,41 +80,46 @@ Actual timed work against an Action. Sessions are execution/history, not plannin
 - `actionId` (and via it, `specId`) — required; Sessions do not attach directly to Specs and are not standalone
 - `startedAt`, `endedAt`, `elapsedMin` (ticks while running)
 - `notes` + `jots[]` — quick mid-session notes `{ at, text, kind }`
-- on end: `feeling` (icons: frown / neutral / smile / target), `note` (optional free text), `markDone` (whether it also closed the Action)
+- on end: `feeling` (`tough` / `okay` / `good` / `on_point`, worst → best — stored as the feeling, not the frown / neutral / smile / target icon used to render it), `note` (optional free text), `markDone` (whether it also closed the Action)
 - the variance nudge surfaces only when `elapsedMin` ≳ 1.5–2× `action.estimateMin`
 - `contentSignal?` (JSON) + `signalSource` — **nullable, unused in v1.** A reserved slot for later git/file correlation (which commits and files fell inside the Session window). It ships from day one so the timeshape→content upgrade needs **no migration**; the correlation itself is deferred to the desktop integration surface. (Resolves Q21; honors the provenance-ready commitment in `decisions.mdc` 2026-05-21.)
 
-> **v1 scope note (updated 2026-05-27).** **ScheduledEventType** customization is
-> deferred from MVP ([`mvp.md`](mvp.md)) — v1 Schedule uses a minimal fixed set of block
+> **v1 scope note (updated 2026-06-03).** Schedule block types are workspace-level
+> preferences seeded with defaults; users can add, rename, reorder, recolor, or archive custom
 > types. **TimeBudget was cut** rather than deferred; goals by calendar category add
 > settings complexity without helping the thin execution loop. **ActionDayAssignment was
 > cut entirely** when the Schedule became a single day view: every scheduled block has a
 > real start time, so "intend to work on this Action today, unplaced" no longer exists as a
-> concept. The ScheduledEventType model below is the post-MVP spec; the
-> ActionDayAssignment slot is kept only to record the removal.
+> concept. The ActionDayAssignment slot is kept only to record the removal.
 
 ### ScheduledEventType
 A category for schedule blocks and time insights. Accounts are seeded with default types, and users can add or modify the types they use.
+
 - `name`
 - `color`, `icon`
-- `systemKey?` — required/system types such as `actions`; these cannot be fully deleted
+- `systemKey?` — required/system types such as `actions` and `external_calendar`; these cannot be fully deleted
 - `archivedAt?` — deletion is archive/hide-from-future-use, not destructive removal
 
 Rules:
 - Historical ScheduledEvents and Sessions retain their original type for reporting integrity.
 - Required/system types remain available even if users customize the rest of their type list.
+- Seeded defaults include Actions, Meeting, Break, Focus, Personal, Buffer, and External calendar.
 - Custom examples include Research or Learning; the model should not assume only the seeded defaults exist.
 
 ### ScheduledEvent
 A planned time block on the Schedule. ScheduledEvents are the planning layer; Sessions are the actual layer. A ScheduledEvent may point to an Action, or be a generic block.
-- `typeId` — points to ScheduledEventType; seeded examples include actions, meeting, break, focus, personal, buffer, external
+- `typeId` — points to ScheduledEventType; external imports use the system `external_calendar` type
 - `actionId?` (and via it, `specId`) — set only for action-linked blocks
 - `title`
 - `startAt`, `endAt`, `durationMin`
 - `source` / `sourceEventId?` — set for imported external calendar events
 - `availability?` — source free/busy data for external events; only busy external events reduce capacity by default
-- `externalClassification?` — local Stride override for source-owned external events: `meeting | break | focus | personal | buffer`; time/title/source remain immutable
+- `externalMetadata?` — opaque source metadata for imported external calendar events
 - recurrence fields for Stride-owned generic events: RRULE-style rule, timezone, end condition, occurrence exceptions, and occurrence overrides
+
+External calendar events are source-owned. Stride stores them as immutable external calendar
+events plus metadata needed for display/sync; renaming, recategorizing, or otherwise mutating
+their source identity happens outside Stride.
 
 Rules:
 - Action-linked ScheduledEvents are **non-recurring**.

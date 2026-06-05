@@ -99,7 +99,9 @@ One surface: a 24-hour day canvas at `/schedule`. The viewed date is a `?date=` 
 - **Drag and resize** — snap to 15-minute increments; drag the body to move, top/bottom handles to resize. After a drag or resize, the block is selected and its inspector opens. Overlapping blocks lay out side by side; external events participate in layout but stay immutable.
 - **Scheduling tray** — a collapsible right drawer (default open). Lists Actions to place, ranked by remaining time needed: `estimate − completed session time − future scheduled time`, clamped at zero. Dragging an Action onto the canvas creates a timed, Action-linked block; resizing it never changes the Action's estimate. A single Action may have several blocks.
 - **Inspector** — single-click selects a block and switches the right drawer to its inspector. Action-linked blocks lead with event details, with links out to the Action/Spec.
-- **Block types** — a minimal fixed set (focus, meeting, break, buffer, research, learning, personal). Custom/archivable ScheduledEventTypes are post-MVP.
+- **Block types** — workspace-level schedule type preferences seeded with defaults. Users can add,
+  rename, reorder, recolor, or archive custom types; required system types such as Actions and
+  External calendar remain available.
 - **Navigation** — previous/next day arrows, a date picker, and a compact mini week strip for fast day hopping. No "back to week" — there is no week view.
 - **Mobile** — the right drawer becomes a bottom sheet / collapsible panel.
 
@@ -155,7 +157,7 @@ The spec detail surface — used both to inspect/edit any existing spec and to r
 
 Content (the same in both presentations):
 
-- **Overview tab** — editable title; markdown description (expandable); the **Actions list with full CRUD** and the **inline "Break down" panel** (manual action creation in v1; LLM-assisted suggestions post-v1 — see [`mvp.md`](mvp.md)); **Dependencies** (blocks / blocked by / related, table-style); **Linked** items; labels.
+- **Overview tab** — editable title; markdown description (expandable); the **Actions list with full CRUD** and the **inline "Break down" panel** (manual action creation in v1; LLM-assisted suggestions post-v1 — see [`mvp.md`](mvp.md)); **Dependencies** (blocks / blocked by / related / implements / implemented by, table-style); **Linked** items; labels.
 - **Comments tab** — compose + thread + reactions/mentions; "reply posts back to source"; an unread indicator. *(Post-v1 — not in the v1 Spec view; see [`mvp.md`](mvp.md).)*
 - **History tab** — audit trail of past owners + time logged per owner + the source-side activity feed.
 - **Right sidebar** — source-mapped priority picker; source-mapped status picker (Jira / Linear / GitHub vocabularies — replaces a plain "Mark done"); click-to-reassign assignee; mark-done with an open-actions warning; "Open in {source}" deep link; watching toggle.

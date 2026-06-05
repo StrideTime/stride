@@ -1,0 +1,65 @@
+# Reusable deploy — the ONLY path that touches a real environment. Always: migrate (direct
+# Neon) -> then deploy (wrangler). Migrate gates the deploy, so nothing is ever half-shipped.
+#
+# Two separation-of-concerns to keep in mind:
+#   * GitHub Environments  -> APPROVAL GATES only (the `environment:` key below). Not secret storage.
+#   * Infisical            -> SECRETS, fetched at runtime via a keyless OIDC machine identity.
+#                             No long-lived secrets live in GitHub.
+# Runners are Depot (drop-in faster runners + distributed cache); only `runs-on` changes.
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev | staging | production (must match the Infisical env slug)
+        required: true
+        type: string
+      ref:
+        description: commit SHA to deploy (the same SHA is promoted up the ladder)
+        required: true
+        type: string
+
+concurrency:
+  # One deploy per environment at a time — two deploys can never race the same database.
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: depot-ubuntu-24.04
+    environment: ${{ inputs.environment }} # <- GitHub protection rules (approvals) attach here
+    permissions:
+      id-token: write # mint the OIDC token Infisical validates
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }} # deploy the exact commit, not "latest"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify # build the artifact for this exact SHA
+
+      # Fetch secrets from Infisical via keyless OIDC -> exported as env vars to later steps
+      # (DATABASE_URL = the direct Neon URL for this env; CLOUDFLARE_API_TOKEN for deploy).
+      - name: Inject secrets (Infisical)
+        uses: Infisical/secrets-action@v1.0.16
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ inputs.environment }}
+
+      # 1) Migrate FIRST, against the DIRECT Neon URL (never Hyperdrive). If this fails, the
+      #    job stops here and the environment keeps running its previous version.
+      - name: Migrate database
+        run: pnpm --filter @stride/db db:migrate
+
+      # 2) Deploy the Worker. Migrations (expand/contract-safe) have already landed, so even a
+      #    partial rollout is safe. Runtime Worker secrets are synced separately Infisical->CF.
+      - name: Deploy Worker
+        run: pnpm --filter web exec wrangler deploy --env ${{ inputs.environment }}

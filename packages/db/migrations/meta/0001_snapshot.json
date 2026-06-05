@@ -1,6 +1,6 @@
 {
-  "id": "bd454a36-9ce5-4f04-b044-fa501db41ca5",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "cdbecd7d-71a1-4e3d-91ac-b6cd59c551b2",
+  "prevId": "bd454a36-9ce5-4f04-b044-fa501db41ca5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1641,6 +1641,141 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.scheduled_event_types": {
+      "name": "scheduled_event_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "system_key": {
+          "name": "system_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "order_key": {
+          "name": "order_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived": {
+          "name": "archived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted": {
+          "name": "deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "idx_scheduled_event_types_workspace": {
+          "name": "idx_scheduled_event_types_workspace",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_scheduled_event_types_workspace_system_key": {
+          "name": "idx_scheduled_event_types_workspace_system_key",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "system_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"scheduled_event_types\".\"system_key\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "scheduled_event_types_workspace_id_workspaces_id_fk": {
+          "name": "scheduled_event_types_workspace_id_workspaces_id_fk",
+          "tableFrom": "scheduled_event_types",
+          "tableTo": "workspaces",
+          "columnsFrom": [
+            "workspace_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.scheduled_events": {
       "name": "scheduled_events",
       "schema": "",
@@ -1663,8 +1798,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
+        "type_id": {
+          "name": "type_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1717,9 +1852,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "external_classification": {
-          "name": "external_classification",
-          "type": "text",
+        "external_metadata": {
+          "name": "external_metadata",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -1789,6 +1924,21 @@
           "method": "btree",
           "with": {}
         },
+        "idx_scheduled_events_type": {
+          "name": "idx_scheduled_events_type",
+          "columns": [
+            {
+              "expression": "type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_scheduled_events_action": {
           "name": "idx_scheduled_events_action",
           "columns": [
@@ -1840,6 +1990,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scheduled_events_type_id_scheduled_event_types_id_fk": {
+          "name": "scheduled_events_type_id_scheduled_event_types_id_fk",
+          "tableFrom": "scheduled_events",
+          "tableTo": "scheduled_event_types",
+          "columnsFrom": [
+            "type_id"
           ],
           "columnsTo": [
             "id"

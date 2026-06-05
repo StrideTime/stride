@@ -54,7 +54,7 @@ scope expansion.
 
 Iterate on what real usage reveals. Add features only when actual behaviour demands them:
 Linear sync when the second user asks; richer Schedule when a user actually wants to plan
-in Stride; custom ScheduledEventTypes only if they earn their way in.
+in Stride; schedule event types ship as workspace preferences seeded with defaults.
 
 ## 6–12 months — the team layer
 

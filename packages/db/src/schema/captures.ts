@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import type { CaptureKind } from '../enums/CaptureKind';
 import { workspacesTable } from './workspaces';
 import { usersTable } from './users';
 import { actionsTable } from './actions';
@@ -18,6 +19,7 @@ export const capturesTable = pgTable(
       .notNull()
       .references(() => usersTable.id),
     text: text('text').notNull(),
+    kind: text('kind').$type<CaptureKind>(), // nullable until triaged (insight | next)
     convertedToActionId: text('converted_to_action_id').references(() => actionsTable.id),
     convertedToSpecId: text('converted_to_spec_id').references(() => specsTable.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

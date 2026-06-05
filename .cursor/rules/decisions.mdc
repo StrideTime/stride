@@ -200,3 +200,118 @@ they constrain the first tables):
 
 Does not contradict the 2026-05-04 / 2026-05-12 / 2026-05-21 entries; it confirms and
 extends them.
+
+## 2026-06-02: `@stride/db` schema scoped from the built frontend, not just the plan doc
+
+The first schema pass (10 tables) was derived from `data-model.md`. A feature scan of the
+built `apps/web` surfaces showed several production-grade features the plan under-specified, so
+the schema was expanded to 17 tables to support what actually exists. Decisions:
+
+- **The team layer ships in the schema now** (`teams`, `teamMembers`, `teamSourceMappings`,
+  `specs.teamId`). The FE builds on Team heavily and the source-sync boundary is per-Team.
+  Consistent with the 2026-05-21 cut ("team layer — RLS/foundations stay; only UI deferred"):
+  the *data foundations* land; the team *UI/flows* remain deferred. Source-unit→team binding
+  and status/priority/difficulty mappings live on `teamSourceMappings`, not on the pooled
+  `sourceConnections` (workflows differ per board/team/repo).
+- **The Schedule plan layer is a real table** (`scheduledEvents`). It is distinct from the
+  actual layer (`sessions`). `ScheduledEventType` is a **fixed enum in v1** (customization —
+  a type table with color/icon/archive — is post-MVP per `mvp.md`); historical events keep
+  their enum value, and the enum→FK migration happens when custom types land. Recurrence is a
+  jsonb rule; occurrence exceptions/overrides remain an open schema question.
+- **Three cross-cutting surfaces get lean tables**: `notifications` (the Inbox — single-player
+  gets `assigned`/`source_drift`, team types populate later), `specLinks` (source-synced
+  Blocks/Blocked-by/Related/Implements), and `specActivity` (append-only, non-derivable audit
+  events — backs the ownership/provenance commitment; no soft delete, no `updatedAt`).
+  **Presence/profile-statuses was deliberately NOT modelled** (deferred; `memberships.presenceEnabled`
+  default-false stands as the privacy anchor).
+- **Derive, don't store** (kept out of the schema on purpose): `readiness`, the backlog view
+  tabs, the `attention` flags (`unassigned` / `closed-in-source` / `just-landed` — the last from
+  `specs.assignedAt`), `action.scheduled` and future-scheduled minutes, `recommendationReason`,
+  a Spec's display `type`, and the reconstructable parts of the Spec history timeline.
+- **Settings are jsonb, not columns** (`workspaces.settings`, `teams.settings`,
+  `memberships.notificationPrefs`, `users.settings`) — config, not relational data.
+- Added `actions.difficulty` and `captures.kind` (small enums) as real stored fields.
+
+Deferred (not in the schema): calendar-connection tables, billing, the person-level
+blocker/nudge chokepoint graph (`waitingOn`/`blocking`), and recurrence exceptions/overrides.
+
+## 2026-06-02: Deployment environments — three isolated rungs, promote-the-same-commit, migrate-on-deploy
+
+Three persistent environments, no UAT yet, designed so deploying is boring and the unsafe
+action is the hard one. Full operational detail in `docs/architecture/environments.md`.
+
+- **dev → staging → production.** dev auto-deploys on merge to `main` (integration + QA +
+  dogfooding); staging and production are one-click promotions, production gated by a required
+  second approver (GitHub Environments protection rules). **UAT is deliberately not built** —
+  added between dev and staging only when a non-developer needs a stable sign-off env (first
+  external beta), otherwise it's an empty gate.
+- **Databases fully isolated; no prod data downstream.** `stride-prod` is a separate Neon
+  project from `stride-nonprod` (dev + staging branches). **No environment is a copy-on-write
+  branch of production** — staging gets prod-*shaped* data from the seed generator, never prod
+  rows. COW is used only off a *seed* "golden" branch for ephemeral E2E databases. This honours
+  the privacy/data-ownership principles (`docs/product/principles.md`): real user data never
+  sits in a testing environment.
+- **Promote the same commit.** Build/test runs once on a SHA; staging and prod deploy that
+  identical SHA — what was smoke-tested in staging is byte-for-byte what reaches prod. Rollback
+  is just promoting an older commit. No per-env rebuild.
+- **Migrations always ride with the deploy, every env.** `pnpm db:generate` produces committed
+  SQL; each deploy runs `pnpm db:migrate` against that env's **direct** Neon URL (never through
+  Hyperdrive) *before* deploying code. Migrate gates the deploy and is idempotent, so nothing is
+  ever half-applied and any deploy is safe to re-run. Two CI guards keep this safe with no
+  operator knowledge required: a **schema-drift check** (fails if the schema changed without a
+  committed migration) and a **destructive-migration guard** (fails on DROP/type-change/NOT-NULL
+  additions unless the file carries a `-- @safety:reviewed <reason>` marker).
+- **Expand/contract is the rule** that makes auto-migrate-on-deploy safe: a migration must never
+  break the currently-running version (Workers roll out gradually; offline desktop clients replay
+  a queued mutation stream). Additive changes ship with their code; removals/renames/type-changes
+  split across two releases.
+- **Hotfixes** branch off the production release tag (not `main`), validate on a disposable
+  ephemeral Neon-branch + preview-Worker in CI (staging's release candidate untouched), promote
+  to prod, then merge back to `main`.
+- **One seed definition** (`packages/db/src/seed.ts`, deterministic, deliberately adversarial)
+  feeds local dev, staging, and the E2E golden branch. `pnpm db:reset` (drop→migrate→seed) is
+  guarded to local-only. **Feature flags** stay a separate runtime system keyed off a non-secret
+  `STRIDE_ENV` var, gating server-side, never inferred from the DB URL.
+
+Does not contradict the 2026-05-04 / 2026-05-12 / 2026-05-21 / earlier 2026-06-02 entries; it
+operationalises the locked Cloudflare + Neon stack.
+
+## 2026-06-02: CI tooling — Depot runners + Infisical secrets (no .env, no GitHub secret store)
+
+Refines the deployment-environments entry (same day) with the build/secret tooling. Operational
+detail in `docs/architecture/environments.md` (Tooling section).
+
+- **Depot for CI runners.** Drop-in replacement for GitHub-hosted runners (`runs-on:
+  depot-ubuntu-24.04`), ~3× faster with an automatic distributed cache (turbo/pnpm/Docker).
+  **GitHub Actions remains the orchestrator** — Depot is runners + cache, not a workflow engine.
+  No YAML restructuring; only `runs-on` changes.
+- **Infisical is the secrets source of truth — not `.env` files, not GitHub Secrets.** Per
+  environment (`dev`/`staging`/`production`, plus a `ci` env for Neon API creds). Local dev uses
+  `infisical run -- <cmd>` after `infisical login`; CI uses a **keyless OIDC machine identity**
+  (`Infisical/secrets-action`) so **no long-lived secrets live in GitHub** (only non-secret
+  `identity-id`/`project-slug` as GitHub variables). Worker runtime secrets reach Cloudflare via
+  Infisical's native Cloudflare Workers secret sync — no manual `wrangler secret put`.
+- **GitHub Environments are kept strictly for approval gates** (required reviewer on production),
+  not secret storage — a clean split from Infisical.
+
+Does not contradict earlier entries; it operationalises the 2026-06-02 environments decision.
+
+## 2026-06-03: Schedule types are workspace preferences; external calendar events stay source-owned
+
+Supersedes the Schedule-plan-layer bullet in the 2026-06-02 schema entry.
+
+- **Scheduled event types are rows, not a fixed enum.** `scheduled_event_types` is
+  workspace-scoped and seeded with defaults. Users can add, rename, recolor, reorder, and archive
+  non-system types. `scheduled_events.typeId` points at that table so historical events retain
+  their category for reporting.
+- **System schedule types preserve app-owned behavior.** `systemKey` marks required types such as
+  `actions` and `external_calendar`. These remain available even if the workspace customizes the
+  rest of its schedule taxonomy.
+- **External calendar events are immutable imported facts.** Stride stores them with the
+  `external_calendar` system type, source provenance, free/busy availability, and opaque
+  `externalMetadata`. There is no local `externalClassification`; renaming or recategorizing the
+  source event happens outside Stride.
+
+Also supersedes the Neon names in the 2026-06-02 deployment entry: the actual projects are
+`Stride Production` and `Stride Development`, and ephemeral E2E branches copy from `baseline`
+(not `golden`).

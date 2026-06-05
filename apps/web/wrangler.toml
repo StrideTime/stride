@@ -1,0 +1,41 @@
+# Cloudflare Worker config for the Stride web app (TanStack Start SSR + the Hono API mounted at
+# /api/$ — the locked stack, decisions.mdc 2026-05-04). One Worker, three environments.
+#
+# SCAFFOLD — remaining first-deploy work:
+#   * main / build            wire once the BUILD_TARGET=web SSR Worker entry exists
+#                             (apps/web is still Vite-only — see architecture/overview.md gaps).
+#
+# Deploy is driven by CI (.github/workflows), e.g. `wrangler deploy --env staging`. You should
+# not need to run wrangler by hand — see docs/architecture/environments.md (the runbook).
+
+name = "stride-web"
+account_id = "14724deda231baae703a1ef41a4ba29b"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+# main = "./dist/server/index.js"   # TODO: TanStack Start SSR Worker entry (BUILD_TARGET=web)
+
+# --- dev: auto-deployed on merge to main ---------------------------------------------------
+[env.dev]
+vars = { STRIDE_ENV = "dev" }
+[[env.dev.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "544ee26d1906406ba597cd3e99ff2413" # -> Stride Development / dev branch
+
+# --- staging: prod mirror, one-click promote -----------------------------------------------
+[env.staging]
+vars = { STRIDE_ENV = "staging" }
+[[env.staging.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "185970838f8f4e66a02690729f6ada07" # -> Stride Development / staging branch
+
+# --- production: one-click promote, second approver required -------------------------------
+[env.production]
+vars = { STRIDE_ENV = "production" }
+[[env.production.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "8b7c626c573f486aa442779f931c94d8" # -> Stride Production (isolated project)
+
+# Secrets (NOT in this file) are managed in Infisical and pushed to Cloudflare via Infisical's
+# native Cloudflare Workers secret sync (one sync per env -> this Worker env). Don't run
+# `wrangler secret put` by hand. The migrate step's direct DATABASE_URL is fetched from Infisical
+# in CI (OIDC), never stored in GitHub.

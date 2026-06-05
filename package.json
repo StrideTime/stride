@@ -8,7 +8,12 @@
     "lint:fix": "turbo run lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "typecheck": "turbo run typecheck",
-    "verify": "pnpm lint && pnpm typecheck && pnpm build"
+    "verify": "pnpm lint && pnpm typecheck && pnpm build",
+    "db:generate": "pnpm --filter @stride/db db:generate",
+    "db:migrate": "pnpm --filter @stride/db db:migrate",
+    "db:seed": "pnpm --filter @stride/db db:seed",
+    "db:reset": "pnpm --filter @stride/db db:reset",
+    "db:studio": "pnpm --filter @stride/db db:studio"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

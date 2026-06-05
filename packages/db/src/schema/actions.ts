@@ -1,5 +1,6 @@
 import { pgTable, text, integer, boolean, timestamp, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import type { Difficulty } from '../enums/Difficulty';
 import { workspacesTable } from './workspaces';
 import { specsTable } from './specs';
 
@@ -19,6 +20,7 @@ export const actionsTable = pgTable(
     specId: text('spec_id').references(() => specsTable.id),
     title: text('title').notNull(),
     estimateMin: integer('estimate_min'),
+    difficulty: text('difficulty').$type<Difficulty>(),
     actualMin: integer('actual_min').notNull().default(0),
     done: boolean('done').notNull().default(false),
     orderKey: text('order_key'),

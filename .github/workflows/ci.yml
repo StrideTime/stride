@@ -1,0 +1,47 @@
+# CI — runs on every PR and every push to main. The guards here are what keep the pipeline
+# hard to break: lint/typecheck/build/test PLUS schema-drift and destructive-migration checks.
+# Runners are Depot (drop-in faster runners + distributed cache); only `runs-on` changes.
+# No secrets needed — these steps never touch a real database.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: depot-ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint, typecheck, build
+        run: pnpm verify # lint + typecheck + build (root script)
+
+      - name: Test
+        run: pnpm turbo run test --if-present
+
+      # Guard 1: schema and migrations cannot drift. If the Drizzle schema changed without a
+      # committed migration, `db:generate` writes a new file and the tree goes dirty -> fail.
+      - name: Schema drift check
+        run: |
+          pnpm --filter @stride/db db:generate
+          if ! git diff --quiet -- packages/db/migrations; then
+            echo "::error::Schema changed without a committed migration. Run 'pnpm db:generate' and commit packages/db/migrations/."
+            git --no-pager diff --stat -- packages/db/migrations
+            exit 1
+          fi
+
+      # Guard 2: destructive migrations must be explicitly marked expand/contract-safe.
+      - name: Destructive-migration guard
+        run: pnpm --filter @stride/db db:check-migrations

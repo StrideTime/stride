@@ -21,12 +21,25 @@ src/
 
 ## v1 tables
 
-`users`, `workspaces`, `memberships`, `sourceConnections`, `specs`, `actions`, `sessions`,
-`captures`, `processedMutations`, `conceptLinks` (the empty cross-cutting junction).
+Identity & tenancy: `users`, `workspaces`, `memberships`, `teams`, `teamMembers`.
+Sources: `sourceConnections` (pooled creds + available units), `teamSourceMappings` (unit→team
+binding + status/priority/difficulty maps). Work: `specs`, `specLinks`, `specActivity`,
+`actions`, `sessions`, `captures`. Schedule: `scheduledEvents` (the plan layer; the actual
+layer is `sessions`). Surfaces: `notifications` (inbox). Infra: `processedMutations`,
+`conceptLinks` (the empty cross-cutting junction).
 
 Every domain table carries `id` (client-generated UUID `text`), `createdAt`, `updatedAt`, and
-`deleted` (operational soft delete). `processedMutations` and `conceptLinks` are excluded from
-soft delete per `db-patterns.mdc`.
+`deleted` (operational soft delete). Excluded from soft delete per `db-patterns.mdc`:
+`processedMutations` and `conceptLinks` (pure infra/junction), and `specActivity` (an
+append-only audit log — it also has no `updatedAt`).
+
+### Derived, never stored
+
+The query/API layer computes these from the primitives above — they are deliberately absent
+from the schema: a Spec's `readiness` and the backlog view tabs; the `attention` flags
+(`unassigned`, `closed-in-source`, `just-landed` — the last derived from `specs.assignedAt`);
+an Action's `scheduled` state and future-scheduled minutes; `recommendationReason`; a Spec's
+display `type`; and the reconstructable parts of the Spec history timeline.
 
 ## Commitments baked into the schema (see `decisions.mdc` 2026-05-21 / 2026-06-02)
 
