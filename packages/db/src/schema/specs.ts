@@ -6,6 +6,7 @@ import { usersTable } from './users';
 import { teamsTable } from './teams';
 import { sourceConnectionsTable } from './sourceConnections';
 import { sourceUnitsTable } from './sourceUnits';
+import { workspaceIsolationPolicy } from './rls';
 
 // Source-native cycle/scope (Jira Sprint / Linear Cycle / GitHub Milestone / Epic). Stored
 // source-native — there is no unified Project/Sprint entity. Normalized at the display layer.
@@ -70,8 +71,9 @@ export const specsTable = pgTable(
     index('idx_specs_source').on(table.sourceType, table.sourceId),
     index('idx_specs_source_unit').on(table.sourceUnitId),
     index('idx_specs_assignee').on(table.assigneeUserId),
+    workspaceIsolationPolicy('specs', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertSpecSchema = createInsertSchema(specsTable);
 export const selectSpecSchema = createSelectSchema(specsTable);

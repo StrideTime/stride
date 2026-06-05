@@ -31,6 +31,7 @@ export const specsTable = pgTable('specs', {
 }, table => [
   index('idx_specs_workspace').on(table.workspaceId),
   index('idx_specs_source').on(table.sourceId, table.sourceType),
+  workspaceIsolationPolicy('specs', table.workspaceId),
 ]);
 ```
 
@@ -41,6 +42,12 @@ export const specsTable = pgTable('specs', {
 - Column names: camelCase in TypeScript, snake_case in SQL string argument
 - Use `.$type<EnumType>()` to link text columns to TypeScript union types
 - All foreign keys reference other tables explicitly
+- Workspace-owned tables must include a direct `workspaceId` tenant key, opt into
+  `.enableRLS()`, and attach `workspaceIsolationPolicy('<sql_table_name>', table.workspaceId)`.
+  The `workspaces` root table uses `workspaceRootIsolationPolicy('workspaces', table.id)`.
+- `users` is global identity/auth data, not a workspace-owned domain table. User-profile
+  access rules belong in the auth/profile service unless/until a separate user RLS policy is
+  designed.
 
 **Soft delete exceptions:**
 1. Join tables (e.g. `team_members`) where the relationship is cascade-deleted
@@ -125,16 +132,8 @@ where: eq(table.id, id)
 
 No exceptions. Admin-only methods that need deleted records must be explicitly named (e.g. `findByIdIncludingDeleted`).
 
-## Idempotency Table
+## Offline Mutation Idempotency
 
-The `processed_mutations` table enables safe retries from the offline queue:
-
-```typescript
-export const processedMutationsTable = pgTable('processed_mutations', {
-  id: text('id').primaryKey(),           // client-generated UUID from mutation command
-  result: text('result').notNull(),      // JSON-serialized response
-  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
-});
-```
-
-Before processing any mutation command from the queue, check this table. If the `id` exists, return the cached `result` without re-executing. This table has no soft delete — rows are pruned by age via a CF Cron job.
+Offline mutation processing is post-MVP. Do not add a placeholder idempotency table until the
+full durable queue implementation returns. When it does, the server must provide safe retry
+semantics for client-generated mutation IDs and prune old ledger rows by age.

@@ -2,6 +2,7 @@ import { pgTable, text, jsonb, timestamp, boolean, index } from 'drizzle-orm/pg-
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { SourceType } from '../enums/SourceType';
 import { workspacesTable } from './workspaces';
+import { workspaceIsolationPolicy } from './rls';
 
 export type JiraConnectionMetadata = {
   cloudId: string;
@@ -43,8 +44,11 @@ export const sourceConnectionsTable = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deleted: boolean('deleted').notNull().default(false),
   },
-  table => [index('idx_source_connections_workspace').on(table.workspaceId)],
-);
+  table => [
+    index('idx_source_connections_workspace').on(table.workspaceId),
+    workspaceIsolationPolicy('source_connections', table.workspaceId),
+  ],
+).enableRLS();
 
 export const insertSourceConnectionSchema = createInsertSchema(sourceConnectionsTable);
 export const selectSourceConnectionSchema = createSelectSchema(sourceConnectionsTable);

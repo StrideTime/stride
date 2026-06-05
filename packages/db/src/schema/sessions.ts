@@ -4,6 +4,7 @@ import type { Feeling } from '../enums/Feeling';
 import { workspacesTable } from './workspaces';
 import { actionsTable } from './actions';
 import { usersTable } from './users';
+import { workspaceIsolationPolicy } from './rls';
 
 // RESERVED, unused in v1. The provenance-ready slot for later git/file correlation — which
 // commits and files fell inside the Session window — so the timeshape→content upgrade needs
@@ -44,8 +45,9 @@ export const sessionsTable = pgTable(
     index('idx_sessions_workspace').on(table.workspaceId),
     index('idx_sessions_action').on(table.actionId),
     index('idx_sessions_user').on(table.userId),
+    workspaceIsolationPolicy('sessions', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertSessionSchema = createInsertSchema(sessionsTable);
 export const selectSessionSchema = createSelectSchema(sessionsTable);

@@ -6,6 +6,7 @@ import { workspacesTable } from './workspaces';
 import { teamsTable } from './teams';
 import { sourceConnectionsTable } from './sourceConnections';
 import { sourceUnitsTable } from './sourceUnits';
+import { workspaceIsolationPolicy } from './rls';
 
 export type SourceMappedBadge = {
   sourceLabel: string;
@@ -62,8 +63,9 @@ export const teamSourceMappingsTable = pgTable(
     index('idx_team_source_mappings_team').on(table.teamId),
     index('idx_team_source_mappings_workspace').on(table.workspaceId),
     index('idx_team_source_mappings_source_unit').on(table.sourceUnitId),
+    workspaceIsolationPolicy('team_source_mappings', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertTeamSourceMappingSchema = createInsertSchema(teamSourceMappingsTable);
 export const selectTeamSourceMappingSchema = createSelectSchema(teamSourceMappingsTable);

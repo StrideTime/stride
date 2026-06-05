@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { ActionDifficulty } from '../enums/ActionDifficulty';
 import { workspacesTable } from './workspaces';
 import { specsTable } from './specs';
+import { workspaceIsolationPolicy } from './rls';
 
 // A Stride-native execution step — a unit of focused work that serves Sessions. It has its
 // own UUID PK (the prototype matched by (specId, actionId); the real schema gives Actions a
@@ -31,8 +32,9 @@ export const actionsTable = pgTable(
   table => [
     index('idx_actions_workspace').on(table.workspaceId),
     index('idx_actions_spec').on(table.specId),
+    workspaceIsolationPolicy('actions', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertActionSchema = createInsertSchema(actionsTable);
 export const selectActionSchema = createSelectSchema(actionsTable);

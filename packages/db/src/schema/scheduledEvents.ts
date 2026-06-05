@@ -4,6 +4,7 @@ import { workspacesTable } from './workspaces';
 import { usersTable } from './users';
 import { actionsTable } from './actions';
 import { scheduledEventTypesTable } from './scheduledEventTypes';
+import { workspaceIsolationPolicy } from './rls';
 
 // A proper recurring schedule definition for Stride-owned events. `rrule` uses RFC 5545-style
 // RRULE strings; exceptions skip dates/occurrences; overrides patch individual occurrences.
@@ -63,8 +64,9 @@ export const scheduledEventsTable = pgTable(
     index('idx_scheduled_events_type').on(table.typeId),
     index('idx_scheduled_events_action').on(table.actionId),
     index('idx_scheduled_events_start').on(table.startAt),
+    workspaceIsolationPolicy('scheduled_events', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertScheduledEventSchema = createInsertSchema(scheduledEventsTable);
 export const selectScheduledEventSchema = createSelectSchema(scheduledEventsTable);

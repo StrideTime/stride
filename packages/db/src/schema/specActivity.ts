@@ -4,6 +4,7 @@ import type { SpecActivityType } from '../enums/SpecActivityType';
 import { workspacesTable } from './workspaces';
 import { specsTable } from './specs';
 import { usersTable } from './users';
+import { workspaceIsolationPolicy } from './rls';
 
 // Append-only audit / activity log for a Spec. Records only NON-derivable events (source
 // syncs, status/priority/owner changes, ownership transfers); the Spec view's History tab
@@ -26,8 +27,11 @@ export const specActivityTable = pgTable(
     payload: jsonb('payload').$type<Record<string, unknown>>(), // e.g. { from, to }
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  table => [index('idx_spec_activity_spec').on(table.specId)],
-);
+  table => [
+    index('idx_spec_activity_spec').on(table.specId),
+    workspaceIsolationPolicy('spec_activity', table.workspaceId),
+  ],
+).enableRLS();
 
 export const insertSpecActivitySchema = createInsertSchema(specActivityTable);
 export const selectSpecActivitySchema = createSelectSchema(specActivityTable);

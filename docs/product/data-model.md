@@ -1,6 +1,6 @@
 ---
 title: Data model (conceptual)
-updated: 2026-06-02
+updated: 2026-06-04
 status: draft
 owner: jaren
 ---
@@ -150,7 +150,7 @@ concept. Untimed day-level intent now lives as **ordering in the Backlog**, not 
 schedule entity. This slot is kept only so the removal is traceable.
 
 ### User / membership
-Not modeled in the prototype (it keys everything on a display name and maps names → avatar colors). The real model needs: User, a Workspace Membership with a workspace-scoped `role` (`member | admin`), and Team Membership rows with a team-scoped `role` (`member | admin`). Workspace admin and team admin are independent scoped permissions; a person can have either or both through separate rows. Auth is Better Auth; tenant isolation is Postgres RLS via session context.
+Not modeled in the prototype (it keys everything on a display name and maps names → avatar colors). The real model needs: User, a Workspace Membership with a workspace-scoped `role` (`member | admin`), and Team Membership rows with a team-scoped `role` (`member | admin`). Workspace admin and team admin are independent scoped permissions; a person can have either or both through separate rows. Auth is Better Auth; tenant isolation is Postgres RLS via workspace session context set by API transactions after membership validation.
 
 Personal settings split by scope:
 - Account-wide settings: identity, appearance, global notification defaults, personal OAuth accounts, privacy preferences.

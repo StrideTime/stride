@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { WorkspaceRole } from '../enums/WorkspaceRole';
 import { usersTable } from './users';
 import { workspacesTable } from './workspaces';
+import { workspaceIsolationPolicy } from './rls';
 
 // One personal working-hours setting per Workspace (seeded from a Team on join, then owned
 // by the member). Days are 0–6 (Sun–Sat). Multiple windows per day are allowed, but windows
@@ -46,8 +47,9 @@ export const membershipsTable = pgTable(
   table => [
     index('idx_memberships_workspace').on(table.workspaceId),
     index('idx_memberships_user').on(table.userId),
+    workspaceIsolationPolicy('memberships', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertMembershipSchema = createInsertSchema(membershipsTable);
 export const selectMembershipSchema = createSelectSchema(membershipsTable);

@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { workspacesTable } from './workspaces';
 import { sessionsTable } from './sessions';
 import { usersTable } from './users';
+import { workspaceIsolationPolicy } from './rls';
 
 export type SessionNoteSource = 'manual' | 'session_end' | 'capture';
 
@@ -34,8 +35,9 @@ export const sessionNotesTable = pgTable(
     index('idx_session_notes_session').on(table.sessionId),
     index('idx_session_notes_user').on(table.userId),
     index('idx_session_notes_occurred_at').on(table.occurredAt),
+    workspaceIsolationPolicy('session_notes', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertSessionNoteSchema = createInsertSchema(sessionNotesTable);
 export const selectSessionNoteSchema = createSelectSchema(sessionNotesTable);

@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { workspacesTable } from './workspaces';
+import { workspaceIsolationPolicy } from './rls';
 
 export type NewSpecDestination = 'needs-breakdown' | 'team-inbox' | 'ready';
 export type TriageOwner = 'team-admins' | 'source-assignee' | 'unassigned';
@@ -45,8 +46,11 @@ export const teamsTable = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deleted: boolean('deleted').notNull().default(false),
   },
-  table => [index('idx_teams_workspace').on(table.workspaceId)],
-);
+  table => [
+    index('idx_teams_workspace').on(table.workspaceId),
+    workspaceIsolationPolicy('teams', table.workspaceId),
+  ],
+).enableRLS();
 
 export const insertTeamSchema = createInsertSchema(teamsTable);
 export const selectTeamSchema = createSelectSchema(teamsTable);

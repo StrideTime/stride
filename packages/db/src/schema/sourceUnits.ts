@@ -4,6 +4,7 @@ import type { SourceType } from '../enums/SourceType';
 import type { SourceUnitType } from '../enums/SourceUnitType';
 import { workspacesTable } from './workspaces';
 import { sourceConnectionsTable } from './sourceConnections';
+import { workspaceIsolationPolicy } from './rls';
 
 export type JiraBoardMetadata = {
   boardId: string;
@@ -65,8 +66,9 @@ export const sourceUnitsTable = pgTable(
       table.unitType,
       table.externalId,
     ),
+    workspaceIsolationPolicy('source_units', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertSourceUnitSchema = createInsertSchema(sourceUnitsTable);
 export const selectSourceUnitSchema = createSelectSchema(sourceUnitsTable);

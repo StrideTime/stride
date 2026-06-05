@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { ColorToken } from '../enums/ColorToken';
 import type { IconToken } from '../enums/IconToken';
 import type { ScheduledEventSystemKey } from '../enums/ScheduledEventSystemKey';
+import { workspaceIsolationPolicy } from './rls';
 import { workspacesTable } from './workspaces';
 
 export const defaultScheduledEventTypes = [
@@ -50,8 +51,9 @@ export const scheduledEventTypesTable = pgTable(
     index('idx_scheduled_event_types_workspace').on(table.workspaceId),
     uniqueIndex('idx_scheduled_event_types_workspace_system_key')
       .on(table.workspaceId, table.systemKey),
+    workspaceIsolationPolicy('scheduled_event_types', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertScheduledEventTypeSchema = createInsertSchema(scheduledEventTypesTable);
 export const selectScheduledEventTypeSchema = createSelectSchema(scheduledEventTypesTable);

@@ -71,8 +71,20 @@ export async function seed(db: ReturnType<typeof drizzle>): Promise<void> {
   await db
     .insert(teamMembersTable)
     .values([
-      { id: IDS.founderTeamMember, teamId: IDS.team, userId: IDS.founder, role: 'admin' },
-      { id: IDS.memberTeamMember, teamId: IDS.team, userId: IDS.member, role: 'member' },
+      {
+        id: IDS.founderTeamMember,
+        workspaceId: IDS.workspace,
+        teamId: IDS.team,
+        userId: IDS.founder,
+        role: 'admin',
+      },
+      {
+        id: IDS.memberTeamMember,
+        workspaceId: IDS.workspace,
+        teamId: IDS.team,
+        userId: IDS.member,
+        role: 'member',
+      },
     ])
     .onConflictDoNothing();
 

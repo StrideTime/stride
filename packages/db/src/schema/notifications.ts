@@ -1,6 +1,7 @@
 import { pgTable, text, jsonb, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { NotificationType } from '../enums/NotificationType';
+import { workspaceIsolationPolicy } from './rls';
 import { workspacesTable } from './workspaces';
 import { usersTable } from './users';
 import { specsTable } from './specs';
@@ -29,8 +30,9 @@ export const notificationsTable = pgTable(
   table => [
     index('idx_notifications_user').on(table.userId),
     index('idx_notifications_workspace').on(table.workspaceId),
+    workspaceIsolationPolicy('notifications', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertNotificationSchema = createInsertSchema(notificationsTable);
 export const selectNotificationSchema = createSelectSchema(notificationsTable);

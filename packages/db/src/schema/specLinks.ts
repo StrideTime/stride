@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { SpecLinkRelation } from '../enums/SpecLinkRelation';
 import { workspacesTable } from './workspaces';
 import { specsTable } from './specs';
+import { workspaceIsolationPolicy } from './rls';
 
 // A source-synced relationship between two Specs (Blocks / Blocked by / Related / Implements),
 // rendered in the Spec view's linked-issues section.
@@ -27,8 +28,9 @@ export const specLinksTable = pgTable(
   table => [
     index('idx_spec_links_source').on(table.sourceSpecId),
     index('idx_spec_links_target').on(table.targetSpecId),
+    workspaceIsolationPolicy('spec_links', table.workspaceId),
   ],
-);
+).enableRLS();
 
 export const insertSpecLinkSchema = createInsertSchema(specLinksTable);
 export const selectSpecLinkSchema = createSelectSchema(specLinksTable);
