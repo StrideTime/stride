@@ -5,13 +5,6 @@ import { workspacesTable } from './workspaces';
 import { actionsTable } from './actions';
 import { usersTable } from './users';
 
-// A quick mid-session note.
-export type Jot = {
-  at: string; // ISO timestamp
-  text: string;
-  kind: string;
-};
-
 // RESERVED, unused in v1. The provenance-ready slot for later git/file correlation — which
 // commits and files fell inside the Session window — so the timeshape→content upgrade needs
 // no migration (Q21, decisions.mdc 2026-06-02).
@@ -38,11 +31,8 @@ export const sessionsTable = pgTable(
     startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
     endedAt: timestamp('ended_at', { withTimezone: true }),
     elapsedMin: integer('elapsed_min').notNull().default(0),
-    notes: text('notes'),
-    jots: jsonb('jots').$type<Jot[]>().notNull().default([]),
     // Set at the end-of-session check-in:
     feeling: text('feeling').$type<Feeling>(),
-    endNote: text('end_note'),
     markDone: boolean('mark_done').notNull().default(false),
     contentSignal: jsonb('content_signal').$type<ContentSignal>(),
     signalSource: text('signal_source'),

@@ -79,7 +79,8 @@ packages/
 3. Command persisted to SQLite queue (survives app kills)
 4. Background drainer sends commands to Hono API FIFO with exponential backoff
 5. Server applies RLS + business rules + optimistic concurrency, returns canonical state
-6. Server `processed_mutations` table enables safe idempotent retries
+6. Server idempotency ledger enables safe retries (the early `processed_mutations` table was
+   deferred from MVP on 2026-06-04)
 7. Conflicts: 409 version / 422 business rule / 403 permission → rollback + rejected-mutation UI
 
 **Source integration:**
@@ -194,9 +195,10 @@ they constrain the first tables):
   (2026-05-21) without pulling desktop/git work into the MVP.
 - **Onboarding is account-first (Q11).** A person creates a User account first, then runs
   workspace creation (plan preview → name → invite teammates by email). The founder flow
-  mints User + Workspace + Membership(workspace_admin); invite acceptance is a magic link
-  that mints a Member Membership and drops them inside the workspace. There is no standalone
-  signup surface; `/auth/login` serves returning users. Billing stays a preview (deferred).
+  mints User + Workspace + workspace Membership(`admin`); invite acceptance is a magic link
+  that mints a workspace Membership(`member`) and drops them inside the workspace. There is
+  no standalone signup surface; `/auth/login` serves returning users. Billing stays a preview
+  (deferred).
 
 Does not contradict the 2026-05-04 / 2026-05-12 / 2026-05-21 entries; it confirms and
 extends them.
@@ -214,10 +216,8 @@ the schema was expanded to 17 tables to support what actually exists. Decisions:
   and status/priority/difficulty mappings live on `teamSourceMappings`, not on the pooled
   `sourceConnections` (workflows differ per board/team/repo).
 - **The Schedule plan layer is a real table** (`scheduledEvents`). It is distinct from the
-  actual layer (`sessions`). `ScheduledEventType` is a **fixed enum in v1** (customization —
-  a type table with color/icon/archive — is post-MVP per `mvp.md`); historical events keep
-  their enum value, and the enum→FK migration happens when custom types land. Recurrence is a
-  jsonb rule; occurrence exceptions/overrides remain an open schema question.
+  actual layer (`sessions`). Superseded 2026-06-03/04: schedule event types are workspace rows
+  seeded with defaults, and recurrence stores RRULE + timezone + exceptions/overrides.
 - **Three cross-cutting surfaces get lean tables**: `notifications` (the Inbox — single-player
   gets `assigned`/`source_drift`, team types populate later), `specLinks` (source-synced
   Blocks/Blocked-by/Related/Implements), and `specActivity` (append-only, non-derivable audit
@@ -228,12 +228,14 @@ the schema was expanded to 17 tables to support what actually exists. Decisions:
   tabs, the `attention` flags (`unassigned` / `closed-in-source` / `just-landed` — the last from
   `specs.assignedAt`), `action.scheduled` and future-scheduled minutes, `recommendationReason`,
   a Spec's display `type`, and the reconstructable parts of the Spec history timeline.
-- **Settings are jsonb, not columns** (`workspaces.settings`, `teams.settings`,
-  `memberships.notificationPrefs`, `users.settings`) — config, not relational data.
-- Added `actions.difficulty` and `captures.kind` (small enums) as real stored fields.
+- **Settings are jsonb, not columns** (`memberships.notificationPrefs`, `users.settings`) —
+  config, not relational data. The original `workspaces.settings` and `teams.settings`
+  placeholders are superseded by the 2026-06-03 settings decisions below.
+- Added `actions.difficulty` as a real stored field. `captures.kind` was later deferred with
+  the capture table in the 2026-06-04 MVP cleanup.
 
 Deferred (not in the schema): calendar-connection tables, billing, the person-level
-blocker/nudge chokepoint graph (`waitingOn`/`blocking`), and recurrence exceptions/overrides.
+blocker/nudge chokepoint graph (`waitingOn`/`blocking`), and capture/concept learning tables.
 
 ## 2026-06-02: Deployment environments — three isolated rungs, promote-the-same-commit, migrate-on-deploy
 
@@ -315,3 +317,84 @@ Supersedes the Schedule-plan-layer bullet in the 2026-06-02 schema entry.
 Also supersedes the Neon names in the 2026-06-02 deployment entry: the actual projects are
 `Stride Production` and `Stride Development`, and ephemeral E2E branches copy from `baseline`
 (not `golden`).
+
+## 2026-06-03: Spec status comes from source status mappings, not a local open/closed enum
+
+Supersedes the `specs.status` part of the 2026-06-02 schema entry.
+
+- **Specs do not have a Stride-native `open | closed` lifecycle enum.** Source systems own the
+  status vocabulary and status changes happen through the mapped source status picker.
+- `specs.sourceStatus` stores the current source-native status label/key for display.
+- `specs.mappedStatus` stores the stable Team mapping key used for filtering and derived views.
+- `teamSourceMappings.statusMapping` owns source-status → mapped-status metadata because workflows
+  differ by board/team/repo. The pooled source connection does not own status semantics.
+
+## 2026-06-03: Source mappings own badge metadata for status, priority, and difficulty
+
+Clarifies the 2026-06-02 schema entry and the source-mapping settings surface.
+
+- Team Source mapping has three mapped sections: status, priority, and difficulty.
+- Each section maps a source key/label to a Stride mapped badge definition: stable mapped key,
+  display mode (`text` or `icon`), optional text/icon value, and color.
+- Specs store `sourceStatus`/`mappedStatus` and `sourcePriority`/`mappedPriority` separately.
+- Specs also store `sourceDifficulty`/`mappedDifficulty`. Actions keep a Stride-owned
+  `difficulty`; they are not source-mapped.
+
+## 2026-06-04: MVP schema cleanup after source/schema review
+
+- Cut `captures`, `conceptLinks`, and `processedMutations` from MVP. Capture/learning and the
+  offline mutation queue return when their full behaviors are designed.
+- Sessions no longer embed `notes`, `jots`, or `endNote`; `session_notes` is the crawlable note
+  timeline for manual notes, session-end feedback, and future capture-originated notes.
+- Actions keep a Stride-owned `difficulty`; Specs carry source/mapped difficulty alongside
+  source/mapped status and priority.
+- Scheduled recurrence uses RRULE + timezone + exceptions/overrides. External event editability
+  is derived from external provenance rather than a separate `fixed` flag.
+- Schedule type colors/icons and user accent colors use curated token keys backed by hex/icon
+  maps, so palette/icon changes can happen centrally without breaking stored rows.
+
+## 2026-06-04: Source units are first-class sync targets
+
+- Keep one `sourceConnections` table with typed provider metadata for Jira, Linear, and GitHub.
+- Store syncable Jira boards, Linear Teams, and GitHub repositories in `sourceUnits`; do not cache
+  available units as loose JSON on the connection.
+- Team Source mappings point to `sourceUnits`, which gives sync/deep-link code stable provider
+  metadata while preserving one mapping per source unit per workspace.
+- Specs may point to the source unit that produced them. `sourceCycle` is sprint/cycle only;
+  epic/initiative/milestone/project-style grouping is represented through structured source labels.
+
+## 2026-06-03: Workspace roles and Team roles are separate scoped enums
+
+Supersedes the shared `MembershipRole` enum from the first schema pass.
+
+- Workspace Memberships have `role: member | admin`.
+- Team Memberships have `role: member | admin`.
+- Workspace admin and team admin are independent permissions stored on different tables; a
+  person can be one, both, or neither. There is no single role ladder that mixes
+  `workspace_admin` and `team_admin`.
+
+## 2026-06-03: Team General settings are explicit columns, not generic JSON
+
+Supersedes the `teams.settings` part of the 2026-06-02 schema entry.
+
+- The Team Admin General UI controls the Stride team name plus six workflow/breakdown defaults:
+  new synced spec destination, triage owner, missing-estimate behavior, unassigned-work behavior,
+  ready-to-schedule rule, and stale-breakdown nudge.
+- These live as typed columns on `teams`; the previous generic `settings` JSON placeholder is
+  removed.
+- Source-owned identifiers and source-to-team assignment stay in Team Source mapping. Team General
+  does not control member working hours, working mode, notification timing, presence, or focus
+  status.
+
+## 2026-06-03: Workspace General settings are explicit columns, not generic JSON
+
+Supersedes the `workspaces.settings` part of the 2026-06-02 schema entry.
+
+- The Workspace Admin General UI controls workspace identity (name, address slug, logo) plus
+  invite permission, Team admin grant permission, source request permission, unmapped source unit
+  routing, cross-team move reviewer, and awaiting-approval destination.
+- These live as typed columns on `workspaces`; the previous generic `settings` JSON placeholder
+  is removed.
+- Personal workspace preferences stay on the user or workspace membership, not on the Workspace:
+  working hours, calendar opt-in, notification overrides, tracking preferences, working mode,
+  presence, and focus status.

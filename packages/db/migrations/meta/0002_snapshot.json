@@ -1,6 +1,6 @@
 {
-  "id": "3d0135fd-27ba-4fda-8dc7-1612914dc800",
-  "prevId": "cdbecd7d-71a1-4e3d-91ac-b6cd59c551b2",
+  "id": "f1a97385-a072-42ba-8d76-73415648ee10",
+  "prevId": "3d0135fd-27ba-4fda-8dc7-1612914dc800",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -814,15 +814,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'open'"
-        },
         "source_status": {
           "name": "source_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mapped_status": {
+          "name": "mapped_status",
           "type": "text",
           "primaryKey": false,
           "notNull": true

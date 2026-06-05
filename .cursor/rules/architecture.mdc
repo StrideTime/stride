@@ -140,7 +140,7 @@ Server-authoritative with optimistic updates and a durable SQLite mutation queue
 
 **Rules:**
 - All issues sync regardless of Epic/Project/Milestone membership — issues without groupings appear uncategorized, never hidden
-- Status mapping is defined at connection time — admin maps source custom statuses to Stride internal states. UI always displays source vocabulary.
+- Status, priority, and difficulty mapping are defined in Team Source mapping — admin maps source values to Stride badge metadata while the raw source values stay source-owned.
 - Webhook ingest → CF Queue → consumer Worker → Neon. CF Cron Trigger polls Jira periodically (Jira webhooks are best-effort, no replay mechanism).
 - Stride creates issues in source systems only during spec-splitting in refinement. Stride never creates Jira Spaces, Linear Teams, or GitHub Repos.
 

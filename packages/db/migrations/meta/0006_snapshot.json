@@ -1,6 +1,6 @@
 {
-  "id": "3d0135fd-27ba-4fda-8dc7-1612914dc800",
-  "prevId": "cdbecd7d-71a1-4e3d-91ac-b6cd59c551b2",
+  "id": "fe7503fe-fd04-48c7-933d-6417a7aee487",
+  "prevId": "f4482143-b0a1-4a29-9bf0-b8449282d5f9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -100,6 +100,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "plan": {
           "name": "plan",
           "type": "text",
@@ -107,11 +119,47 @@
           "notNull": true,
           "default": "'free'"
         },
-        "settings": {
-          "name": "settings",
-          "type": "jsonb",
+        "invite_permission": {
+          "name": "invite_permission",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'workspace-and-team-admins'"
+        },
+        "grant_team_admin_permission": {
+          "name": "grant_team_admin_permission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'workspace-admins'"
+        },
+        "source_request_permission": {
+          "name": "source_request_permission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'team-admins'"
+        },
+        "unmapped_source_unit_behavior": {
+          "name": "unmapped_source_unit_behavior",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'admin-review'"
+        },
+        "cross_team_move_reviewer": {
+          "name": "cross_team_move_reviewer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'destination-team-admin'"
+        },
+        "awaiting_approval_destination": {
+          "name": "awaiting_approval_destination",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'backlog-attention'"
         },
         "created_at": {
           "name": "created_at",
@@ -308,11 +356,47 @@
           "primaryKey": false,
           "notNull": true
         },
-        "settings": {
-          "name": "settings",
-          "type": "jsonb",
+        "new_spec_destination": {
+          "name": "new_spec_destination",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'needs-breakdown'"
+        },
+        "triage_owner": {
+          "name": "triage_owner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'team-admins'"
+        },
+        "missing_estimates_behavior": {
+          "name": "missing_estimates_behavior",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ask-during-breakdown'"
+        },
+        "unassigned_work_behavior": {
+          "name": "unassigned_work_behavior",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'team-inbox'"
+        },
+        "ready_to_schedule_rule": {
+          "name": "ready_to_schedule_rule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'one-action'"
+        },
+        "stale_breakdown_nudge": {
+          "name": "stale_breakdown_nudge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'3-days'"
         },
         "created_at": {
           "name": "created_at",
@@ -814,27 +898,26 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'open'"
-        },
         "source_status": {
           "name": "source_status",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "priority": {
-          "name": "priority",
+        "mapped_status": {
+          "name": "mapped_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_priority": {
+          "name": "source_priority",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "source_priority": {
-          "name": "source_priority",
+        "mapped_priority": {
+          "name": "mapped_priority",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1320,8 +1403,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "difficulty": {
-          "name": "difficulty",
+        "source_difficulty": {
+          "name": "source_difficulty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mapped_difficulty": {
+          "name": "mapped_difficulty",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -59,8 +59,8 @@ that lives only in marketing copy is not a principle.
 
 1. **Visible data ownership.** The user can see and delete the data Stride has captured
    about them. *Enforced by:* a "my data" surface in v1 (sessions, feeling check-ins,
-   captures, with delete) — see [`mvp.md`](mvp.md). The system may capture more than it
-   surfaces, but the user can always see what was captured.
+   session notes, with delete) — see [`mvp.md`](mvp.md). The system may record more than it
+   surfaces, but the user can always see what was recorded.
 
 2. **Asymmetric access.** Per-person signal lives in the database; the API surface for
    aggregates **cannot return individual rows**. *Enforced by:* aggregate endpoints

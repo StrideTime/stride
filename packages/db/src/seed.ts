@@ -52,13 +52,13 @@ export async function seed(db: ReturnType<typeof drizzle>): Promise<void> {
 
   await db
     .insert(workspacesTable)
-    .values({ id: IDS.workspace, name: 'Acme Engineering', plan: 'free' })
+    .values({ id: IDS.workspace, name: 'Acme Engineering', slug: 'acme', plan: 'free' })
     .onConflictDoNothing();
 
   await db
     .insert(membershipsTable)
     .values([
-      { id: IDS.founderMembership, workspaceId: IDS.workspace, userId: IDS.founder, role: 'workspace_admin' },
+      { id: IDS.founderMembership, workspaceId: IDS.workspace, userId: IDS.founder, role: 'admin' },
       { id: IDS.memberMembership, workspaceId: IDS.workspace, userId: IDS.member, role: 'member' },
     ])
     .onConflictDoNothing();
@@ -71,7 +71,7 @@ export async function seed(db: ReturnType<typeof drizzle>): Promise<void> {
   await db
     .insert(teamMembersTable)
     .values([
-      { id: IDS.founderTeamMember, teamId: IDS.team, userId: IDS.founder, role: 'team_admin' },
+      { id: IDS.founderTeamMember, teamId: IDS.team, userId: IDS.founder, role: 'admin' },
       { id: IDS.memberTeamMember, teamId: IDS.team, userId: IDS.member, role: 'member' },
     ])
     .onConflictDoNothing();

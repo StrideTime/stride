@@ -3,16 +3,31 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { SourceType } from '../enums/SourceType';
 import { workspacesTable } from './workspaces';
 
-// The external unit a connection maps to: a Jira board, a Linear Team, or a GitHub repo.
-export type MappedUnit = {
-  unitType: string; // 'jira_board' | 'linear_team' | 'github_repo'
-  externalId: string;
-  label: string;
+export type JiraConnectionMetadata = {
+  cloudId: string;
+  siteUrl: string;
+  siteName?: string;
 };
 
-// Workspace-pooled connection to an external source account (Jira only in v1). Status and
-// priority mappings belong to the unit mapping because workflows differ by board/team/repo.
-// Credentials live here; the real implementation encrypts them at rest.
+export type LinearConnectionMetadata = {
+  organizationId: string;
+  organizationUrlKey: string;
+};
+
+export type GitHubConnectionMetadata = {
+  installationId: string;
+  accountLogin: string;
+  accountType: 'User' | 'Organization';
+};
+
+export type SourceConnectionMetadata =
+  | { provider: 'jira'; jira: JiraConnectionMetadata }
+  | { provider: 'linear'; linear: LinearConnectionMetadata }
+  | { provider: 'github'; github: GitHubConnectionMetadata };
+
+// Workspace-pooled connection to an external source account (Jira only in v1). Credentials
+// live here; the real implementation encrypts them at rest. Syncable units discovered through
+// the connection live in `sourceUnits`.
 export const sourceConnectionsTable = pgTable(
   'source_connections',
   {
@@ -21,12 +36,9 @@ export const sourceConnectionsTable = pgTable(
       .notNull()
       .references(() => workspacesTable.id),
     sourceType: text('source_type').$type<SourceType>().notNull(),
-    externalAccountId: text('external_account_id').notNull(),
     displayName: text('display_name').notNull(),
+    metadata: jsonb('metadata').$type<SourceConnectionMetadata>(),
     credentials: jsonb('credentials').$type<Record<string, unknown>>(),
-    mappedUnit: jsonb('mapped_unit').$type<MappedUnit>(),
-    statusMapping: jsonb('status_mapping').$type<Record<string, string>>(),
-    priorityMapping: jsonb('priority_mapping').$type<Record<string, string>>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deleted: boolean('deleted').notNull().default(false),

@@ -1,10 +1,14 @@
 import { pgTable, text, jsonb, timestamp, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import type { ColorToken } from '../enums/ColorToken';
 
 // Account-wide preferences. Per-workspace personal settings live on `memberships`.
 export type UserSettings = {
   appearance?: 'system' | 'light' | 'dark';
+  accentColor?: ColorToken;
   locale?: string;
+  // Account-wide default notification preferences; per-workspace overrides live on memberships.
+  notificationDefaults?: Record<string, unknown>;
 };
 
 // Account-wide identity. Better Auth owns the credential/session tables separately; this is

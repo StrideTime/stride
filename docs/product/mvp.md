@@ -58,7 +58,7 @@ Execution before reflection. Each step ships incrementally:
 
 - **Session flow** — start / live timer (Today + tray + sidebar mini-indicator) / end /
   feeling check-in (icons: frown / neutral / smile / target) + optional note +
-  mark-done-or-keep-open. Mid-session jots. The gentle variance nudge (~1.5–2× over
+  mark-done-or-keep-open. Session notes. The gentle variance nudge (~1.5–2× over
   estimate). This is the core loop.
 - **Spec view** — `/specs/$specId` route + the ad-hoc quick-look modal. Overview: editable
   title, markdown description, **Actions with full CRUD** (manual creation, no AI panel),
@@ -80,9 +80,9 @@ Execution before reflection. Each step ships incrementally:
   ships the quiet day compass: strict wall-clock current block, next block, and free-time
   priority suggestions. Capture remains a separate shortcut-driven surface, not part of
   the Tray.
-- **"My data" view** — in Settings. The user can see and delete their captured data:
-  recent sessions, feeling check-ins, captures. Minimal is fine — a list with delete
-  buttons. This ships *because* the backend captures more than it surfaces (see below);
+- **"My data" view** — in Settings. The user can see and delete their recorded data:
+  recent sessions, feeling check-ins, and session notes. Minimal is fine — a list with delete
+  buttons. This ships *because* the backend records more than it surfaces (see below);
   visible data ownership is a [`principles.md`](principles.md) commitment, not a feature
   to defer.
 - **Jira sync — one-way, simple.** Specs sync in; status syncs back. OAuth; the
@@ -91,15 +91,15 @@ Execution before reflection. Each step ships incrementally:
   only.
 - **Auth** — Better Auth, invite-only. No public signup, no billing.
 
-### Backend captures signal even though Insights is deferred
+### Backend records signal even though Insights is deferred
 
 The Insights *surface* is cut from v1. Signal *capture* is not. From day one the backend
 records the full execution signal — session timings, estimate-vs-actual, feeling
-check-ins, jots, what closed when — so that when Insights returns it has clean historical
+check-ins, notes, what closed when — so that when Insights returns it has clean historical
 data to work from. Capturing long-term data is core to how the backend is architected.
 
-This is *why* the "my data" view is in v1: if Stride captures more than it surfaces, the
-user must be able to see what was captured. See [`principles.md`](principles.md).
+This is *why* the "my data" view is in v1: if Stride records more than it surfaces, the
+user must be able to see what was recorded. See [`principles.md`](principles.md).
 
 ## Deferred (v1.x or later)
 
@@ -148,8 +148,7 @@ These cost little now and are expensive or impossible to retrofit. See
 
 `apps/api` + `packages/db` need roughly: **User, Workspace** (workspace-scoped schema +
 RLS stay in, even single-user); **SourceConnection** (Jira only — credentials, mapping,
-sync state); **Spec, Action, Session**; **Capture**; the signal-capture tables; the
-cross-cutting junction table (empty); `processed_mutations` only if the offline queue is
-kept (deferred — likely not v1). Hono routes for each. **One sync ingest: Jira.** Better
+sync state); **Spec, Action, Session, SessionNote**; capture/concept learning tables and the
+offline mutation queue are post-MVP. Hono routes for each. **One sync ingest: Jira.** Better
 Auth (invite-based). **No LLM service, no comments, no Linear/calendar, no team-layer
 routes** in v1. Build trailing the FE by one screen.

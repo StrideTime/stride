@@ -17,7 +17,7 @@ ALTER TABLE "scheduled_events" ADD COLUMN "type_id" text NOT NULL;--> statement-
 ALTER TABLE "scheduled_events" ADD COLUMN "external_metadata" jsonb;--> statement-breakpoint
 ALTER TABLE "scheduled_event_types" ADD CONSTRAINT "scheduled_event_types_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_scheduled_event_types_workspace" ON "scheduled_event_types" USING btree ("workspace_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_scheduled_event_types_workspace_system_key" ON "scheduled_event_types" USING btree ("workspace_id","system_key") WHERE "scheduled_event_types"."system_key" is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_scheduled_event_types_workspace_system_key" ON "scheduled_event_types" USING btree ("workspace_id","system_key");--> statement-breakpoint
 ALTER TABLE "scheduled_events" ADD CONSTRAINT "scheduled_events_type_id_scheduled_event_types_id_fk" FOREIGN KEY ("type_id") REFERENCES "public"."scheduled_event_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_scheduled_events_type" ON "scheduled_events" USING btree ("type_id");--> statement-breakpoint
 ALTER TABLE "scheduled_events" DROP COLUMN "type";--> statement-breakpoint

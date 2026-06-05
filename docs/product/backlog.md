@@ -49,8 +49,8 @@ Optional in-page state:
 
 - `q=...` — search title, source key/id, label, project/epic, or action title
 - `assignee=mine | unassigned | userId | all` — assignee filter
-- `priority=...` — source vocabulary value or mapped internal priority
-- `status=...` — source vocabulary value or mapped internal status
+- `priority=...` — source priority value or source-mapped priority badge key
+- `status=...` — source vocabulary value or source-mapped status
 - `project=...` / `sprint=...`
 - `label=...`
 - `attention=blocked | awaitingApproval | sourceClosedOpenHere | justLanded | unassigned`
@@ -208,7 +208,8 @@ Chips should be concise. They must not turn every row into a warning banner.
 
 ## Source vocabulary
 
-Stride stores internal normalized status/priority but displays source vocabulary everywhere.
+Stride stores source-native status/priority plus Team source-mapped badge keys. The mapping
+metadata owns the badge text/icon/color shown in Stride; the source values remain source-owned.
 
 Examples:
 

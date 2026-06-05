@@ -33,7 +33,7 @@ v1 is the execution-layer foundation — nothing more. Future versions add the s
 ## Who it's for
 
 - **Individual contributors — the primary user.** Runs sessions, breaks down and closes specs, wants to understand their own productivity without overhead. Even solo users sit in a team context; Stride is most valuable paired with an existing tracker.
-- **Team leads / workspace admins — secondary.** Need aggregate visibility (throughput, estimates vs actuals, team patterns, burnout signals) and never individual-level surveillance. Roles are additive: Member ⊂ Team Admin ⊂ Workspace Admin — admins get the same task views plus approve/edit. The nitty-gritty stays personal. (Full strategic framing: [`../PRODUCT.md`](../PRODUCT.md).)
+- **Team leads / workspace admins — secondary.** Need aggregate visibility (throughput, estimates vs actuals, team patterns, burnout signals) and never individual-level surveillance. Workspace admin and team admin are independent scoped permissions; admins get the same task views plus approve/edit within their scope. The nitty-gritty stays personal. (Full strategic framing: [`../PRODUCT.md`](../PRODUCT.md).)
 
 ## User modes
 
@@ -67,7 +67,7 @@ Full stack: [`../architecture/overview.md`](../architecture/overview.md) → `.c
 
 ## Stance notes
 
-- **Source vocabulary always wins in the UI.** Stride has internal states, but it displays Jira / Linear / GitHub's own priority and status names; the mapping is set when a source is connected.
+- **Source vocabulary stays source-owned.** Team Source mapping turns Jira / Linear / GitHub status, priority, and difficulty values into Stride badge metadata without letting the app rename the source value itself.
 - **Minimal gamification.** Streaks and achievements derived from real captured data. Icons, not emojis. No points-for-points'-sake. (An older prototype had a 3-points-per-task model — dead; see [`../reference/archived.md`](../reference/archived.md).)
 - **UX before UI.** The current prototype's flows, screen inventory, and data model are authoritative; its visual style is not. Per the user: "nail down experiences before nailing down a design library."
 - `PRODUCT.md` predates two refinements that this doc reflects: GitHub as a third source (it says "Jira and Linear"), and the rejection of "shipped" as a metric label (use "specs closed" / "PRs merged"). Treat `overview.md` as the current functional description; `PRODUCT.md` as the strategic frame.
